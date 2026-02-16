@@ -3,8 +3,15 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
+const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
+const githubPagesBase =
+  process.env.GITHUB_ACTIONS === "true" && repositoryName
+    ? `/${repositoryName}/`
+    : "/";
+
 // https://vite.dev/config/
 export default defineConfig({
+  base: githubPagesBase,
   plugins: [
     react({
       babel: {
