@@ -4,7 +4,7 @@ A modern, lightweight, and platform-independent tool for the
 graphical construction and manipulation of Gene Regulatory Networks.
 
 ## How to use
-The application can be accessed via GitHub Pages
+The application can be accessed via [GitHub Pages](https://goncaloacbsilva.github.io/GRNCore)
 
 ## Development
 
