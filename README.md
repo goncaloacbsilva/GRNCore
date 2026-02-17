@@ -1,4 +1,4 @@
-<div  align="center"> <img style="border-radius: 10px" src="docs/assets/hero.png"> </div>
+<div  align="center"> <img src="docs/assets/hero.png"> </div>
 
 
 # GRN Core
