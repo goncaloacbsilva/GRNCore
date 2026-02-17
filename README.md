@@ -1,3 +1,6 @@
+<div  align="center"> <img src="docs/assets/hero.png"> </div>
+
+
 # GRN Core
 
 A modern, lightweight, and platform-independent tool for the
