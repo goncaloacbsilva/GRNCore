@@ -15,6 +15,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { Separator } from "../ui/separator";
 
 export interface NavigationItem {
   title: string;
