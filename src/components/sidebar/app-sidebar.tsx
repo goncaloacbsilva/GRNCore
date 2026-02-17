@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronRight, PlusIcon } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { NavMain } from "@/components/sidebar/nav-main";
 import {
@@ -16,7 +16,6 @@ import { NAVIGATION_ITEMS } from "./data";
 import { Button } from "../ui/button";
 import { twJoin } from "tailwind-merge";
 import { CreateModelButton } from "./create-model";
-import { Separator } from "../ui/separator";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const context = useSidebar();
