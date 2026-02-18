@@ -1,5 +1,6 @@
 import { DotsGrid } from "@/lib/g6-extensions/dots-grid";
 import { createGraphResizeController } from "@/lib/graph-resize-controller";
+import { separateParallelEdges } from "@/lib/separate-parallel-edges";
 import {
   ExtensionCategory,
   Graph as G6Graph,
@@ -9,7 +10,8 @@ import {
 } from "@antv/g6";
 import { ReactNode } from "@antv/g6-extension-react";
 import { useEffect, useRef } from "react";
-import { RegulatoryNode } from "./elements";
+import { RegulatoryEdge, RegulatoryNode } from "./elements";
+import { P53_MODEL } from "@/data/p53-model";
 
 export interface GraphProps {
   onRender?: (graph: G6Graph) => void;
@@ -19,34 +21,11 @@ export interface GraphProps {
 const createGraphConfig = (
   onNodeResize: (id: string, width: number, height: number) => void,
 ): GraphOptions => ({
-  data: {
-    nodes: [
-      {
-        id: "node-1",
-        style: { x: 50, y: 100, size: [20, 20] },
-        data: {
-          name: "p53",
-        },
-      },
-      {
-        id: "node-2",
-        style: { x: 150, y: 100, size: [20, 20] },
-        data: {
-          name: "Mdm2cyt",
-        },
-      },
-    ],
-    edges: [
-      {
-        id: "edge-1",
-        source: "node-1",
-        target: "node-2",
-        states: ["hidden"],
-      },
-    ],
-  },
+  data: separateParallelEdges(P53_MODEL),
   edge: {
+    type: "regulatory-edge",
     state: {
+      dim: { opacity: 0.2 },
       hidden: { opacity: 0 },
       visible: { opacity: 1 },
     },
@@ -80,6 +59,19 @@ const createGraphConfig = (
     },
     "drag-element",
     "scroll-canvas",
+    {
+      type: "hover-activate",
+      degree: 1, // 👈🏻 Activate relations.
+      inactiveState: "dim",
+      onHover: (event: { view?: { setCursor: (cursor: string) => void } }) => {
+        event.view?.setCursor("pointer");
+      },
+      onHoverEnd: (event: {
+        view?: { setCursor: (cursor: string) => void };
+      }) => {
+        event.view?.setCursor("default");
+      },
+    },
   ],
   plugins: [
     {
@@ -121,6 +113,9 @@ export const Graph = (props: GraphProps) => {
     // Register the ReactNode extension
     register(ExtensionCategory.NODE, "react-node", ReactNode);
 
+    // Register custom edge
+    register(ExtensionCategory.EDGE, "regulatory-edge", RegulatoryEdge);
+
     return () => {
       isUnmountedRef.current = true;
       isGraphReadyRef.current = false;
@@ -133,6 +128,7 @@ export const Graph = (props: GraphProps) => {
     };
   }, []);
 
+  // Initialize and render the graph once the component is mounted
   useEffect(() => {
     const container = containerRef.current;
     const graph = graphRef.current;
