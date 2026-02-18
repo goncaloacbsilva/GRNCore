@@ -3,7 +3,6 @@
 import * as React from "react";
 import { ChevronRight } from "lucide-react";
 
-import { NavMain } from "@/components/sidebar/nav-main";
 import {
   Sidebar,
   SidebarContent,
@@ -13,9 +12,10 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "./logo";
 import { NAVIGATION_ITEMS } from "./data";
-import { Button } from "../ui/button";
 import { twJoin } from "tailwind-merge";
 import { CreateModelButton } from "./create-model";
+import { NavMain } from "./nav-main";
+import { Button } from "@/components/ui/button";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const context = useSidebar();

@@ -4,9 +4,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   type SidebarContextProps,
-} from "../ui/sidebar";
-import { DropdownMenu } from "../ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+} from "@/components/ui/sidebar";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface CreateModelButtonProps {
   context: SidebarContextProps;
