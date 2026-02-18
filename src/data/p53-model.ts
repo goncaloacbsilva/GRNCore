@@ -36,7 +36,6 @@ export const P53_MODEL: GraphData = {
       id: "edge-1",
       source: "node-1",
       target: "node-2",
-      states: ["hidden"],
       data: {
         type: "inhibition",
       },
@@ -45,7 +44,6 @@ export const P53_MODEL: GraphData = {
       id: "edge-2",
       source: "node-1",
       target: "node-3",
-      states: ["hidden"],
       data: {
         type: "activation",
       },
@@ -54,7 +52,6 @@ export const P53_MODEL: GraphData = {
       id: "edge-3",
       source: "node-1",
       target: "node-4",
-      states: ["hidden"],
       data: {
         type: "inhibition",
       },
@@ -63,7 +60,6 @@ export const P53_MODEL: GraphData = {
       id: "edge-4",
       source: "node-3",
       target: "node-4",
-      states: ["hidden"],
       data: {
         type: "activation",
       },
@@ -72,7 +68,6 @@ export const P53_MODEL: GraphData = {
       id: "edge-5",
       source: "node-2",
       target: "node-4",
-      states: ["hidden"],
       data: {
         type: "inhibition",
       },
@@ -81,9 +76,17 @@ export const P53_MODEL: GraphData = {
       id: "edge-6",
       source: "node-4",
       target: "node-1",
-      states: ["hidden"],
       data: {
         type: "inhibition",
+      },
+    },
+    {
+      id: "edge-7",
+      source: "node-2",
+      target: "node-2",
+      style: { loopPlacement: "top-right" },
+      data: {
+        type: "activation",
       },
     },
   ],

@@ -5,6 +5,7 @@ import {
   ExtensionCategory,
   Graph as G6Graph,
   register,
+  type GraphData,
   type GraphOptions,
   type NodeData,
 } from "@antv/g6";
@@ -18,10 +19,24 @@ export interface GraphProps {
   onDestroy?: () => void;
 }
 
+const initialRendering = (graph: GraphData): GraphData => {
+  // Hide all edges initially.
+
+  if (!graph.edges) return graph;
+
+  return {
+    ...graph,
+    edges: graph.edges.map((edge) => ({
+      ...edge,
+      states: [...(edge.states ?? []), "hidden"],
+    })),
+  };
+};
+
 const createGraphConfig = (
   onNodeResize: (id: string, width: number, height: number) => void,
 ): GraphOptions => ({
-  data: separateParallelEdges(P53_MODEL),
+  data: separateParallelEdges(initialRendering(P53_MODEL)),
   edge: {
     type: "regulatory-edge",
     state: {

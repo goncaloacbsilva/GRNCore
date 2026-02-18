@@ -5,6 +5,9 @@ import { Quadratic, type BaseEdgeStyleProps, type EdgeData } from "@antv/g6";
 const DEFAULT_INTERACTION_TYPE: InteractionType = "activation";
 const INHIBITION_ARROW_SIZE: [number, number] = [2, 14];
 const INHIBITION_ARROW_OFFSET = 8;
+const SELF_LOOP_DIST = 44;
+const SELF_LOOP_PLACEMENT: Required<BaseEdgeStyleProps>["loopPlacement"] =
+  "top";
 
 const EDGE_STYLES: Record<InteractionType, Partial<BaseEdgeStyleProps>> = {
   activation: {
@@ -43,12 +46,20 @@ export class RegulatoryEdge extends Quadratic {
       | Partial<RegulatoryEdgeProperties>
       | undefined;
     const interactionType = edgeProperties?.type ?? DEFAULT_INTERACTION_TYPE;
+    const isSelfLoop = this.edgeData?.source === this.edgeData?.target;
+    const selfLoopStyle = isSelfLoop
+      ? {
+          loopDist: SELF_LOOP_DIST,
+          loopPlacement: SELF_LOOP_PLACEMENT,
+        }
+      : {};
 
     super.render(
       {
         ...attributes,
         ...EDGE_STYLES[interactionType],
         lineWidth: 2,
+        ...selfLoopStyle,
       } as Required<BaseEdgeStyleProps>,
       container,
     );
