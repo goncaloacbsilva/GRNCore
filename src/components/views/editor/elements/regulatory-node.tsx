@@ -16,8 +16,16 @@ export function RegulatoryNode({ data, onResize }: RegulatoryNodeProps) {
     if (!element || !onResize) return;
 
     const notify = () => {
-      const { width, height } = element.getBoundingClientRect();
-      onResize(Math.ceil(width), Math.ceil(height));
+      const width = element.offsetWidth;
+      const height = element.offsetHeight;
+
+      if (width > 0 && height > 0) {
+        onResize(width, height);
+        return;
+      }
+
+      const rect = element.getBoundingClientRect();
+      onResize(Math.ceil(rect.width), Math.ceil(rect.height));
     };
 
     notify();
