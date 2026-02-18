@@ -1,4 +1,5 @@
 import { DotsGrid } from "@/lib/g6-extensions/dots-grid";
+import { createGraphResizeController } from "@/lib/graph-resize-controller";
 import {
   ExtensionCategory,
   Graph as G6Graph,
@@ -96,18 +97,18 @@ export const Graph = (props: GraphProps) => {
   const { onRender, onDestroy } = props;
   const graphRef = useRef<G6Graph>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number | null>(null);
-  const sizeCacheRef = useRef<Map<string, string>>(new Map());
-  const pendingSizeRef = useRef<Map<string, [number, number]>>(new Map());
-  const measuredNodeIdsRef = useRef<Set<string>>(new Set());
-  const expectedNodeIdsRef = useRef<Set<string>>(new Set());
-  const hasRevealedEdgesRef = useRef(false);
-  const revealTimeoutRef = useRef<number | null>(null);
   const isGraphReadyRef = useRef(false);
   const isUnmountedRef = useRef(false);
+  const onRenderRef = useRef(onRender);
+  const onDestroyRef = useRef(onDestroy);
   const isIgnorableGraphError = (error: unknown) =>
     error instanceof Error &&
     error.message.includes("this.context.element.draw");
+
+  useEffect(() => {
+    onRenderRef.current = onRender;
+    onDestroyRef.current = onDestroy;
+  }, [onDestroy, onRender]);
 
   useEffect(() => {
     isUnmountedRef.current = false;
@@ -126,7 +127,7 @@ export const Graph = (props: GraphProps) => {
       const graph = graphRef.current;
       if (graph) {
         graph.destroy();
-        onDestroy?.();
+        onDestroyRef.current?.();
         graphRef.current = undefined;
       }
     };
@@ -138,124 +139,21 @@ export const Graph = (props: GraphProps) => {
 
     if (!container || !graph || graph.destroyed) return;
 
-    const scheduleDraw = () => {
-      if (rafRef.current !== null) return;
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        if (
-          graph.destroyed ||
-          isUnmountedRef.current ||
-          !isGraphReadyRef.current
-        )
-          return;
-        graph.draw().catch((error) => {
-          if (
-            isUnmountedRef.current ||
-            graph.destroyed ||
-            isIgnorableGraphError(error)
-          )
-            return;
-          // eslint-disable-next-line no-console
-          console.error(error);
-        });
-      });
-    };
+    const resizeController = createGraphResizeController({
+      graph,
+      isUnmountedRef,
+      isGraphReadyRef,
+      isIgnorableGraphError,
+    });
 
-    const maybeRevealEdges = (force = false) => {
-      if (
-        !isGraphReadyRef.current ||
-        hasRevealedEdgesRef.current ||
-        (!force &&
-          (expectedNodeIdsRef.current.size === 0 ||
-            measuredNodeIdsRef.current.size < expectedNodeIdsRef.current.size))
-      ) {
-        return;
-      }
-
-      const edges = graph.getEdgeData();
-      if (edges.length === 0) {
-        hasRevealedEdgesRef.current = true;
-        return;
-      }
-
-      hasRevealedEdgesRef.current = true;
-      if (revealTimeoutRef.current !== null) {
-        clearTimeout(revealTimeoutRef.current);
-        revealTimeoutRef.current = null;
-      }
-      void graph
-        .setElementState(
-          Object.fromEntries(
-            edges.map((edge) => [String(edge.id), "visible"] as const),
-          ),
-          true,
-        )
-        .catch((error) => {
-          if (
-            isUnmountedRef.current ||
-            graph.destroyed ||
-            isIgnorableGraphError(error)
-          )
-            return;
-          // eslint-disable-next-line no-console
-          console.error(error);
-        });
-    };
-
-    const flushPendingSizes = () => {
-      if (
-        pendingSizeRef.current.size === 0 ||
-        graph.destroyed ||
-        isUnmountedRef.current ||
-        !isGraphReadyRef.current
-      ) {
-        return;
-      }
-
-      const updates = Array.from(pendingSizeRef.current.entries()).map(
-        ([id, [width, height]]) => ({
-          id,
-          style: { size: [width, height] as [number, number] },
-        }),
-      );
-      pendingSizeRef.current.clear();
-
-      graph.updateNodeData(updates);
-      scheduleDraw();
-      maybeRevealEdges();
-    };
-
-    const handleNodeResize = (id: string, width: number, height: number) => {
-      if (!width || !height || graph.destroyed) return;
-
-      const sizeKey = `${width}x${height}`;
-      if (sizeCacheRef.current.get(id) === sizeKey) return;
-      sizeCacheRef.current.set(id, sizeKey);
-      measuredNodeIdsRef.current.add(id);
-
-      pendingSizeRef.current.set(id, [width, height]);
-      flushPendingSizes();
-    };
-
-    graph.setOptions(createGraphConfig(handleNodeResize));
+    graph.setOptions(createGraphConfig(resizeController.handleNodeResize));
     graph
       .render()
       .then(() => {
         if (graph.destroyed || isUnmountedRef.current) return;
         isGraphReadyRef.current = true;
-        expectedNodeIdsRef.current = new Set(
-          graph.getNodeData().map((node) => String(node.id)),
-        );
-        flushPendingSizes();
-        maybeRevealEdges();
-        if (revealTimeoutRef.current !== null) {
-          clearTimeout(revealTimeoutRef.current);
-        }
-        revealTimeoutRef.current = window.setTimeout(() => {
-          maybeRevealEdges(true);
-          revealTimeoutRef.current = null;
-        }, 20);
-        onRender?.(graph);
+        resizeController.onGraphRendered();
+        onRenderRef.current?.(graph);
       })
       .catch((error) => {
         if (
@@ -264,24 +162,12 @@ export const Graph = (props: GraphProps) => {
           isIgnorableGraphError(error)
         )
           return;
-        // eslint-disable-next-line no-console
         console.error(error);
       });
 
     return () => {
       isGraphReadyRef.current = false;
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      if (revealTimeoutRef.current !== null) {
-        clearTimeout(revealTimeoutRef.current);
-        revealTimeoutRef.current = null;
-      }
-      pendingSizeRef.current.clear();
-      measuredNodeIdsRef.current.clear();
-      expectedNodeIdsRef.current.clear();
-      hasRevealedEdgesRef.current = false;
+      resizeController.cleanup();
     };
   }, []);
 
