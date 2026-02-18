@@ -1,6 +1,10 @@
 import { Waypoints } from "lucide-react";
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
-import { DropdownMenu } from "../ui/dropdown-menu";
+import {
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
 
 export function Logo() {
   return (
