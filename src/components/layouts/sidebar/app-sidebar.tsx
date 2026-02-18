@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "./logo";
 import { NAVIGATION_ITEMS } from "./data";
-import { twJoin } from "tailwind-merge";
 import { CreateModelButton } from "./create-model";
 import { NavMain } from "./nav-main";
 import { Button } from "@/components/ui/button";
@@ -29,17 +28,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={NAVIGATION_ITEMS} />
       </SidebarContent>
-      <SidebarRail>
-        <div className="h-full flex flex-col items-center justify-center ml-2">
+      <SidebarRail asChild>
+        <div className="flex h-full items-center justify-center">
           <Button
             variant="outline"
             size="icon"
-            className="rounded-tl-none rounded-bl-none w-4 h-14"
+            className="ml-4 h-14 w-4 rounded-bl-none rounded-tl-none"
           >
             <ChevronRight
-              className={twJoin(
-                context.state === "expanded" ? "rotate-180" : "",
-              )}
+              className={context.state === "expanded" ? "rotate-180" : ""}
             />
           </Button>
         </div>
