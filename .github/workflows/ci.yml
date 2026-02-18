@@ -1,28 +1,28 @@
 name: CI
 
 on:
-  pull_request:
+    pull_request:
 
 jobs:
-  lint-and-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+    lint-and-build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v5
 
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: lts/*
+            - name: Set up Node
+              uses: actions/setup-node@v6
+              with:
+                  node-version: lts/*
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+            - name: Set up Bun
+              uses: oven-sh/setup-bun@v2
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
 
-      - name: Lint
-        run: bun run lint
+            - name: Lint
+              run: bun run lint
 
-      - name: Build
-        run: bun run build
+            - name: Build
+              run: bun run build
