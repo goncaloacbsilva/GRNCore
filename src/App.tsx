@@ -6,8 +6,13 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { useEffect } from "react";
 
 export default function Page() {
+  useEffect(() => {
+    document.title = "GRN Core";
+  }, []);
+
   return (
     <SidebarProvider>
       <AppSidebar />
