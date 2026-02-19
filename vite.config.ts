@@ -35,7 +35,8 @@ export default defineConfig({
                 manualChunks(id) {
                     const normalizedId = id.replace(/\\/g, '/')
                     const nodeModulesMarker = '/node_modules/'
-                    const markerIndex = normalizedId.lastIndexOf(nodeModulesMarker)
+                    const markerIndex =
+                        normalizedId.lastIndexOf(nodeModulesMarker)
 
                     if (markerIndex === -1) return undefined
 
@@ -48,10 +49,16 @@ export default defineConfig({
                         : packagePath[0]
 
                     if (!packageName) return 'vendor'
-                    if (packageName === 'react' || packageName === 'react-dom') {
+                    if (
+                        packageName === 'react' ||
+                        packageName === 'react-dom'
+                    ) {
                         return 'vendor-react'
                     }
-                    if (packageName.startsWith('@radix-ui') || packageName.startsWith('@floating-ui')) {
+                    if (
+                        packageName.startsWith('@radix-ui') ||
+                        packageName.startsWith('@floating-ui')
+                    ) {
                         return 'vendor-ui'
                     }
                     if (packageName.startsWith('@antv-')) {
