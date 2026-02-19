@@ -1,21 +1,23 @@
 <div  align="center"> <img src="docs/assets/hero.png"> </div>
 
-
 # GRN Core
 
 A modern, lightweight, and platform-independent tool for the
 graphical construction and manipulation of Gene Regulatory Networks.
 
 ## How to use
+
 The application can be accessed via [GitHub Pages](https://goncaloacbsilva.github.io/GRNCore)
 
 ## Development
 
 ### Requirements
+
 - [NodeJS](https://nodejs.org/en/download)
 - [Bun](https://bun.sh)
 
 ### Instructions
+
 1. Clone this repo
 2. Install dependencies
     ```sh
@@ -27,7 +29,8 @@ The application can be accessed via [GitHub Pages](https://goncaloacbsilva.githu
     ```
 
 ## Tech Stack
+
 - **Base template**
-  - React
-  - Vite *(with React Compiler Enabled)*
-  - ESLint
+    - React
+    - Vite _(with React Compiler Enabled)_
+    - ESLint
