@@ -68,6 +68,9 @@ export const createGraphConfig = (
                 />
             ),
         },
+        state: {
+            dim: {},
+        },
     },
 
     // Configure allowed zoom range
