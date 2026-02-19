@@ -10,25 +10,26 @@ const SELF_LOOP_PLACEMENT: Required<BaseEdgeStyleProps>['loopPlacement'] = 'top'
 
 const EDGE_STYLES: Record<InteractionType, Partial<BaseEdgeStyleProps>> = {
     activation: {
-        stroke: '#4ADE80',
+        stroke: '#00C800',
         endArrow: true,
         endArrowType: 'vee',
         endArrowSize: 10,
-        endArrowFill: '#4ADE80',
-        endArrowStroke: '#4ADE80',
+        endArrowFill: '#00C800',
+        endArrowStroke: '#00C800',
     },
     inhibition: {
-        stroke: '#F87171',
+        stroke: '#c80000',
         endArrow: true,
         endArrowType: 'rect',
         endArrowSize: INHIBITION_ARROW_SIZE,
         endArrowOffset: INHIBITION_ARROW_OFFSET,
-        endArrowFill: '#F87171',
-        endArrowStroke: '#F87171',
+        endArrowFill: '#c80000',
+        endArrowStroke: '#c80000',
     },
     dual: {
-        stroke: '#a975f3',
-        endArrow: false,
+        stroke: '#0000c8',
+        endArrow: true,
+        endArrowType: 'triangleRect',
     },
 }
 
