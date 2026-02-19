@@ -3,6 +3,8 @@ import { z } from 'zod'
 export const InteractionType = {
     Activation: 'activation',
     Inhibition: 'inhibition',
+
+    // TODO: Remove dual, an edge will be dual if it has both activation and inhibition properties
     Dual: 'dual',
 } as const
 
