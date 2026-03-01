@@ -22,6 +22,7 @@ import {
     EDGE_DRAG_CURSOR_LOCK_CLASS,
     REGULATORY_EDGE_STYLES,
 } from './constants'
+import { useEditorStore } from '@/store/editor'
 
 type ControlPoint = [number, number]
 
@@ -34,6 +35,7 @@ export interface GraphProps {
 function initializeGraphInstance(params: {
     containerRef: RefObject<HTMLDivElement | null>
     graphRef: RefObject<G6Graph | undefined>
+    setGraphRef: (ref: RefObject<G6Graph>) => void
     isUnmountedRef: RefObject<boolean>
     isGraphReadyRef: RefObject<boolean>
     onDestroyRef: RefObject<(() => void) | undefined>
@@ -41,6 +43,7 @@ function initializeGraphInstance(params: {
     const {
         containerRef,
         graphRef,
+        setGraphRef,
         isUnmountedRef,
         isGraphReadyRef,
         onDestroyRef,
@@ -48,6 +51,10 @@ function initializeGraphInstance(params: {
 
     isUnmountedRef.current = false
     graphRef.current = new G6Graph({ container: containerRef.current! })
+
+    if (graphRef.current) {
+        setGraphRef(graphRef as RefObject<G6Graph>)
+    }
 
     // Register all custom extensions
     registerExtensions()
@@ -292,6 +299,7 @@ function renderGraphOnMount(params: {
 
 export const Graph = (props: GraphProps) => {
     const { data, onRender, onDestroy } = props
+    const setGraphRef = useEditorStore((state) => state.setGraphRef)
     const graphRef = useRef<G6Graph>(undefined)
     const containerRef = useRef<HTMLDivElement>(null)
     const isGraphReadyRef = useRef(false)
@@ -311,6 +319,7 @@ export const Graph = (props: GraphProps) => {
         return initializeGraphInstance({
             containerRef,
             graphRef,
+            setGraphRef,
             isUnmountedRef,
             isGraphReadyRef,
             onDestroyRef,
