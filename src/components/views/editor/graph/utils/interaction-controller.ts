@@ -98,6 +98,29 @@ export const createInteractionController = (
         enqueueEdgeSelection,
         onError,
     } = params
+    let animationRenderRafId: number | null = null
+    let isAnimationSyncActive = false
+
+    const stopAnimationHandleSync = () => {
+        isAnimationSyncActive = false
+        if (animationRenderRafId !== null) {
+            cancelAnimationFrame(animationRenderRafId)
+            animationRenderRafId = null
+        }
+    }
+
+    const startAnimationHandleSync = () => {
+        if (isAnimationSyncActive) return
+        isAnimationSyncActive = true
+
+        const tick = () => {
+            if (!isAnimationSyncActive) return
+            renderEndpointHandles()
+            animationRenderRafId = requestAnimationFrame(tick)
+        }
+
+        tick()
+    }
 
     /**
      * Clears transient hover/active states while preserving persistent states.
@@ -721,6 +744,15 @@ export const createInteractionController = (
         state.draggingNodeLastPosition.delete(String(target.id))
     }
 
+    const onBeforeAnimate = () => {
+        startAnimationHandleSync()
+    }
+
+    const onAfterAnimate = () => {
+        stopAnimationHandleSync()
+        renderEndpointHandles()
+    }
+
     const graphListeners: [string, (event: IPointerEvent) => void][] = [
         ['edge:click', onEdgeClick],
         ['edge:dblclick', onEdgeDoubleClick],
@@ -734,6 +766,8 @@ export const createInteractionController = (
         ['pointerup', onPointerUp],
         ['afterdraw', renderEndpointHandles],
         ['aftertransform', renderEndpointHandles],
+        ['beforeanimate', onBeforeAnimate as (event: IPointerEvent) => void],
+        ['afteranimate', onAfterAnimate as (event: IPointerEvent) => void],
     ]
 
     const windowListeners: [string, EventListenerOrEventListenerObject][] = [
