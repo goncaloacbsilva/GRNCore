@@ -12,9 +12,15 @@ import type { EdgeData, GraphData } from '@antv/g6'
 
 export const DEFAULT_PARALLEL_EDGE_DISTANCE = 18
 
+/**
+ * Stable edge ordering helper by edge identifier.
+ */
 const byId = (a: EdgeData, b: EdgeData) =>
     String(a.id).localeCompare(String(b.id))
 
+/**
+ * Produces symmetric offsets around zero: `0, +d, -d, +2d, -2d...`.
+ */
 const nextSymmetricOffset = (index: number, distance: number): number => {
     if (index === 0) return 0
     const level = Math.ceil(index / 2)
@@ -22,6 +28,9 @@ const nextSymmetricOffset = (index: number, distance: number): number => {
     return sign * level * distance
 }
 
+/**
+ * Applies deterministic curve offsets so parallel edges remain visually separated.
+ */
 export const separateParallelEdges = (
     data: GraphData,
     distance = DEFAULT_PARALLEL_EDGE_DISTANCE
