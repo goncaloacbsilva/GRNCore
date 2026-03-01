@@ -8,7 +8,9 @@ import {
 
 export type ControlPointTuple = [number, number]
 
-export function toControlPointTuple(value: unknown): ControlPointTuple | undefined {
+export function toControlPointTuple(
+    value: unknown
+): ControlPointTuple | undefined {
     if (
         !Array.isArray(value) ||
         value.length !== 2 ||
@@ -33,7 +35,9 @@ export function toControlPointTuples(value: unknown): ControlPointTuple[] {
     )
 }
 
-export function getControlPointStyle(point: ControlPointTuple): CircleStyleProps {
+export function getControlPointStyle(
+    point: ControlPointTuple
+): CircleStyleProps {
     return {
         cx: point[0],
         cy: point[1],
@@ -74,13 +78,8 @@ export function getNearestControlPoint(
     return nearest
 }
 
-export function isAxisAligned(
-    a: Point,
-    b: Point,
-    tolerance: number
-): boolean {
+export function isAxisAligned(a: Point, b: Point, tolerance: number): boolean {
     return (
-        Math.abs(a[0] - b[0]) <= tolerance ||
-        Math.abs(a[1] - b[1]) <= tolerance
+        Math.abs(a[0] - b[0]) <= tolerance || Math.abs(a[1] - b[1]) <= tolerance
     )
 }

@@ -48,10 +48,14 @@ export class RegulatoryEdge extends Quadratic {
     /**
      * Returns edge properties, preferring frame-local cached data during render.
      */
-    private get edgeProperties(): Partial<RegulatoryEdgeProperties> | undefined {
+    private get edgeProperties():
+        | Partial<RegulatoryEdgeProperties>
+        | undefined {
         if (this.frameEdgeProperties) return this.frameEdgeProperties
 
-        return this.edgeData?.data as Partial<RegulatoryEdgeProperties> | undefined
+        return this.edgeData?.data as
+            | Partial<RegulatoryEdgeProperties>
+            | undefined
     }
 
     /**
@@ -85,7 +89,9 @@ export class RegulatoryEdge extends Quadratic {
     /**
      * Computes endpoint guide points used for endpoint snapping/path generation.
      */
-    private getEndpointGuidePoints(additionalPoints: ControlPointTuple[]): Point[] {
+    private getEndpointGuidePoints(
+        additionalPoints: ControlPointTuple[]
+    ): Point[] {
         const sourceCenter = this.sourceNode.getCenter()
         const targetCenter = this.targetNode.getCenter()
         const isSelfLoop =

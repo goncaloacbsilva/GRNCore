@@ -68,7 +68,10 @@ export const getEdgeEndpointsFromPathData = (
         if (numbers && numbers.length >= 4) {
             return {
                 source: [numbers[0], numbers[1]],
-                target: [numbers[numbers.length - 2], numbers[numbers.length - 1]],
+                target: [
+                    numbers[numbers.length - 2],
+                    numbers[numbers.length - 1],
+                ],
             }
         }
     }
@@ -82,7 +85,10 @@ export const getEdgeEndpointsFromPathData = (
             return undefined
         }
 
-        const source: ControlPoint = [Number(startCommand[1]), Number(startCommand[2])]
+        const source: ControlPoint = [
+            Number(startCommand[1]),
+            Number(startCommand[2]),
+        ]
 
         const endCommand = commands[commands.length - 1]
         if (!Array.isArray(endCommand)) return undefined
