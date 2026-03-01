@@ -324,7 +324,7 @@ export const Graph = (props: GraphProps) => {
             isGraphReadyRef,
             onDestroyRef,
         })
-    }, [])
+    }, [setGraphRef])
 
     useEffect(() => {
         return renderGraphOnMount({
