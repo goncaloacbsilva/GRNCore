@@ -202,7 +202,8 @@ export const createInteractionController = (
      */
     const getNearestControlPointHit = (
         edgeId: string,
-        canvasPoint: ControlPoint
+        canvasPoint: ControlPoint,
+        hitRadius = CONTROL_POINT_HIT_RADIUS
     ): { kind: 'additional'; pointIndex: number } | undefined => {
         const points = getControlPoints(edgeId)
         if (points.length === 0) return undefined
@@ -222,7 +223,7 @@ export const createInteractionController = (
             }
         }
 
-        if (nearestIndex >= 0 && nearestDistance <= CONTROL_POINT_HIT_RADIUS) {
+        if (nearestIndex >= 0 && nearestDistance <= hitRadius) {
             return { kind: 'additional', pointIndex: nearestIndex }
         }
         return undefined
@@ -417,15 +418,21 @@ export const createInteractionController = (
         const edgeProperties = getEdgeProperties(edgeId) ?? {}
         if (edgeProperties.selected !== true) return
 
+        const clickPoint: ControlPoint = [event.canvas.x, event.canvas.y]
+        const existingPointHit =
+            getControlPointHit(event) ??
+            getNearestControlPointHit(edgeId, clickPoint)
+        if (existingPointHit) return
+
         const points = getControlPoints(edgeId)
         const insertionIndex = getControlPointInsertionIndex(
             edgeId,
-            [event.canvas.x, event.canvas.y],
+            clickPoint,
             points
         )
         const nextPoints: ControlPoint[] = [
             ...points.slice(0, insertionIndex),
-            [event.canvas.x, event.canvas.y],
+            clickPoint,
             ...points.slice(insertionIndex),
         ]
 
@@ -434,6 +441,56 @@ export const createInteractionController = (
             controlPoints: nextPoints,
             selected: true,
         })
+    }
+
+    /**
+     * Deletes an additional control point when double-clicking it.
+     */
+    const deleteControlPointByDoubleClick = (
+        edgeId: string | undefined,
+        event: IPointerEvent
+    ) => {
+        if (!edgeId) return
+
+        const DELETE_HIT_RADIUS = CONTROL_POINT_HIT_RADIUS * 1.8
+        const hit =
+            getControlPointHit(event) ??
+            getNearestControlPointHit(
+                edgeId,
+                [event.canvas.x, event.canvas.y],
+                DELETE_HIT_RADIUS
+            )
+        if (!hit) return
+
+        const edgeProperties = getEdgeProperties(edgeId) ?? {}
+        if (edgeProperties.selected !== true) return
+
+        const points = getControlPoints(edgeId)
+        if (hit.pointIndex < 0 || hit.pointIndex >= points.length) return
+
+        const nextPoints: ControlPoint[] = [
+            ...points.slice(0, hit.pointIndex),
+            ...points.slice(hit.pointIndex + 1),
+        ]
+        const nextEdgeProperties: Partial<RegulatoryEdgeProperties> = {
+            ...edgeProperties,
+            controlPoints: nextPoints,
+            selected: true,
+        }
+
+        updateEndpointHandlesFromControlPoints(
+            edgeId,
+            nextPoints,
+            nextEdgeProperties
+        )
+
+        updateEdgeDataProperties(edgeId, {
+            ...nextEdgeProperties,
+        })
+    }
+
+    const onEdgeDoubleClick = (event: IPointerEvent) => {
+        deleteControlPointByDoubleClick(getEventEdgeId(event), event)
     }
 
     /**
@@ -666,6 +723,7 @@ export const createInteractionController = (
 
     const graphListeners: [string, (event: IPointerEvent) => void][] = [
         ['edge:click', onEdgeClick],
+        ['edge:dblclick', onEdgeDoubleClick],
         ['edge:pointerdown', onEdgePointerDown],
         ['pointerdown', onPointerDown],
         ['node:dragstart', onNodeDragStart],
