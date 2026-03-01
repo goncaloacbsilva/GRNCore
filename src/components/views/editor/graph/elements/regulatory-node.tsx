@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import type { NodeData } from '@antv/g6'
 import type { RegulatoryNodeProperties } from '@/lib/schema'
+import { twJoin } from 'tailwind-merge'
 
 interface RegulatoryNodeProps {
     data: NodeData
@@ -40,7 +41,10 @@ export function RegulatoryNode({ data, onResize }: RegulatoryNodeProps) {
     return (
         <div
             ref={rootRef}
-            className="w-max px-4 py-2 rounded-sm flex flex-col select-none bg-white border-2 border-[#E2E8F0]"
+            className={twJoin(
+                'w-max px-4 py-2 rounded-sm flex flex-col select-none bg-white border-2 border-[#E2E8F0]',
+                data.states?.includes('dim') && 'opacity-20'
+            )}
             draggable={false}
             onDragStart={(event) => event.preventDefault()}
             style={{

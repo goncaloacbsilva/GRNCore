@@ -9,6 +9,7 @@ import { separateParallelEdges } from './separate-parallel-edges'
 import { RegulatoryEdge, RegulatoryNode } from '../elements'
 import { DotsGrid } from '../extensions/dots-grid'
 import { ReactNode } from '@antv/g6-extension-react'
+import { EDGE_DRAG_CURSOR_LOCK_CLASS } from '../constants'
 
 /**
  * Registers all custom extensions used in the graph, including custom nodes, edges, and plugins.
@@ -68,6 +69,9 @@ export const createGraphConfig = (
                 />
             ),
         },
+        state: {
+            dim: {},
+        },
     },
 
     // Configure allowed zoom range
@@ -101,13 +105,38 @@ export const createGraphConfig = (
             onHover: (event: {
                 view?: { setCursor: (cursor: string) => void }
             }) => {
+                if (
+                    document.body.classList.contains(
+                        EDGE_DRAG_CURSOR_LOCK_CLASS
+                    )
+                ) {
+                    return
+                }
                 event.view?.setCursor('pointer')
             },
             onHoverEnd: (event: {
                 view?: { setCursor: (cursor: string) => void }
             }) => {
+                if (
+                    document.body.classList.contains(
+                        EDGE_DRAG_CURSOR_LOCK_CLASS
+                    )
+                ) {
+                    return
+                }
                 event.view?.setCursor('default')
             },
+        },
+
+        // Custom click-select behavior that allows selecting nodes and their neighbors with Shift+Click
+        {
+            type: 'click-select',
+            degree: 1,
+            state: 'selected',
+            neighborState: 'active',
+
+            multiple: true,
+            trigger: ['shift'],
         },
     ],
     plugins: [

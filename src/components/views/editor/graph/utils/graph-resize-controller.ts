@@ -22,11 +22,18 @@ interface GraphResizeControllerOptions {
 }
 
 export interface GraphResizeController {
+    /** Queues a node size update and schedules a batched redraw. */
     handleNodeResize: (id: string, width: number, height: number) => void
+    /** Called after graph render to flush pending updates and reveal edges. */
     onGraphRendered: () => void
+    /** Disposes timers/animation frames and clears controller state. */
     cleanup: () => void
 }
 
+/**
+ * Creates a resize controller that batches node size updates and reveals edges
+ * only after nodes are measured.
+ */
 export const createGraphResizeController = (
     options: GraphResizeControllerOptions
 ): GraphResizeController => {
@@ -43,6 +50,9 @@ export const createGraphResizeController = (
     let edgeIds: string[] = []
     let hasRevealedEdges = false
 
+    /**
+     * Reports non-ignorable runtime errors while protecting unmounted/destroyed graphs.
+     */
     const safelyHandleError = (error: unknown) => {
         if (
             isUnmountedRef.current ||
@@ -55,6 +65,9 @@ export const createGraphResizeController = (
         console.error(error)
     }
 
+    /**
+     * Reveals hidden edges once node measurements are complete.
+     */
     const maybeRevealEdges = (force = false) => {
         if (
             !isGraphReadyRef.current ||
@@ -88,6 +101,9 @@ export const createGraphResizeController = (
             .catch(safelyHandleError)
     }
 
+    /**
+     * Applies all queued node size updates in one graph update/draw cycle.
+     */
     const flushPendingSizes = () => {
         if (
             pendingSize.size === 0 ||
@@ -111,6 +127,9 @@ export const createGraphResizeController = (
         maybeRevealEdges()
     }
 
+    /**
+     * Schedules {@link flushPendingSizes} on the next animation frame.
+     */
     const scheduleFlushPendingSizes = () => {
         if (flushRafId !== null) return
 
@@ -120,6 +139,9 @@ export const createGraphResizeController = (
         })
     }
 
+    /**
+     * Records a measured node size and queues it for a batched graph update.
+     */
     const handleNodeResize = (id: string, width: number, height: number) => {
         if (!width || !height || graph.destroyed) return
 
@@ -136,6 +158,9 @@ export const createGraphResizeController = (
         }
     }
 
+    /**
+     * Initializes edge reveal lifecycle after a graph render pass.
+     */
     const onGraphRendered = () => {
         expectedNodeCount = graph.getNodeData().length
         edgeIds = graph.getEdgeData().map((edge) => String(edge.id))
@@ -153,6 +178,9 @@ export const createGraphResizeController = (
         }, 20)
     }
 
+    /**
+     * Cancels pending work and resets internal controller bookkeeping.
+     */
     const cleanup = () => {
         if (flushRafId !== null) {
             cancelAnimationFrame(flushRafId)
