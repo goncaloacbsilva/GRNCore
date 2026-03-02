@@ -7,14 +7,11 @@ import {
     MenubarShortcut,
     MenubarTrigger,
 } from '@/components/ui/menubar'
-import { useEditorStore } from '@/store'
 import { useHotkeys } from 'react-hotkeys-hook'
 
 export function ViewMenu() {
-    const graphRef = useEditorStore((state) => state.graphRef)
-
     const resetZoom = () => {
-        void graphRef?.current.zoomTo(1)
+        /* void graphRef?.current.zoomTo(1) */
     }
 
     useHotkeys('ctrl+r', resetZoom, {

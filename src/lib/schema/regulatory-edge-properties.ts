@@ -14,16 +14,6 @@ export const RegulatoryEdgeProperties = z.object({
 
     // Target activity level threshold for the interaction to occur (1-9)
     target: z.int().positive().max(9).default(1),
-
-    // Optional list of draggable control points used to shape the edge path.
-    controlPoints: z.array(z.tuple([z.number(), z.number()])).default([]),
-
-    // Selection state used by the editor interaction layer.
-    selected: z.boolean().default(false),
-
-    // Guides that control where the edge attaches to source/target node boundaries.
-    sourceControlPoint: z.tuple([z.number(), z.number()]).optional(),
-    targetControlPoint: z.tuple([z.number(), z.number()]).optional(),
 })
 
 export type InteractionType =
