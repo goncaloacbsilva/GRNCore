@@ -1,8 +1,14 @@
-import { Position, type InternalNode } from '@xyflow/react'
+import { Position, type Edge, type InternalNode } from '@xyflow/react'
 
 interface Point {
     x: number
     y: number
+}
+
+interface ParallelEdgeMeta {
+    index: number
+    total: number
+    centeredIndex: number
 }
 
 // this helper function returns the intersection point
@@ -75,5 +81,47 @@ export function getEdgeParams(source: InternalNode, target: InternalNode) {
         ty: targetIntersectionPoint.y,
         sourcePos,
         targetPos,
+    }
+}
+
+const getUndirectedPairKey = (source: string, target: string) =>
+    source < target ? `${source}::${target}` : `${target}::${source}`
+
+/**
+ * Returns stable parallel-edge positioning metadata for an edge.
+ * Edges are grouped by undirected node pair so A->B and B->A are separated too.
+ */
+export function getParallelEdgeMeta(
+    edges: Edge[],
+    edgeId: string,
+    source: string,
+    target: string
+): ParallelEdgeMeta {
+    const pairKey = getUndirectedPairKey(source, target)
+
+    const siblings = edges
+        .filter(
+            (edge) =>
+                getUndirectedPairKey(String(edge.source), String(edge.target)) ===
+                pairKey
+        )
+        .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+
+    const total = siblings.length
+    if (total <= 1) {
+        return {
+            index: 0,
+            total,
+            centeredIndex: 0,
+        }
+    }
+
+    const index = siblings.findIndex((edge) => String(edge.id) === edgeId)
+    const safeIndex = index >= 0 ? index : 0
+
+    return {
+        index: safeIndex,
+        total,
+        centeredIndex: safeIndex - (total - 1) / 2,
     }
 }
