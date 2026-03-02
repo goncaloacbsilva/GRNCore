@@ -1,10 +1,13 @@
-import { Overlay } from './overlay'
+import { ReactFlowProvider } from '@xyflow/react'
+import { Graph } from './graph'
+import { P53_MODEL } from '@/data/p53-model'
 
 export function EditorView() {
     return (
-        <div className="w-full h-full relative">
-            {/* <Graph data={P53_MODEL} /> */}
-            <Overlay />
-        </div>
+        <ReactFlowProvider>
+            <div className="w-full h-full relative">
+                <Graph model={P53_MODEL} />
+            </div>
+        </ReactFlowProvider>
     )
 }

@@ -1,33 +1,41 @@
-import type { GraphData } from '@antv/g6'
+import type { InternalGRNModel } from '@/lib/schema'
 
-export const P53_MODEL: GraphData = {
+export const P53_MODEL: InternalGRNModel = {
     nodes: [
         {
             id: 'node-1',
-            style: { x: 70, y: 100 },
+            position: { x: 70, y: 100 },
             data: {
                 name: 'p53',
+                activityLevels: 2,
+                isInputNode: false,
             },
         },
         {
             id: 'node-2',
-            style: { x: 250, y: 100 },
+            position: { x: 250, y: 100 },
             data: {
                 name: 'DNAdam',
+                activityLevels: 1,
+                isInputNode: false,
             },
         },
         {
             id: 'node-3',
-            style: { x: 50, y: 200 },
+            position: { x: 50, y: 200 },
             data: {
                 name: 'Mdm2cyt',
+                activityLevels: 2,
+                isInputNode: false,
             },
         },
         {
             id: 'node-4',
-            style: { x: 245, y: 200 },
+            position: { x: 245, y: 200 },
             data: {
                 name: 'Mdm2nuc',
+                activityLevels: 1,
+                isInputNode: false,
             },
         },
     ],
@@ -38,14 +46,17 @@ export const P53_MODEL: GraphData = {
             target: 'node-2',
             data: {
                 type: 'inhibition',
+                target: 1,
             },
         },
+
         {
             id: 'edge-2',
             source: 'node-1',
             target: 'node-3',
             data: {
                 type: 'activation',
+                target: 1,
             },
         },
         {
@@ -54,6 +65,7 @@ export const P53_MODEL: GraphData = {
             target: 'node-4',
             data: {
                 type: 'inhibition',
+                target: 1,
             },
         },
         {
@@ -62,6 +74,7 @@ export const P53_MODEL: GraphData = {
             target: 'node-4',
             data: {
                 type: 'activation',
+                target: 1,
             },
         },
         {
@@ -70,6 +83,7 @@ export const P53_MODEL: GraphData = {
             target: 'node-4',
             data: {
                 type: 'inhibition',
+                target: 1,
             },
         },
         {
@@ -78,16 +92,18 @@ export const P53_MODEL: GraphData = {
             target: 'node-1',
             data: {
                 type: 'inhibition',
+                target: 1,
             },
         },
+        /*
         {
             id: 'edge-7',
             source: 'node-2',
             target: 'node-2',
-            style: { loopPlacement: 'top-right' },
             data: {
                 type: 'activation',
+                target: 1,
             },
-        },
+        }, */
     ],
 }
