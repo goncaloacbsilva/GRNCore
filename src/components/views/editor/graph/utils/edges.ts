@@ -13,23 +13,22 @@ interface ParallelEdgeMeta {
 
 // this helper function returns the intersection point
 // of the line between the center of the intersectionNode and the target node
-function getNodeIntersection(
+function getNodeIntersectionWithPoint(
     intersectionNode: InternalNode,
-    targetNode: InternalNode
+    targetPoint: Point
 ) {
     // https://math.stackexchange.com/questions/1724792/an-algorithm-for-finding-the-intersection-point-between-a-center-of-vision-and-a
     const { width: intersectionNodeWidth, height: intersectionNodeHeight } =
         intersectionNode.measured
     const intersectionNodePosition = intersectionNode.internals.positionAbsolute
-    const targetPosition = targetNode.internals.positionAbsolute
 
     const w = intersectionNodeWidth! / 2
     const h = intersectionNodeHeight! / 2
 
     const x2 = intersectionNodePosition.x + w
     const y2 = intersectionNodePosition.y + h
-    const x1 = targetPosition.x + targetNode.measured.width! / 2
-    const y1 = targetPosition.y + targetNode.measured.height! / 2
+    const x1 = targetPoint.x
+    const y1 = targetPoint.y
 
     const xx1 = (x1 - x2) / (2 * w) - (y1 - y2) / (2 * h)
     const yy1 = (x1 - x2) / (2 * w) + (y1 - y2) / (2 * h)
@@ -40,6 +39,13 @@ function getNodeIntersection(
     const y = h * (-xx3 + yy3) + y2
 
     return { x, y }
+}
+
+function getNodeCenter(node: InternalNode): Point {
+    return {
+        x: node.internals.positionAbsolute.x + node.measured.width! / 2,
+        y: node.internals.positionAbsolute.y + node.measured.height! / 2,
+    }
 }
 
 // returns the position (top,right,bottom or right) passed node compared to the intersection point
@@ -67,9 +73,20 @@ function getEdgePosition(node: InternalNode, intersectionPoint: Point) {
 }
 
 // returns the parameters (sx, sy, tx, ty, sourcePos, targetPos) you need to create an edge
-export function getEdgeParams(source: InternalNode, target: InternalNode) {
-    const sourceIntersectionPoint = getNodeIntersection(source, target)
-    const targetIntersectionPoint = getNodeIntersection(target, source)
+export function getEdgeParams(
+    source: InternalNode,
+    target: InternalNode,
+    sourceDirectionHint?: Point,
+    targetDirectionHint?: Point
+) {
+    const sourceIntersectionPoint = getNodeIntersectionWithPoint(
+        source,
+        sourceDirectionHint ?? getNodeCenter(target)
+    )
+    const targetIntersectionPoint = getNodeIntersectionWithPoint(
+        target,
+        targetDirectionHint ?? getNodeCenter(source)
+    )
 
     const sourcePos = getEdgePosition(source, sourceIntersectionPoint)
     const targetPos = getEdgePosition(target, targetIntersectionPoint)
@@ -89,7 +106,7 @@ const getUndirectedPairKey = (source: string, target: string) =>
 
 /**
  * Returns stable parallel-edge positioning metadata for an edge.
- * Edges are grouped by undirected node pair so A->B and B->A are separated too.
+ * Edges are grouped by undirected node pair so A->B and B->A are spaced together.
  */
 export function getParallelEdgeMeta(
     edges: Edge[],

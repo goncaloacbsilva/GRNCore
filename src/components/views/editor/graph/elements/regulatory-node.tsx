@@ -21,9 +21,14 @@ const RegulatoryNode = ({
     const connectModeActive = false
 
     return (
-        <div className=" h-full px-4 py-2 flex flex-col items-center justify-center bg-white border-2 border-[#E2E8F0] rounded-sm text-sm">
+        <div className="h-full px-4 py-2 flex flex-col items-center justify-center bg-white border-2 border-[#E2E8F0] rounded-sm text-sm">
             <NodeResizer
-                color="#ff0071"
+                color="#2f81ed"
+                handleStyle={{
+                    borderRadius: 'calc(infinity * 1px)',
+                    width: 8,
+                    height: 8,
+                }}
                 isVisible={selected}
                 minWidth={100}
                 minHeight={30}

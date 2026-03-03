@@ -1,4 +1,6 @@
 import type { InternalGRNModel } from '@/lib/schema'
+import { EDGE_ALGORITHM } from '@/lib/types'
+import { Position } from '@xyflow/react'
 
 export const P53_MODEL: InternalGRNModel = {
     nodes: [
@@ -10,6 +12,8 @@ export const P53_MODEL: InternalGRNModel = {
                 activityLevels: 2,
                 isInputNode: false,
             },
+            sourcePosition: Position.Right,
+            targetPosition: Position.Left,
         },
         {
             id: 'node-2',
@@ -19,6 +23,8 @@ export const P53_MODEL: InternalGRNModel = {
                 activityLevels: 1,
                 isInputNode: false,
             },
+            sourcePosition: Position.Right,
+            targetPosition: Position.Left,
         },
         {
             id: 'node-3',
@@ -49,7 +55,6 @@ export const P53_MODEL: InternalGRNModel = {
                 target: 1,
             },
         },
-
         {
             id: 'edge-2',
             source: 'node-1',
