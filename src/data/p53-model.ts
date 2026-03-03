@@ -100,7 +100,6 @@ export const P53_MODEL: InternalGRNModel = {
                 target: 1,
             },
         },
-        /*
         {
             id: 'edge-7',
             source: 'node-2',
@@ -109,6 +108,15 @@ export const P53_MODEL: InternalGRNModel = {
                 type: 'activation',
                 target: 1,
             },
-        }, */
+        },
+        {
+            id: 'edge-8',
+            source: 'node-4',
+            target: 'node-4',
+            data: {
+                type: 'activation',
+                target: 1,
+            },
+        },
     ],
 }

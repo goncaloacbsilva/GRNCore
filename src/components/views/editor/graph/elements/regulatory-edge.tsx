@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import {
     BaseEdge,
+    Position,
     type Edge,
     type EdgeProps,
     useInternalNode,
@@ -37,6 +38,10 @@ const AUTO_PARALLEL_ANCHOR_OFFSET = PARALLEL_EDGE_SPACING * 0.3
 const REGULATORY_EDGE_STROKE_WIDTH = 1.8
 const MARKER_TIP_GAP = 5
 const INHIBITION_MARKER_EXTRA_GAP = 0.8
+const SELF_LOOP_MIN_LIFT = 18
+const SELF_LOOP_INSET_MIN = 28
+const SELF_LOOP_INSET_RATIO = 0.3
+const SELF_LOOP_LIFT_MULTIPLIER = 0.18
 
 const TARGET_GAP_BY_POSITION: Record<
     EdgeProps<RegulatoryGraphEdge>['targetPosition'],
@@ -527,6 +532,7 @@ export function RegulatoryEdge({
     const sourceNode = useInternalNode(source)
     const targetNode = useInternalNode(target)
     const edges = useStore((state) => state.edges)
+    const nodeLookup = useStore((state) => state.nodeLookup)
     const userSelectionActive = useStore((state) => state.userSelectionActive)
     const userSelectionRect = useStore((state) => state.userSelectionRect)
     const transform = useStore((state) => state.transform)
@@ -539,61 +545,11 @@ export function RegulatoryEdge({
     const algorithm = data?.algorithm ?? DEFAULT_ALGORITHM
     const storedPoints = data?.points ?? []
     const isStep = algorithm === EDGE_ALGORITHM.Step
+    const isSelfLoop = source === target
     const sourceHint = storedPoints[0]
     const targetHint = storedPoints[storedPoints.length - 1]
-
-    const baseParams = getEdgeParams(
-        sourceNode,
-        targetNode,
-        sourceHint,
-        targetHint
-    )
     const { centeredIndex } = getParallelEdgeMeta(edges, id, source, target)
-    const useParallelAnchorModeForCatmull =
-        !isStep &&
-        algorithm === EDGE_ALGORITHM.CatmullRom &&
-        Math.abs(centeredIndex) > 1e-6
 
-    const rawDx = baseParams.tx - baseParams.sx
-    const rawDy = baseParams.ty - baseParams.sy
-    const pairDx = source <= target ? rawDx : -rawDx
-    const pairDy = source <= target ? rawDy : -rawDy
-    const pairLength = Math.hypot(pairDx, pairDy)
-
-    const normalX = pairLength > 1e-6 ? -pairDy / pairLength : 0
-    const normalY = pairLength > 1e-6 ? pairDx / pairLength : 0
-
-    const offset = useParallelAnchorModeForCatmull
-        ? centeredIndex * AUTO_PARALLEL_ANCHOR_OFFSET
-        : centeredIndex * PARALLEL_EDGE_SPACING
-    const parallelSourceHint =
-        Math.abs(offset) > 1e-6
-            ? {
-                  x: baseParams.tx + normalX * offset,
-                  y: baseParams.ty + normalY * offset,
-              }
-            : undefined
-    const parallelTargetHint =
-        Math.abs(offset) > 1e-6
-            ? {
-                  x: baseParams.sx + normalX * offset,
-                  y: baseParams.sy + normalY * offset,
-              }
-            : undefined
-    const { sx, sy, tx, ty, sourcePos, targetPos } =
-        parallelSourceHint && parallelTargetHint
-            ? getEdgeParams(
-                  sourceNode,
-                  targetNode,
-                  parallelSourceHint,
-                  parallelTargetHint
-              )
-            : baseParams
-
-    const sourcePoint = {
-        x: sx,
-        y: sy,
-    }
     const interactionType: InteractionType =
         (data?.type as InteractionType | undefined) ?? 'activation'
     const regulatoryStyle = REGULATORY_EDGE_STYLES[interactionType]
@@ -602,24 +558,195 @@ export function RegulatoryEdge({
         (regulatoryStyle.endArrowType === 'rect'
             ? INHIBITION_MARKER_EXTRA_GAP
             : 0)
-    const endAnchorOffset = useParallelAnchorModeForCatmull
-        ? centeredIndex * AUTO_PARALLEL_ANCHOR_OFFSET
-        : 0
 
-    const targetAnchorPoint = {
-        x: tx,
-        y: ty,
-    }
-    const targetGapVector = TARGET_GAP_BY_POSITION[targetPos]
-    const targetPoint = {
-        x:
-            targetAnchorPoint.x +
-            targetGapVector.x * markerTipGap +
-            normalX * endAnchorOffset,
-        y:
-            targetAnchorPoint.y +
-            targetGapVector.y * markerTipGap +
-            normalY * endAnchorOffset,
+    let sourcePos = Position.Top
+    let targetPos = Position.Top
+    let sourcePoint: XYPosition
+    let targetPoint: XYPosition
+    let normalX = 0
+    let normalY = 0
+
+    if (isSelfLoop) {
+        const nodeX = sourceNode.internals.positionAbsolute.x
+        const nodeY = sourceNode.internals.positionAbsolute.y
+        const nodeWidth = sourceNode.measured.width ?? 0
+        const nodeHeight = sourceNode.measured.height ?? 0
+        const nodeCenter = {
+            x: nodeX + nodeWidth / 2,
+            y: nodeY + nodeHeight / 2,
+        }
+        const connectivityBySide: Record<Position, number> = {
+            [Position.Top]: 0,
+            [Position.Right]: 0,
+            [Position.Bottom]: 0,
+            [Position.Left]: 0,
+        }
+
+        for (const edge of edges) {
+            const edgeSource = String(edge.source)
+            const edgeTarget = String(edge.target)
+            if (edgeSource === source && edgeTarget === source) {
+                continue
+            }
+
+            if (edgeSource !== source && edgeTarget !== source) {
+                continue
+            }
+
+            const otherNodeId = edgeSource === source ? edgeTarget : edgeSource
+            const otherNode = nodeLookup.get(otherNodeId)
+            if (!otherNode) {
+                continue
+            }
+
+            const otherWidth = otherNode.measured.width ?? 0
+            const otherHeight = otherNode.measured.height ?? 0
+            const otherCenter = {
+                x: otherNode.internals.positionAbsolute.x + otherWidth / 2,
+                y: otherNode.internals.positionAbsolute.y + otherHeight / 2,
+            }
+
+            const dx = otherCenter.x - nodeCenter.x
+            const dy = otherCenter.y - nodeCenter.y
+            const side =
+                Math.abs(dx) >= Math.abs(dy)
+                    ? dx >= 0
+                        ? Position.Right
+                        : Position.Left
+                    : dy >= 0
+                      ? Position.Bottom
+                      : Position.Top
+
+            connectivityBySide[side] += 1
+        }
+
+        const preferredSideOrder = [
+            Position.Top,
+            Position.Right,
+            Position.Bottom,
+            Position.Left,
+        ]
+        const loopSide = preferredSideOrder.reduce((best, candidate) =>
+            connectivityBySide[candidate] < connectivityBySide[best]
+                ? candidate
+                : best
+        )
+
+        const sideLength =
+            loopSide === Position.Top || loopSide === Position.Bottom
+                ? nodeWidth
+                : nodeHeight
+        const loopInset = Math.max(
+            sideLength * SELF_LOOP_INSET_RATIO,
+            SELF_LOOP_INSET_MIN
+        )
+        sourcePos = loopSide
+        targetPos = loopSide
+
+        if (loopSide === Position.Top) {
+            sourcePoint = { x: nodeX + loopInset, y: nodeY }
+            targetPoint = {
+                x: nodeX + nodeWidth - loopInset,
+                y: nodeY - markerTipGap * 0.6,
+            }
+            normalX = 0
+            normalY = -1
+        } else if (loopSide === Position.Bottom) {
+            sourcePoint = { x: nodeX + loopInset, y: nodeY + nodeHeight }
+            targetPoint = {
+                x: nodeX + nodeWidth - loopInset,
+                y: nodeY + nodeHeight + markerTipGap * 0.6,
+            }
+            normalX = 0
+            normalY = 1
+        } else if (loopSide === Position.Left) {
+            sourcePoint = { x: nodeX, y: nodeY + loopInset }
+            targetPoint = {
+                x: nodeX - markerTipGap * 0.6,
+                y: nodeY + nodeHeight - loopInset,
+            }
+            normalX = -1
+            normalY = 0
+        } else {
+            sourcePoint = { x: nodeX + nodeWidth, y: nodeY + loopInset }
+            targetPoint = {
+                x: nodeX + nodeWidth + markerTipGap * 0.6,
+                y: nodeY + nodeHeight - loopInset,
+            }
+            normalX = 1
+            normalY = 0
+        }
+    } else {
+        const baseParams = getEdgeParams(
+            sourceNode,
+            targetNode,
+            sourceHint,
+            targetHint
+        )
+        const useParallelAnchorModeForCatmull =
+            !isStep &&
+            !isSelfLoop &&
+            algorithm === EDGE_ALGORITHM.CatmullRom &&
+            Math.abs(centeredIndex) > 1e-6
+
+        const rawDx = baseParams.tx - baseParams.sx
+        const rawDy = baseParams.ty - baseParams.sy
+        const pairDx = source <= target ? rawDx : -rawDx
+        const pairDy = source <= target ? rawDy : -rawDy
+        const pairLength = Math.hypot(pairDx, pairDy)
+
+        normalX = pairLength > 1e-6 ? -pairDy / pairLength : 0
+        normalY = pairLength > 1e-6 ? pairDx / pairLength : 0
+
+        const offset = useParallelAnchorModeForCatmull
+            ? centeredIndex * AUTO_PARALLEL_ANCHOR_OFFSET
+            : centeredIndex * PARALLEL_EDGE_SPACING
+        const parallelSourceHint =
+            Math.abs(offset) > 1e-6
+                ? {
+                      x: baseParams.tx + normalX * offset,
+                      y: baseParams.ty + normalY * offset,
+                  }
+                : undefined
+        const parallelTargetHint =
+            Math.abs(offset) > 1e-6
+                ? {
+                      x: baseParams.sx + normalX * offset,
+                      y: baseParams.sy + normalY * offset,
+                  }
+                : undefined
+        const params =
+            parallelSourceHint && parallelTargetHint
+                ? getEdgeParams(
+                      sourceNode,
+                      targetNode,
+                      parallelSourceHint,
+                      parallelTargetHint
+                  )
+                : baseParams
+
+        sourcePos = params.sourcePos
+        targetPos = params.targetPos
+
+        const endAnchorOffset = useParallelAnchorModeForCatmull
+            ? centeredIndex * AUTO_PARALLEL_ANCHOR_OFFSET
+            : 0
+        const targetGapVector = TARGET_GAP_BY_POSITION[targetPos]
+
+        sourcePoint = {
+            x: params.sx,
+            y: params.sy,
+        }
+        targetPoint = {
+            x:
+                params.tx +
+                targetGapVector.x * markerTipGap +
+                normalX * endAnchorOffset,
+            y:
+                params.ty +
+                targetGapVector.y * markerTipGap +
+                normalY * endAnchorOffset,
+        }
     }
 
     const normalizedPoints =
@@ -673,6 +800,7 @@ export function RegulatoryEdge({
         : stepPointsForInteraction
     const useAutoParallelCatmullBend =
         !isStep &&
+        !isSelfLoop &&
         algorithm === EDGE_ALGORITHM.CatmullRom &&
         normalizedPoints.length === 0 &&
         Math.abs(centeredIndex) > 1e-6
@@ -693,11 +821,24 @@ export function RegulatoryEdge({
                           Math.sign(centeredIndex),
               }
             : null
+    const selfLoopLift = Math.max(
+        (sourceNode.measured.height ?? 0) * SELF_LOOP_LIFT_MULTIPLIER,
+        SELF_LOOP_MIN_LIFT
+    )
     const renderPoints = isStep
         ? stepRenderPoints
         : autoParallelControlPoint
           ? [autoParallelControlPoint]
-          : normalizedPoints
+          : isSelfLoop && normalizedPoints.length === 0
+            ? [
+                  {
+                      id: `${id}-self-loop-main`,
+                      active: true,
+                      x: (sourcePoint.x + targetPoint.x) / 2 + normalX * selfLoopLift,
+                      y: (sourcePoint.y + targetPoint.y) / 2 + normalY * selfLoopLift,
+                  } as ControlPoint,
+              ]
+            : normalizedPoints
     const allPoints = [sourcePoint, ...renderPoints, targetPoint]
 
     const controlPoints = useStableControlPointIds(
