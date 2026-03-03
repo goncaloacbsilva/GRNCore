@@ -23,7 +23,7 @@ const TARGET_GAP_BY_POSITION: Record<Position, XYPosition> = {
     [Position.Bottom]: { x: 0, y: 1 },
 }
 
-type LayoutArgs = {
+interface LayoutArgs {
     id: string
     source: string
     target: string
@@ -37,7 +37,7 @@ type LayoutArgs = {
     endArrowType?: 'vee' | 'rect' | 'triangleRect'
 }
 
-export type RegulatoryEdgeLayout = {
+export interface RegulatoryEdgeLayout {
     startHandleId: string
     endHandleId: string
     startAnchorHint?: ControlPoint
@@ -193,7 +193,9 @@ export function computeRegulatoryEdgeLayout({
             ? centeredIndex * AUTO_PARALLEL_ANCHOR_OFFSET
             : 0
 
-        sourcePoint = { x: params.sx, y: params.sy }
+        sourcePoint = startAnchorHint
+            ? { x: startAnchorHint.x, y: startAnchorHint.y }
+            : { x: params.sx, y: params.sy }
         targetTipPoint = endAnchorHint
             ? { x: endAnchorHint.x, y: endAnchorHint.y }
             : { x: params.tx + normalX * endAnchorOffset, y: params.ty + normalY * endAnchorOffset }

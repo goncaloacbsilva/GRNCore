@@ -1,7 +1,7 @@
 import { REGULATORY_EDGE_STYLES, type RegulatoryEdgeStyle } from '../config'
 import type { InteractionType } from '@/lib/schema'
 
-type RegulatoryEdgeMarkerProps = {
+interface RegulatoryEdgeMarkerProps {
     markerId: string
     interactionType: InteractionType
     color: string

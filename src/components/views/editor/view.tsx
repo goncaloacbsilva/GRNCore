@@ -7,7 +7,6 @@ export function EditorView() {
         <ReactFlowProvider>
             <div className="w-full h-full relative">
                 <Graph model={P53_MODEL} />
-                {/* <POC model={P53_MODEL} /> */}
             </div>
         </ReactFlowProvider>
     )

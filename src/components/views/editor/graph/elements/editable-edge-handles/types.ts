@@ -5,7 +5,7 @@ export type SetControlPoints = (
     updater: (points: ControlPoint[]) => ControlPoint[]
 ) => void
 
-export type ControlPointHandleProps = {
+export interface ControlPointHandleProps {
     id: string
     index: number
     x: number
@@ -19,7 +19,7 @@ export type ControlPointHandleProps = {
     allowCreate?: boolean
 }
 
-export type AnchorHandleProps = {
+export interface AnchorHandleProps {
     id: string
     x: number
     y: number

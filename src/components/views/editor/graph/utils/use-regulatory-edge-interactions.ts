@@ -1,4 +1,4 @@
-import { useCallback, useEffect, type RefObject } from 'react'
+import { useCallback, useEffect } from 'react'
 import type { Edge, InternalNode, XYPosition } from '@xyflow/react'
 import type { EditableRegulatoryEdge } from '@/lib/schema'
 import {
@@ -11,14 +11,14 @@ import { isSingleControlPointOrthogonal, projectToNodePerimeter } from '.'
 
 type SetEdges = (updater: (currentEdges: Edge[]) => Edge[]) => void
 
-type SelectionRect = {
+interface SelectionRect {
     x: number
     y: number
     width: number
     height: number
 }
 
-type UseRegulatoryEdgeSelectionArgs = {
+interface UseRegulatoryEdgeSelectionArgs {
     controlPoints: ControlPoint[]
     id: string
     selected: boolean
@@ -81,12 +81,12 @@ export function useRegulatoryEdgeSelection({
     ])
 }
 
-type UseRegulatoryEdgeActionsArgs = {
+interface UseRegulatoryEdgeActionsArgs {
     id: string
     setEdges: SetEdges
     startHandleId: string
     endHandleId: string
-    latestStoredPointsRef: RefObject<ControlPoint[]>
+    fallbackGeometryStoredPoints: ControlPoint[]
     sourcePoint: XYPosition
     targetPoint: XYPosition
     sourceNode: InternalNode
@@ -98,7 +98,7 @@ export function useRegulatoryEdgeActions({
     setEdges,
     startHandleId,
     endHandleId,
-    latestStoredPointsRef,
+    fallbackGeometryStoredPoints,
     sourcePoint,
     targetPoint,
     sourceNode,
@@ -122,7 +122,7 @@ export function useRegulatoryEdgeActions({
                     }
 
                     const edgeData = (edge.data ?? {}) as EditableRegulatoryEdge
-                    const edgePoints = (edgeData.points ?? []) as ControlPoint[]
+                    const edgePoints = (edgeData.points ?? [])
                     const existingStartAnchor = edgePoints.find(
                         (point) => point.id === startHandleId
                     )
@@ -138,7 +138,7 @@ export function useRegulatoryEdgeActions({
                     const basePoints =
                         geometryEdgePoints.length > 0
                             ? geometryEdgePoints
-                            : (latestStoredPointsRef.current ?? [])
+                            : fallbackGeometryStoredPoints
 
                     const nextPoints = updater(basePoints)
                     const nextActivePoints = nextPoints.filter(
@@ -186,8 +186,8 @@ export function useRegulatoryEdgeActions({
         },
         [
             endHandleId,
+            fallbackGeometryStoredPoints,
             id,
-            latestStoredPointsRef,
             setEdges,
             sourcePoint,
             startHandleId,
@@ -209,7 +209,7 @@ export function useRegulatoryEdgeActions({
                     }
 
                     const edgeData = (edge.data ?? {}) as EditableRegulatoryEdge
-                    const edgePoints = (edgeData.points ?? []) as ControlPoint[]
+                    const edgePoints = (edgeData.points ?? [])
                     const geometryPoints = edgePoints.filter(
                         (point) =>
                             point.id !== startHandleId &&

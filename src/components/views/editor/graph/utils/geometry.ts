@@ -7,7 +7,9 @@ import {
 } from '@/lib/types'
 import { createId } from './id'
 
-function isControlPoint(point: XYPosition | ControlPoint): point is ControlPoint {
+function isControlPoint(
+    point: XYPosition | ControlPoint
+): point is ControlPoint {
     return 'id' in point
 }
 
@@ -18,8 +20,8 @@ function getLinearPath(points: XYPosition[]): string {
 
     let path = `M ${points[0].x} ${points[0].y}`
 
-    for (let index = 0; index < points.length; index++) {
-        path += ` L ${points[index].x} ${points[index].y}`
+    for (const point of points) {
+        path += ` L ${point.x} ${point.y}`
     }
 
     return path
@@ -62,18 +64,41 @@ function projectHandle(
 ): [number, number] {
     switch (side) {
         case Position.Left:
-            return [fromX - getCatmullControl(fromX - toX, curvatureScale), fromY]
+            return [
+                fromX - getCatmullControl(fromX - toX, curvatureScale),
+                fromY,
+            ]
         case Position.Right:
-            return [fromX + getCatmullControl(toX - fromX, curvatureScale), fromY]
+            return [
+                fromX + getCatmullControl(toX - fromX, curvatureScale),
+                fromY,
+            ]
         case Position.Top:
-            return [fromX, fromY - getCatmullControl(fromY - toY, curvatureScale)]
+            return [
+                fromX,
+                fromY - getCatmullControl(fromY - toY, curvatureScale),
+            ]
         case Position.Bottom:
-            return [fromX, fromY + getCatmullControl(toY - fromY, curvatureScale)]
+            return [
+                fromX,
+                fromY + getCatmullControl(toY - fromY, curvatureScale),
+            ]
     }
 }
 
-function extendStart(point: XYPosition, next: XYPosition, side: Position): XYPosition {
-    const projected = projectHandle(side, point.x, point.y, next.x, next.y, 0.25)
+function extendStart(
+    point: XYPosition,
+    next: XYPosition,
+    side: Position
+): XYPosition {
+    const projected = projectHandle(
+        side,
+        point.x,
+        point.y,
+        next.x,
+        next.y,
+        0.25
+    )
 
     return {
         x: next.x + 6 * (point.x - projected[0]),
@@ -81,8 +106,19 @@ function extendStart(point: XYPosition, next: XYPosition, side: Position): XYPos
     }
 }
 
-function extendEnd(point: XYPosition, next: XYPosition, side: Position): XYPosition {
-    const projected = projectHandle(side, next.x, next.y, point.x, point.y, 0.25)
+function extendEnd(
+    point: XYPosition,
+    next: XYPosition,
+    side: Position
+): XYPosition {
+    const projected = projectHandle(
+        side,
+        next.x,
+        next.y,
+        point.x,
+        point.y,
+        0.25
+    )
 
     return {
         x: point.x + 6 * (next.x - projected[0]),
@@ -90,7 +126,13 @@ function extendEnd(point: XYPosition, next: XYPosition, side: Position): XYPosit
     }
 }
 
-function catmullToBezier(value0: number, value1: number, value2: number, value3: number, t = 0.5): number {
+function catmullToBezier(
+    value0: number,
+    value1: number,
+    value2: number,
+    value3: number,
+    t = 0.5
+): number {
     const t2 = t ** 2
     const t3 = t ** 3
 
@@ -122,7 +164,9 @@ function getCatmullRomPath(
         const next = points[index + 1]
         const previous =
             points[index - 1] ??
-            (withHandleProjection ? extendStart(point, next, sides.fromSide) : point)
+            (withHandleProjection
+                ? extendStart(point, next, sides.fromSide)
+                : point)
         const afterNext =
             points[index + 2] ??
             (withHandleProjection ? extendEnd(point, next, sides.toSide) : next)
@@ -158,7 +202,9 @@ function getCatmullRomControlPoints(
         const next = points[index + 1]
         const previous =
             points[index - 1] ??
-            (withHandleProjection ? extendStart(point, next, sides.fromSide) : point)
+            (withHandleProjection
+                ? extendStart(point, next, sides.fromSide)
+                : point)
         const afterNext =
             points[index + 2] ??
             (withHandleProjection ? extendEnd(point, next, sides.toSide) : next)
@@ -279,7 +325,9 @@ function segmentOrientation(
     return absDx >= absDy ? 'horizontal' : 'vertical'
 }
 
-export function shouldPromoteCatmullToLinear(controlPoints: XYPosition[]): boolean {
+export function shouldPromoteCatmullToLinear(
+    controlPoints: XYPosition[]
+): boolean {
     if (controlPoints.length < 2) {
         return false
     }

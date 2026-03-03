@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import {
     BaseEdge,
     type Edge,
@@ -7,8 +6,9 @@ import {
     useReactFlow,
     useStore,
 } from '@xyflow/react'
+import { shallow } from 'zustand/shallow'
 import type { EditableRegulatoryEdge, InteractionType } from '@/lib/schema'
-import { DEFAULT_ALGORITHM, type ControlPoint } from '@/lib/types'
+import { DEFAULT_ALGORITHM } from '@/lib/types'
 import {
     useStableControlPointIds,
     getEditableControlPoints,
@@ -38,18 +38,25 @@ export function RegulatoryEdge({
     style,
     data,
 }: EdgeProps<RegulatoryGraphEdge>) {
-    const sourceNode = useInternalNode(source)
-    const targetNode = useInternalNode(target)
-    const edges = useStore((state) => state.edges)
-    const nodeLookup = useStore((state) => state.nodeLookup)
-    const userSelectionActive = useStore((state) => state.userSelectionActive)
-    const userSelectionRect = useStore((state) => state.userSelectionRect)
-    const transform = useStore((state) => state.transform)
+    const sourceNode = useInternalNode(source)!
+    const targetNode = useInternalNode(target)!
+    const {
+        edges,
+        nodeLookup,
+        userSelectionActive,
+        userSelectionRect,
+        transform,
+    } = useStore(
+        (state) => ({
+            edges: state.edges,
+            nodeLookup: state.nodeLookup,
+            userSelectionActive: state.userSelectionActive,
+            userSelectionRect: state.userSelectionRect,
+            transform: state.transform,
+        }),
+        shallow
+    )
     const { setEdges } = useReactFlow()
-
-    if (!sourceNode || !targetNode) {
-        return null
-    }
 
     const algorithm = data?.algorithm ?? DEFAULT_ALGORITHM
     const storedPoints = data?.points ?? []
@@ -85,9 +92,6 @@ export function RegulatoryEdge({
         endArrowType: regulatoryStyle.endArrowType,
     })
 
-    const latestStoredPointsRef = useRef<ControlPoint[]>(geometryStoredPoints)
-    latestStoredPointsRef.current = geometryStoredPoints
-
     const controlPoints = useStableControlPointIds(
         getEditableControlPoints({
             points: allPoints,
@@ -98,7 +102,7 @@ export function RegulatoryEdge({
             },
         })
     )
-    const visibleControlPoints = controlPoints.filter(
+    const editableControlPoints = controlPoints.filter(
         (point) => point.id !== startHandleId && point.id !== endHandleId
     )
     const startHandlePosition =
@@ -124,7 +128,6 @@ export function RegulatoryEdge({
         },
     })
 
-    const showControlPoints = isSelected
     const edgeColor =
         typeof style?.stroke === 'string'
             ? style.stroke
@@ -136,12 +139,16 @@ export function RegulatoryEdge({
             setEdges,
             startHandleId,
             endHandleId,
-            latestStoredPointsRef,
+            fallbackGeometryStoredPoints: geometryStoredPoints,
             sourcePoint,
             targetPoint,
             sourceNode,
             targetNode,
         })
+    const anchors = [
+        { id: startHandleId, position: startHandlePosition },
+        { id: endHandleId, position: endHandlePosition },
+    ]
 
     return (
         <>
@@ -162,8 +169,8 @@ export function RegulatoryEdge({
                     strokeWidth: REGULATORY_EDGE_STROKE_WIDTH,
                 }}
             />
-            {showControlPoints &&
-                visibleControlPoints.map((point, index) => (
+            {isSelected &&
+                editableControlPoints.map((point, index) => (
                     <ControlPointHandle
                         key={point.id}
                         id={point.id ?? `${index}`}
@@ -177,28 +184,19 @@ export function RegulatoryEdge({
                         selectEdge={selectEdge}
                     />
                 ))}
-            {showControlPoints && (
-                <AnchorHandle
-                    id={startHandleId}
-                    x={startHandlePosition.x}
-                    y={startHandlePosition.y}
-                    color={edgeColor}
-                    selected={isSelected}
-                    onChange={(next) => setAnchorHint(startHandleId, next)}
-                    selectEdge={selectEdge}
-                />
-            )}
-            {showControlPoints && (
-                <AnchorHandle
-                    id={endHandleId}
-                    x={endHandlePosition.x}
-                    y={endHandlePosition.y}
-                    color={edgeColor}
-                    selected={isSelected}
-                    onChange={(next) => setAnchorHint(endHandleId, next)}
-                    selectEdge={selectEdge}
-                />
-            )}
+            {isSelected &&
+                anchors.map(({ id: anchorId, position }) => (
+                    <AnchorHandle
+                        key={anchorId}
+                        id={anchorId}
+                        x={position.x}
+                        y={position.y}
+                        color={edgeColor}
+                        selected={isSelected}
+                        onChange={(next) => setAnchorHint(anchorId, next)}
+                        selectEdge={selectEdge}
+                    />
+                ))}
         </>
     )
 }

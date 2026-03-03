@@ -17,7 +17,6 @@ import {
 } from '@xyflow/react'
 import { useCallback, useRef } from 'react'
 import { Toolbar, ZoomControls } from '../overlay'
-import type { ControlPoint } from '@/lib/types'
 
 import '@xyflow/react/dist/style.css'
 import './elements/regulatory-node-style.css'
@@ -117,9 +116,7 @@ export function Graph({ model }: GraphProps) {
                         return edge
                     }
 
-                    const points = edge.data?.points as
-                        | ControlPoint[]
-                        | undefined
+                    const points = edge.data?.points
                     if (!points || points.length === 0) {
                         return edge
                     }

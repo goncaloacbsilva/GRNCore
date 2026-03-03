@@ -1,37 +1,23 @@
-import { useRef } from 'react'
+import { useMemo } from 'react'
 import type { ControlPoint } from '@/lib/types'
-import { createId } from './id'
+
+function toStableCoord(value: number): string {
+    return Math.round(value * 100).toString(36)
+}
 
 export function useStableControlPointIds(points: ControlPoint[]): ControlPoint[] {
-    const idsRef = useRef<string[]>([])
+    return useMemo(
+        () =>
+            points.map((point, index) => {
+                if (point.id) {
+                    return point
+                }
 
-    if (idsRef.current.length === points.length) {
-        return points.map((point, index) => {
-            if (point.id) {
-                return point
-            }
-
-            return {
-                ...point,
-                id: idsRef.current[index],
-            }
-        })
-    }
-
-    idsRef.current = []
-
-    return points.map((point, index) => {
-        if (point.id) {
-            idsRef.current[index] = point.id
-            return point
-        }
-
-        const generatedId = createId('control')
-        idsRef.current[index] = generatedId
-
-        return {
-            ...point,
-            id: generatedId,
-        }
-    })
+                return {
+                    ...point,
+                    id: `control-${point.prev ?? 'root'}-${index}-${toStableCoord(point.x)}-${toStableCoord(point.y)}`,
+                }
+            }),
+        [points]
+    )
 }
