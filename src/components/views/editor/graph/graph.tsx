@@ -160,6 +160,7 @@ export function Graph({ model }: GraphProps) {
             panOnScroll={PAN_ON_SCROLL}
             selectionOnDrag={SELECTION_ON_DRAG}
             selectionMode={SelectionMode.Partial}
+            elevateEdgesOnSelect
             panOnDrag={PAN_ON_DRAG}
             nodeTypes={NODE_TYPES}
             edgeTypes={EDGE_TYPES}
