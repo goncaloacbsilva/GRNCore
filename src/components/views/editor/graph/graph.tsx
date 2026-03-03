@@ -1,355 +1,197 @@
-import { Graph as G6Graph, type EdgeData, type GraphData } from '@antv/g6'
-
-import { type RefObject, useEffect, useRef } from 'react'
+import type {
+    EditableRegulatoryEdge,
+    InternalGRNModel,
+    RegulatoryNodeProperties,
+} from '@/lib/schema'
 import {
-    createGraphConfig,
-    createGraphResizeController,
-    registerExtensions,
-    unbindGraphListeners,
-} from './utils'
-import {
-    bindGraphListeners,
-    bindWindowListeners,
-    createEdgeSnapshotStore,
-    createEndpointController,
-    createInteractionController,
-    type InteractionState,
-    unbindWindowListeners,
-} from './utils'
-import type { RegulatoryEdgeProperties } from '@/lib/schema'
-import {
-    DEFAULT_INTERACTION_TYPE,
-    EDGE_DRAG_CURSOR_LOCK_CLASS,
-    REGULATORY_EDGE_STYLES,
-} from './constants'
-import { useEditorStore } from '@/store/editor'
+    applyNodeChanges,
+    type NodeChange,
+    type Node,
+    Background,
+    MiniMap,
+    Panel,
+    ReactFlow,
+    SelectionMode,
+    useEdgesState,
+    useNodesState,
+} from '@xyflow/react'
+import { useCallback, useRef } from 'react'
+import { Toolbar, ZoomControls } from '../overlay'
 
-type ControlPoint = [number, number]
+import '@xyflow/react/dist/style.css'
+import './elements/regulatory-node-style.css'
+import {
+    BACKGROUND_COLOR,
+    BACKGROUND_DOTS_RADIUS,
+    DEFAULT_EDGE_TYPE,
+    DEFAULT_NODE_TYPE,
+    EDGE_TYPES,
+    FIT_VIEW_OPTIONS,
+    MINIMAP_NODE_COLOR,
+    NODE_TYPES,
+    PAN_ON_DRAG,
+    PAN_ON_SCROLL,
+    SELECTION_ON_DRAG,
+} from './config'
 
-export interface GraphProps {
-    data: GraphData
-    onRender?: (graph: G6Graph) => void
-    onDestroy?: () => void
+interface GraphProps {
+    model: InternalGRNModel
 }
 
-function initializeGraphInstance(params: {
-    containerRef: RefObject<HTMLDivElement | null>
-    graphRef: RefObject<G6Graph | undefined>
-    setGraphRef: (ref: RefObject<G6Graph>) => void
-    isUnmountedRef: RefObject<boolean>
-    isGraphReadyRef: RefObject<boolean>
-    onDestroyRef: RefObject<(() => void) | undefined>
-}) {
-    const {
-        containerRef,
-        graphRef,
-        setGraphRef,
-        isUnmountedRef,
-        isGraphReadyRef,
-        onDestroyRef,
-    } = params
-
-    isUnmountedRef.current = false
-    graphRef.current = new G6Graph({ container: containerRef.current! })
-
-    if (graphRef.current) {
-        setGraphRef(graphRef as RefObject<G6Graph>)
-    }
-
-    // Register all custom extensions
-    registerExtensions()
-
-    return () => {
-        isUnmountedRef.current = true
-        isGraphReadyRef.current = false
-        const currentGraph = graphRef.current
-        if (currentGraph) {
-            currentGraph.destroy()
-            onDestroyRef.current?.()
-            graphRef.current = undefined
-        }
-    }
+function importNodes(
+    nodes: Node<RegulatoryNodeProperties>[]
+): Node<RegulatoryNodeProperties>[] {
+    return nodes.map((node) => ({
+        ...node,
+        type: DEFAULT_NODE_TYPE,
+    }))
 }
 
-function renderGraphOnMount(params: {
-    data: GraphData
-    containerRef: RefObject<HTMLDivElement | null>
-    graphRef: RefObject<G6Graph | undefined>
-    isUnmountedRef: RefObject<boolean>
-    isGraphReadyRef: RefObject<boolean>
-    onRenderRef: RefObject<((graph: G6Graph) => void) | undefined>
-    isIgnorableGraphError: (error: unknown) => boolean
-}) {
-    const {
-        data,
-        containerRef,
-        graphRef,
-        isUnmountedRef,
-        isGraphReadyRef,
-        onRenderRef,
-        isIgnorableGraphError,
-    } = params
+export function Graph({ model }: GraphProps) {
+    const [nodes, setNodes] = useNodesState(importNodes(model.nodes))
+    const [edges, setEdges, onEdgesChange] = useEdgesState(model.edges)
+    const dragPreviousPositionsRef = useRef<
+        Map<string, { x: number; y: number }>
+    >(new Map())
 
-    const container = containerRef.current
-    const graph = graphRef.current
-
-    if (!container || !graph || graph.destroyed) return
-
-    const resizeController = createGraphResizeController({
-        graph,
-        isUnmountedRef,
-        isGraphReadyRef,
-        isIgnorableGraphError,
-    })
-
-    const interactionState: InteractionState = {
-        activeControlPoint: undefined,
-        selectedEdgeId: undefined,
-        shouldSkipEdgeClick: false,
-        draggingNodeLastPosition: new Map<string, ControlPoint>(),
-    }
-
-    const handleGraphError = (error: unknown) => {
-        if (isIgnorableGraphError(error)) return
-        console.error(error)
-    }
-    const { snapshotEdge, getEdgeDatum } = createEdgeSnapshotStore(
-        graph,
-        data.edges ?? []
+    const onNodesChange = useCallback(
+        (changes: NodeChange<Node<RegulatoryNodeProperties>>[]) => {
+            setNodes((prevNodes) => applyNodeChanges(changes, prevNodes))
+        },
+        [setNodes]
     )
 
-    const getEdgeProperties = (
-        edgeId: string
-    ): Partial<RegulatoryEdgeProperties> | undefined => {
-        const edgeData = getEdgeDatum(edgeId)
-        return edgeData?.data as Partial<RegulatoryEdgeProperties> | undefined
-    }
-
-    const getControlPoints = (edgeId: string): ControlPoint[] => {
-        const points = getEdgeProperties(edgeId)?.controlPoints
-        if (!Array.isArray(points)) return []
-
-        return points.filter(
-            (point): point is ControlPoint =>
-                Array.isArray(point) &&
-                point.length === 2 &&
-                Number.isFinite(point[0]) &&
-                Number.isFinite(point[1])
-        )
-    }
-    const endpointController = createEndpointController({
-        graph,
-        containerRef,
-        cursorLockClass: EDGE_DRAG_CURSOR_LOCK_CLASS,
-        getSelectedEdgeId: () => interactionState.selectedEdgeId,
-        getEdgeDatum,
-        getEdgeProperties,
-        getControlPoints,
-        onError: handleGraphError,
-    })
-    const {
-        createEndpointHandle,
-        hideEndpointHandles,
-        setDraggingCursorLock,
-        getEndpointGuidePoint,
-        getEdgeEndpointsFromPath,
-        getSelfLoopGuides,
-        getSelfLoopDefaultMiddlePoint,
-        renderEndpointHandles,
-        setEndpointHandleCanvasPosition,
-        updateEndpointHandlesFromControlPoints,
-        scheduleEndpointHandleRender,
-        cleanup: cleanupEndpointController,
-    } = endpointController
-
-    const updateEdgeDataProperties = (
-        edgeId: string,
-        patch: Partial<RegulatoryEdgeProperties>
-    ) => {
-        const edgeData = getEdgeDatum(edgeId)
-        if (!edgeData) return
-        const currentData =
-            (edgeData.data as Partial<RegulatoryEdgeProperties> | undefined) ??
-            {}
-        const mergedData: Partial<RegulatoryEdgeProperties> = {
-            ...currentData,
-            ...patch,
-        }
-
-        const interactionType =
-            mergedData.type && mergedData.type in REGULATORY_EDGE_STYLES
-                ? mergedData.type
-                : DEFAULT_INTERACTION_TYPE
-
-        const nextStyle = {
-            ...(edgeData.style ?? {}),
-            ...REGULATORY_EDGE_STYLES[interactionType],
-            lineWidth: 2,
-        }
-
-        snapshotEdge({
-            ...edgeData,
-            data: mergedData,
-            style: nextStyle,
-        } as EdgeData)
-
-        // Apply immediately so drag interactions (especially self-loop edits)
-        // update geometry without waiting for the batched control-point flush.
-        graph.updateEdgeData([
-            {
-                id: edgeId,
-                source: edgeData.source,
-                target: edgeData.target,
-                data: {
-                    ...mergedData,
-                },
-                style: nextStyle,
-            },
-        ])
-        graph
-            .draw()
-            .then(() => {
-                if (interactionState.activeControlPoint) {
-                    // Keep endpoint handles visually locked to the edge while dragging.
-                    renderEndpointHandles()
-                }
-            })
-            .catch(handleGraphError)
-    }
-
-    const enqueueEdgeSelection = (edgeId: string, selected: boolean) => {
-        const edgeData = getEdgeDatum(edgeId)
-        if (!edgeData) return
-        const edgeProperties =
-            (edgeData.data as Partial<RegulatoryEdgeProperties> | undefined) ??
-            {}
-
-        updateEdgeDataProperties(edgeId, {
-            ...edgeProperties,
-            selected,
-        })
-
-        if (selected) {
-            void graph.frontElement(edgeId)
-        }
-    }
-
-    const { graphListeners, windowListeners, onEndpointHandlePointerDown } =
-        createInteractionController({
-            graph,
-            state: interactionState,
-            getEdgeDatum,
-            getEdgeProperties,
-            getControlPoints,
-            getEdgeEndpointsFromPath,
-            getSelfLoopGuides,
-            getSelfLoopDefaultMiddlePoint,
-            getEndpointGuidePoint,
-            setEndpointHandleCanvasPosition,
-            updateEndpointHandlesFromControlPoints,
-            scheduleEndpointHandleRender,
-            renderEndpointHandles,
-            hideEndpointHandles,
-            setDraggingCursorLock,
-            updateEdgeDataProperties,
-            enqueueEdgeSelection,
-            onError: handleGraphError,
-        })
-
-    graph.setOptions(createGraphConfig(data, resizeController.handleNodeResize))
-    bindGraphListeners(graph, graphListeners)
-    createEndpointHandle('source').addEventListener(
-        'pointerdown',
-        onEndpointHandlePointerDown('source')
-    )
-    createEndpointHandle('target').addEventListener(
-        'pointerdown',
-        onEndpointHandlePointerDown('target')
-    )
-    bindWindowListeners(windowListeners)
-
-    graph
-        .render()
-        .then(() => {
-            if (graph.destroyed || isUnmountedRef.current) return
-            graph.getEdgeData().forEach((edge) => snapshotEdge(edge))
-            isGraphReadyRef.current = true
-            resizeController.onGraphRendered()
-            renderEndpointHandles()
-            onRenderRef.current?.(graph)
-        })
-        .catch((error) => {
-            if (
-                isUnmountedRef.current ||
-                graph.destroyed ||
-                isIgnorableGraphError(error)
+    const onNodeDragStart = useCallback(
+        (
+            _event: unknown,
+            _node: Node<RegulatoryNodeProperties>,
+            draggedNodes: Node<RegulatoryNodeProperties>[]
+        ) => {
+            const selectedDraggedNodes = draggedNodes.filter((n) => n.selected)
+            dragPreviousPositionsRef.current = new Map(
+                selectedDraggedNodes.map((n) => [n.id, { ...n.position }])
             )
+        },
+        []
+    )
+
+    const onNodeDrag = useCallback(
+        (
+            _event: unknown,
+            _node: Node<RegulatoryNodeProperties>,
+            draggedNodes: Node<RegulatoryNodeProperties>[]
+        ) => {
+            const selectedDraggedNodes = draggedNodes.filter((n) => n.selected)
+            if (selectedDraggedNodes.length === 0) {
                 return
-            console.error(error)
-        })
+            }
 
-    return () => {
-        isGraphReadyRef.current = false
-        resizeController.cleanup()
-        unbindGraphListeners(graph, graphListeners)
-        cleanupEndpointController()
-        unbindWindowListeners(windowListeners)
-    }
-}
+            const anchorNode = selectedDraggedNodes.find((n) =>
+                dragPreviousPositionsRef.current.has(n.id)
+            )
+            if (!anchorNode) {
+                return
+            }
 
-export const Graph = (props: GraphProps) => {
-    const { data, onRender, onDestroy } = props
-    const setGraphRef = useEditorStore((state) => state.setGraphRef)
-    const graphRef = useRef<G6Graph>(undefined)
-    const containerRef = useRef<HTMLDivElement>(null)
-    const isGraphReadyRef = useRef(false)
-    const isUnmountedRef = useRef(false)
-    const onRenderRef = useRef(onRender)
-    const onDestroyRef = useRef(onDestroy)
-    const isIgnorableGraphError = (error: unknown) =>
-        error instanceof Error &&
-        error.message.includes('this.context.element.draw')
+            const previous = dragPreviousPositionsRef.current.get(anchorNode.id)
+            if (!previous) {
+                return
+            }
 
-    useEffect(() => {
-        onRenderRef.current = onRender
-        onDestroyRef.current = onDestroy
-    }, [onDestroy, onRender])
+            const dx = anchorNode.position.x - previous.x
+            const dy = anchorNode.position.y - previous.y
 
-    useEffect(() => {
-        return initializeGraphInstance({
-            containerRef,
-            graphRef,
-            setGraphRef,
-            isUnmountedRef,
-            isGraphReadyRef,
-            onDestroyRef,
-        })
-    }, [setGraphRef])
+            if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) {
+                return
+            }
 
-    useEffect(() => {
-        return renderGraphOnMount({
-            data,
-            containerRef,
-            graphRef,
-            isUnmountedRef,
-            isGraphReadyRef,
-            onRenderRef,
-            isIgnorableGraphError,
-        })
-    })
+            const selectedIds = new Set(selectedDraggedNodes.map((n) => n.id))
+
+            setEdges((currentEdges) =>
+                currentEdges.map((edge) => {
+                    if (
+                        !selectedIds.has(String(edge.source)) ||
+                        !selectedIds.has(String(edge.target))
+                    ) {
+                        return edge
+                    }
+
+                    const points = edge.data?.points
+                    if (!points || points.length === 0) {
+                        return edge
+                    }
+
+                    return {
+                        ...edge,
+                        data: {
+                            ...(edge.data ?? {}),
+                            points: points.map((point) => ({
+                                ...point,
+                                x: point.x + dx,
+                                y: point.y + dy,
+                            })),
+                        } as EditableRegulatoryEdge,
+                    }
+                })
+            )
+
+            dragPreviousPositionsRef.current = new Map(
+                selectedDraggedNodes.map((n) => [n.id, { ...n.position }])
+            )
+        },
+        [setEdges]
+    )
+
+    const onNodeDragStop = useCallback(() => {
+        dragPreviousPositionsRef.current = new Map()
+    }, [])
 
     return (
-        <div
-            style={{
-                width: '100%',
-                height: '100%',
-                position: 'relative',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                WebkitTapHighlightColor: 'transparent',
+        <ReactFlow
+            proOptions={{
+                hideAttribution: true,
             }}
+            nodes={nodes}
+            onNodesChange={onNodesChange}
+            onNodeDragStart={onNodeDragStart}
+            onNodeDrag={onNodeDrag}
+            onNodeDragStop={onNodeDragStop}
+            edges={edges}
+            onEdgesChange={onEdgesChange}
+            panOnScroll={PAN_ON_SCROLL}
+            selectionOnDrag={SELECTION_ON_DRAG}
+            selectionMode={SelectionMode.Partial}
+            elevateEdgesOnSelect
+            panOnDrag={PAN_ON_DRAG}
+            nodeTypes={NODE_TYPES}
+            edgeTypes={EDGE_TYPES}
+            defaultEdgeOptions={{
+                type: DEFAULT_EDGE_TYPE,
+                selectable: true,
+                focusable: true,
+            }}
+            fitView
+            fitViewOptions={FIT_VIEW_OPTIONS}
         >
-            <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-        </div>
+            <Background
+                color={BACKGROUND_COLOR}
+                size={BACKGROUND_DOTS_RADIUS}
+            />
+            <MiniMap
+                style={{
+                    borderRadius: 'var(--radius-md)',
+                    overflow: 'clip',
+                }}
+                nodeColor={MINIMAP_NODE_COLOR}
+                zoomable
+                pannable
+            />
+            <Panel position="bottom-left">
+                <ZoomControls />
+            </Panel>
+            <Panel position="top-left">
+                <Toolbar />
+            </Panel>
+        </ReactFlow>
     )
 }

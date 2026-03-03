@@ -1,58 +1,58 @@
-import { useLayoutEffect, useRef } from 'react'
-import type { NodeData } from '@antv/g6'
+import { memo } from 'react'
+import {
+    Handle,
+    Position,
+    NodeResizer,
+    type NodeProps,
+    type Node,
+    useConnection,
+} from '@xyflow/react'
 import type { RegulatoryNodeProperties } from '@/lib/schema'
-import { twJoin } from 'tailwind-merge'
 
-interface RegulatoryNodeProps {
-    data: NodeData
-    onResize?: (width: number, height: number) => void
-}
+const RegulatoryNode = ({
+    id,
+    data,
+    selected,
+}: NodeProps<Node<RegulatoryNodeProperties>>) => {
+    const connection = useConnection()
 
-export function RegulatoryNode({ data, onResize }: RegulatoryNodeProps) {
-    const rootRef = useRef<HTMLDivElement>(null)
-    const properties = data.data as RegulatoryNodeProperties
+    const isTarget = connection.inProgress && connection.fromNode.id !== id
 
-    useLayoutEffect(() => {
-        const element = rootRef.current
-        if (!element || !onResize) return
-
-        const notify = () => {
-            const width = element.offsetWidth
-            const height = element.offsetHeight
-
-            if (width > 0 && height > 0) {
-                onResize(width, height)
-                return
-            }
-
-            const rect = element.getBoundingClientRect()
-            onResize(Math.ceil(rect.width), Math.ceil(rect.height))
-        }
-
-        notify()
-
-        if (typeof ResizeObserver === 'undefined') return
-
-        const observer = new ResizeObserver(() => notify())
-        observer.observe(element)
-        return () => observer.disconnect()
-    }, [onResize, data.id])
+    const connectModeActive = false
 
     return (
-        <div
-            ref={rootRef}
-            className={twJoin(
-                'w-max px-4 py-2 rounded-sm flex flex-col select-none bg-white border-2 border-[#E2E8F0]',
-                data.states?.includes('dim') && 'opacity-20'
+        <div className="h-full px-4 py-2 flex flex-col items-center justify-center bg-white border-2 border-[#E2E8F0] rounded-sm text-sm">
+            <NodeResizer
+                color="#2f81ed"
+                handleStyle={{
+                    borderRadius: 'calc(infinity * 1px)',
+                    width: 8,
+                    height: 8,
+                }}
+                isVisible={selected}
+                minWidth={100}
+                minHeight={30}
+            />
+            {!connection.inProgress && (
+                <Handle
+                    isConnectable={connectModeActive}
+                    className="customHandle"
+                    position={Position.Right}
+                    type="source"
+                />
             )}
-            draggable={false}
-            onDragStart={(event) => event.preventDefault()}
-            style={{
-                WebkitUserSelect: 'none',
-                WebkitTapHighlightColor: 'transparent',
-            }}
-        >
-            {properties.name ?? data.id}
+            {/* We want to disable the target handle, if the connection was started from this node */}
+            {(!connection.inProgress || isTarget) && (
+                <Handle
+                    className="customHandle"
+                    position={Position.Left}
+                    type="target"
+                    isConnectableStart={false}
+                />
+            )}
+            <div>{data.name}</div>
         </div>
     )
 }
+
+export default memo(RegulatoryNode)
