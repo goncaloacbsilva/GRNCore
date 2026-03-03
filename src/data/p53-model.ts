@@ -103,14 +103,5 @@ export const P53_MODEL: InternalGRNModel = {
                 target: 1,
             },
         },
-        {
-            id: 'edge-8',
-            source: 'node-4',
-            target: 'node-4',
-            data: {
-                type: 'activation',
-                target: 1,
-            },
-        },
     ],
 }
