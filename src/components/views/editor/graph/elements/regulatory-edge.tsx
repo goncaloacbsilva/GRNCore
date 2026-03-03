@@ -1,697 +1,33 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import {
     BaseEdge,
-    type InternalNode,
-    Position,
     type Edge,
     type EdgeProps,
     useInternalNode,
     useReactFlow,
     useStore,
-    type XYPosition,
 } from '@xyflow/react'
 import type { EditableRegulatoryEdge, InteractionType } from '@/lib/schema'
+import { DEFAULT_ALGORITHM, type ControlPoint } from '@/lib/types'
 import {
-    DEFAULT_ALGORITHM,
-    EDGE_ALGORITHM,
-    type ControlPoint,
-} from '@/lib/types'
-import {
-    convertPathToStepPoints,
-    compressHorizontalRuns,
+    useStableControlPointIds,
     getEditableControlPoints,
     getEditablePath,
-    getSmoothStepPoints,
-    HANDLE_OFFSET,
-    normalizeStepControlPoints,
-    pointsEqual,
-    shouldPromoteCatmullToLinear,
-} from '../utils/geometry'
-import { createId } from '../utils/id'
-import { getEdgeParams, getParallelEdgeMeta } from '../utils'
-import { useStableControlPointIds } from '../utils/use-stable-control-point-ids'
+    getParallelEdgeMeta,
+    projectToNodePerimeter,
+    computeRegulatoryEdgeLayout,
+} from '../utils'
 import { REGULATORY_EDGE_STYLES } from '../config'
 import { RegulatoryEdgeMarker } from './regulatory-edge-marker'
+import { AnchorHandle, ControlPointHandle } from './editable-edge-handles'
+import {
+    useRegulatoryEdgeActions,
+    useRegulatoryEdgeSelection,
+} from '../utils/use-regulatory-edge-interactions'
 
-const PARALLEL_EDGE_SPACING = 19
-const AUTO_PARALLEL_CATMULL_BEND = PARALLEL_EDGE_SPACING * 0.6
-const AUTO_PARALLEL_ANCHOR_OFFSET = PARALLEL_EDGE_SPACING * 0.3
-const REGULATORY_EDGE_STROKE_WIDTH = 1.8
-const MARKER_TIP_GAP = 2
-const INHIBITION_MARKER_EXTRA_GAP = 0.8
-const SELF_LOOP_MIN_LIFT = 18
-const SELF_LOOP_INSET_MIN = 28
-const SELF_LOOP_INSET_RATIO = 0.3
-const SELF_LOOP_LIFT_MULTIPLIER = 0.18
-
-const TARGET_GAP_BY_POSITION: Record<
-    EdgeProps<RegulatoryGraphEdge>['targetPosition'],
-    XYPosition
-> = {
-    left: { x: -1, y: 0 },
-    right: { x: 1, y: 0 },
-    top: { x: 0, y: -1 },
-    bottom: { x: 0, y: 1 },
-}
+const REGULATORY_EDGE_STROKE_WIDTH = 1.5
 
 type RegulatoryGraphEdge = Edge<EditableRegulatoryEdge>
-
-function projectToNodePerimeter(
-    node: InternalNode,
-    pointer: XYPosition
-): XYPosition {
-    const width = node.measured.width ?? 0
-    const height = node.measured.height ?? 0
-    const nodeX = node.internals.positionAbsolute.x
-    const nodeY = node.internals.positionAbsolute.y
-    const centerX = nodeX + width / 2
-    const centerY = nodeY + height / 2
-
-    const w = width / 2
-    const h = height / 2
-    const dx = pointer.x - centerX
-    const dy = pointer.y - centerY
-    const xx1 = dx / (2 * w || 1) - dy / (2 * h || 1)
-    const yy1 = dx / (2 * w || 1) + dy / (2 * h || 1)
-    const divisor = Math.abs(xx1) + Math.abs(yy1)
-
-    if (divisor < 1e-6) {
-        return { x: centerX, y: nodeY }
-    }
-
-    const a = 1 / divisor
-    const xx3 = a * xx1
-    const yy3 = a * yy1
-
-    return {
-        x: w * (xx3 + yy3) + centerX,
-        y: h * (-xx3 + yy3) + centerY,
-    }
-}
-
-type ControlPointProps = {
-    id: string
-    index: number
-    x: number
-    y: number
-    color: string
-    active: boolean
-    selected: boolean
-    setControlPoints: (
-        updater: (points: ControlPoint[]) => ControlPoint[]
-    ) => void
-    selectEdge: () => void
-    insertMode?: 'auto' | 'start' | 'end'
-    allowCreate?: boolean
-}
-
-function ControlPointHandle({
-    id,
-    index,
-    x,
-    y,
-    color,
-    active,
-    selected,
-    setControlPoints,
-    selectEdge,
-    insertMode = 'auto',
-    allowCreate = true,
-}: ControlPointProps) {
-    const domNode = useStore((state) => state.domNode)
-    const { screenToFlowPosition } = useReactFlow()
-
-    const updatePoint = (next: XYPosition) => {
-        setControlPoints((points) => {
-            const existingIndex = points.findIndex((point) => point.id === id)
-
-            if (existingIndex >= 0) {
-                return points.map((point) =>
-                    point.id === id
-                        ? {
-                              ...point,
-                              ...next,
-                              active: true,
-                          }
-                        : point
-                )
-            }
-
-            if (!allowCreate) {
-                return points
-            }
-
-            if (insertMode === 'start') {
-                return [
-                    {
-                        ...next,
-                        id,
-                        active: true,
-                    },
-                    ...points,
-                ]
-            }
-
-            if (insertMode === 'end') {
-                return [
-                    ...points,
-                    {
-                        ...next,
-                        id,
-                        active: true,
-                    },
-                ]
-            }
-
-            if (index !== 0) {
-                if (points.length === 0) {
-                    return [
-                        {
-                            ...next,
-                            id,
-                            active: true,
-                        },
-                    ]
-                }
-
-                const insertionAnchor = Math.max(0, Math.floor((index - 1) / 2))
-                const insertAt = Math.min(insertionAnchor + 1, points.length)
-
-                return [
-                    ...points.slice(0, insertAt),
-                    {
-                        ...next,
-                        id,
-                        active: true,
-                    },
-                    ...points.slice(insertAt),
-                ]
-            }
-
-            return [
-                {
-                    ...next,
-                    id,
-                    active: true,
-                },
-                ...points,
-            ]
-        })
-    }
-
-    const removePoint = () => {
-        setControlPoints((points) => points.filter((point) => point.id !== id))
-    }
-
-    return (
-        <circle
-            tabIndex={0}
-            id={id}
-            className={`nopan nodrag${active ? ' active' : ''}`}
-            cx={x}
-            cy={y}
-            r={active ? 4 : 3}
-            strokeOpacity={active ? 1 : 0.3}
-            stroke={color}
-            fill={active ? color : 'white'}
-            aria-selected={selected}
-            style={{ pointerEvents: 'all' }}
-            onContextMenu={(event) => {
-                event.preventDefault()
-                if (active) {
-                    removePoint()
-                }
-            }}
-            onPointerDown={(event) => {
-                if (event.button === 2) {
-                    return
-                }
-                selectEdge()
-                event.preventDefault()
-                event.stopPropagation()
-                event.nativeEvent.stopImmediatePropagation()
-
-                updatePoint({ x, y })
-
-                const target = domNode ?? window
-
-                const onPointerMove = (moveEvent: Event) => {
-                    if (!(moveEvent instanceof PointerEvent)) {
-                        return
-                    }
-                    moveEvent.preventDefault()
-
-                    updatePoint(
-                        screenToFlowPosition({
-                            x: moveEvent.clientX,
-                            y: moveEvent.clientY,
-                        })
-                    )
-                }
-
-                const onPointerEnd = (endEvent: Event) => {
-                    if (!(endEvent instanceof PointerEvent)) {
-                        return
-                    }
-                    endEvent.preventDefault()
-
-                    if (!active) {
-                        endEvent.preventDefault()
-                    }
-
-                    target.removeEventListener('pointermove', onPointerMove)
-                    target.removeEventListener('pointerup', onPointerEnd)
-                    target.removeEventListener('pointerleave', onPointerEnd)
-
-                    updatePoint(
-                        screenToFlowPosition({
-                            x: endEvent.clientX,
-                            y: endEvent.clientY,
-                        })
-                    )
-                }
-
-                target.addEventListener('pointermove', onPointerMove)
-                target.addEventListener('pointerup', onPointerEnd)
-                target.addEventListener('pointerleave', onPointerEnd)
-            }}
-            onKeyDown={(event) => {
-                switch (event.key) {
-                    case 'Enter':
-                    case ' ':
-                    case 'Space':
-                        selectEdge()
-                        if (!active) {
-                            event.preventDefault()
-                        }
-                        updatePoint({ x, y })
-                        break
-                    case 'Backspace':
-                    case 'Delete':
-                        event.stopPropagation()
-                        removePoint()
-                        break
-                    case 'ArrowLeft':
-                        updatePoint({ x: x - 5, y })
-                        break
-                    case 'ArrowRight':
-                        updatePoint({ x: x + 5, y })
-                        break
-                    case 'ArrowUp':
-                        updatePoint({ x, y: y - 5 })
-                        break
-                    case 'ArrowDown':
-                        updatePoint({ x, y: y + 5 })
-                        break
-                }
-            }}
-        />
-    )
-}
-
-type StepControlPointProps = ControlPointProps & {
-    direction?: 'horizontal' | 'vertical'
-    initialStepPoints: ControlPoint[]
-}
-
-type AnchorHandleProps = {
-    id: string
-    x: number
-    y: number
-    color: string
-    selected: boolean
-    onChange: (next: XYPosition) => void
-    selectEdge: () => void
-}
-
-function AnchorHandle({
-    id,
-    x,
-    y,
-    color,
-    selected,
-    onChange,
-    selectEdge,
-}: AnchorHandleProps) {
-    const domNode = useStore((state) => state.domNode)
-    const { screenToFlowPosition } = useReactFlow()
-
-    return (
-        <circle
-            tabIndex={0}
-            id={id}
-            className="nopan nodrag"
-            cx={x}
-            cy={y}
-            r={3}
-            strokeOpacity={0.3}
-            stroke={color}
-            fill="white"
-            aria-selected={selected}
-            style={{ pointerEvents: 'all' }}
-            onPointerDown={(event) => {
-                if (event.button === 2) {
-                    return
-                }
-                selectEdge()
-                event.preventDefault()
-                event.stopPropagation()
-                event.nativeEvent.stopImmediatePropagation()
-
-                onChange({ x, y })
-
-                const target = domNode ?? window
-
-                const onPointerMove = (moveEvent: Event) => {
-                    if (!(moveEvent instanceof PointerEvent)) {
-                        return
-                    }
-                    moveEvent.preventDefault()
-
-                    onChange(
-                        screenToFlowPosition({
-                            x: moveEvent.clientX,
-                            y: moveEvent.clientY,
-                        })
-                    )
-                }
-
-                const onPointerEnd = (endEvent: Event) => {
-                    if (!(endEvent instanceof PointerEvent)) {
-                        return
-                    }
-                    endEvent.preventDefault()
-                    target.removeEventListener('pointermove', onPointerMove)
-                    target.removeEventListener('pointerup', onPointerEnd)
-                    target.removeEventListener('pointerleave', onPointerEnd)
-
-                    onChange(
-                        screenToFlowPosition({
-                            x: endEvent.clientX,
-                            y: endEvent.clientY,
-                        })
-                    )
-                }
-
-                target.addEventListener('pointermove', onPointerMove)
-                target.addEventListener('pointerup', onPointerEnd)
-                target.addEventListener('pointerleave', onPointerEnd)
-            }}
-            onKeyDown={(event) => {
-                switch (event.key) {
-                    case 'Enter':
-                    case ' ':
-                    case 'Space':
-                        selectEdge()
-                        onChange({ x, y })
-                        break
-                    case 'ArrowLeft':
-                        onChange({ x: x - 5, y })
-                        break
-                    case 'ArrowRight':
-                        onChange({ x: x + 5, y })
-                        break
-                    case 'ArrowUp':
-                        onChange({ x, y: y - 5 })
-                        break
-                    case 'ArrowDown':
-                        onChange({ x, y: y + 5 })
-                        break
-                }
-            }}
-        />
-    )
-}
-
-function StepControlPointHandle({
-    id,
-    index,
-    x,
-    y,
-    color,
-    active,
-    selected,
-    direction = 'horizontal',
-    initialStepPoints,
-    setControlPoints,
-    selectEdge,
-}: StepControlPointProps) {
-    const domNode = useStore((state) => state.domNode)
-    const { screenToFlowPosition } = useReactFlow()
-
-    const projectPoint = ({
-        previous,
-        position,
-    }: {
-        previous?: XYPosition
-        position: XYPosition
-    }): XYPosition => {
-        const projected: XYPosition = {
-            x: previous?.x ?? position.x,
-            y: previous?.y ?? position.y,
-        }
-
-        if (direction === 'vertical') {
-            projected.y = position.y
-        }
-
-        if (direction === 'horizontal') {
-            projected.x = position.x
-        }
-
-        return projected
-    }
-
-    const fallbackControlPoints = initialStepPoints.slice(
-        1,
-        initialStepPoints.length - 1
-    )
-
-    const updatePoint = (nextPosition: XYPosition) => {
-        setControlPoints((points) => {
-            const current = points.length === 0 ? fallbackControlPoints : points
-
-            const start = current[0]
-            const end = current[current.length - 1]
-            const next = [...current]
-
-            const point = next[index]
-            const afterPoint = next[index + 1]
-
-            const updated = {
-                ...point,
-                ...projectPoint({
-                    previous: point,
-                    position: nextPosition,
-                }),
-            }
-
-            const updatedAfter = {
-                ...afterPoint,
-                ...projectPoint({
-                    previous: afterPoint,
-                    position: nextPosition,
-                }),
-                active: true,
-            }
-
-            next[index] = updated
-            next[index + 1] = updatedAfter
-
-            const touchedEnd =
-                pointsEqual(afterPoint, end) && !active && Boolean(end)
-            const touchedStart =
-                pointsEqual(point, start) && !active && Boolean(start)
-
-            if (touchedEnd) {
-                next.push({
-                    ...(end as ControlPoint),
-                    id: createId('spline'),
-                })
-            }
-
-            if (touchedStart) {
-                next.unshift({
-                    ...(start as ControlPoint),
-                    id: createId('spline'),
-                })
-            }
-
-            return next as ControlPoint[]
-        })
-    }
-
-    const removePoint = () => {
-        setControlPoints((points) => {
-            if (!points.length) {
-                return points
-            }
-
-            const first = points[index]
-            const second = points[index + 1]
-
-            if ((!first && !second) || !second || !second.active) {
-                return points
-            }
-
-            let next = [...points]
-            const isHorizontalSegment = first.y === second.y
-
-            if (isHorizontalSegment) {
-                const after = next[index + 2]
-
-                next[index] = {
-                    ...next[index],
-                    y: after?.y,
-                }
-
-                next[index + 1] = {
-                    ...next[index + 1],
-                    y: after?.y,
-                }
-            } else {
-                const previous = next[index]
-
-                next[index + 1] = {
-                    ...next[index + 1],
-                    y: previous?.y,
-                }
-
-                next[index + 2] = {
-                    ...next[index + 2],
-                    y: previous?.y,
-                }
-            }
-
-            next = compressHorizontalRuns(next)
-
-            next[1] = {
-                ...next[1],
-                active: false,
-            }
-
-            next[next.length - 1] = {
-                ...next[next.length - 1],
-                active: false,
-            }
-
-            return next.length < fallbackControlPoints.length ? [] : next
-        })
-    }
-
-    return (
-        <circle
-            tabIndex={0}
-            id={id}
-            className={`nopan nodrag${active ? ' active' : ''}`}
-            cx={x}
-            cy={y}
-            r={active ? 4 : 3}
-            strokeOpacity={active ? 1 : 0.3}
-            stroke={color}
-            fill={active ? color : 'white'}
-            aria-selected={selected}
-            style={{ pointerEvents: 'all' }}
-            onContextMenu={(event) => {
-                event.preventDefault()
-                if (active) {
-                    removePoint()
-                }
-            }}
-            onPointerDown={(event) => {
-                if (event.button === 2) {
-                    return
-                }
-                selectEdge()
-                event.preventDefault()
-                event.stopPropagation()
-                event.nativeEvent.stopImmediatePropagation()
-
-                updatePoint({ x, y })
-
-                const target = domNode ?? window
-
-                const onPointerMove = (moveEvent: Event) => {
-                    if (!(moveEvent instanceof PointerEvent)) {
-                        return
-                    }
-                    moveEvent.preventDefault()
-
-                    updatePoint(
-                        screenToFlowPosition({
-                            x: moveEvent.clientX,
-                            y: moveEvent.clientY,
-                        })
-                    )
-                }
-
-                const onPointerEnd = (endEvent: Event) => {
-                    if (!(endEvent instanceof PointerEvent)) {
-                        return
-                    }
-                    endEvent.preventDefault()
-
-                    if (!active) {
-                        endEvent.preventDefault()
-                    }
-
-                    target.removeEventListener('pointermove', onPointerMove)
-                    target.removeEventListener('pointerup', onPointerEnd)
-                    target.removeEventListener('pointerleave', onPointerEnd)
-
-                    updatePoint(
-                        screenToFlowPosition({
-                            x: endEvent.clientX,
-                            y: endEvent.clientY,
-                        })
-                    )
-                }
-
-                target.addEventListener('pointermove', onPointerMove)
-                target.addEventListener('pointerup', onPointerEnd)
-                target.addEventListener('pointerleave', onPointerEnd)
-            }}
-            onKeyDown={(event) => {
-                switch (event.key) {
-                    case 'Enter':
-                    case ' ':
-                    case 'Space':
-                        selectEdge()
-                        if (!active) {
-                            event.preventDefault()
-                        }
-                        updatePoint({ x, y })
-                        break
-                    case 'Backspace':
-                    case 'Delete':
-                        event.stopPropagation()
-                        removePoint()
-                        break
-                    case 'ArrowLeft':
-                        if (direction === 'horizontal') {
-                            updatePoint({ x: x - 5, y })
-                        }
-                        break
-                    case 'ArrowRight':
-                        if (direction === 'horizontal') {
-                            updatePoint({ x: x + 5, y })
-                        }
-                        break
-                    case 'ArrowUp':
-                        if (direction === 'vertical') {
-                            updatePoint({ x, y: y - 5 })
-                        }
-                        break
-                    case 'ArrowDown':
-                        if (direction === 'vertical') {
-                            updatePoint({ x, y: y + 5 })
-                        }
-                        break
-                }
-            }}
-        />
-    )
-}
 
 export function RegulatoryEdge({
     id,
@@ -717,373 +53,40 @@ export function RegulatoryEdge({
 
     const algorithm = data?.algorithm ?? DEFAULT_ALGORITHM
     const storedPoints = data?.points ?? []
-    const startHandleId = `${id}-start-control`
-    const endHandleId = `${id}-end-control`
-    const startAnchorHint = storedPoints.find(
-        (point) => point.id === startHandleId
-    )
-    const endAnchorHint = storedPoints.find((point) => point.id === endHandleId)
-    const geometryStoredPoints = storedPoints.filter(
-        (point) => point.id !== startHandleId && point.id !== endHandleId
-    )
-    const isStep = algorithm === EDGE_ALGORITHM.Step
-    const isSelfLoop = source === target
-    const sourceHint = startAnchorHint ?? geometryStoredPoints[0]
-    const targetHint = endAnchorHint ?? geometryStoredPoints.at(-1)
     const { centeredIndex } = getParallelEdgeMeta(edges, id, source, target)
 
+    const isSelected = Boolean(selected)
     const interactionType: InteractionType =
         (data?.type as InteractionType | undefined) ?? 'activation'
     const regulatoryStyle = REGULATORY_EDGE_STYLES[interactionType]
-    const markerTipGap =
-        MARKER_TIP_GAP +
-        (regulatoryStyle.endArrowType === 'rect'
-            ? INHIBITION_MARKER_EXTRA_GAP
-            : 0)
-    const getMarkerGapPoint = ({
-        tip,
-        from,
-        fallbackNormal,
-    }: {
-        tip: XYPosition
-        from: XYPosition
-        fallbackNormal: XYPosition
-    }): XYPosition => {
-        const dx = tip.x - from.x
-        const dy = tip.y - from.y
-        const length = Math.hypot(dx, dy)
-
-        if (length > 1e-6) {
-            return {
-                x: tip.x - (dx / length) * markerTipGap,
-                y: tip.y - (dy / length) * markerTipGap,
-            }
-        }
-
-        return {
-            x: tip.x - fallbackNormal.x * markerTipGap,
-            y: tip.y - fallbackNormal.y * markerTipGap,
-        }
-    }
-
-    let sourcePos = Position.Top
-    let targetPos = Position.Top
-    let sourcePoint: XYPosition
-    let targetPoint: XYPosition
-    let targetTipPoint: XYPosition
-    let normalX = 0
-    let normalY = 0
-
-    if (isSelfLoop) {
-        const nodeX = sourceNode.internals.positionAbsolute.x
-        const nodeY = sourceNode.internals.positionAbsolute.y
-        const nodeWidth = sourceNode.measured.width ?? 0
-        const nodeHeight = sourceNode.measured.height ?? 0
-        const nodeCenter = {
-            x: nodeX + nodeWidth / 2,
-            y: nodeY + nodeHeight / 2,
-        }
-        const connectivityBySide: Record<Position, number> = {
-            [Position.Top]: 0,
-            [Position.Right]: 0,
-            [Position.Bottom]: 0,
-            [Position.Left]: 0,
-        }
-
-        for (const edge of edges) {
-            const edgeSource = String(edge.source)
-            const edgeTarget = String(edge.target)
-            if (edgeSource === source && edgeTarget === source) {
-                continue
-            }
-
-            if (edgeSource !== source && edgeTarget !== source) {
-                continue
-            }
-
-            const otherNodeId = edgeSource === source ? edgeTarget : edgeSource
-            const otherNode = nodeLookup.get(otherNodeId)
-            if (!otherNode) {
-                continue
-            }
-
-            const otherWidth = otherNode.measured.width ?? 0
-            const otherHeight = otherNode.measured.height ?? 0
-            const otherCenter = {
-                x: otherNode.internals.positionAbsolute.x + otherWidth / 2,
-                y: otherNode.internals.positionAbsolute.y + otherHeight / 2,
-            }
-
-            const dx = otherCenter.x - nodeCenter.x
-            const dy = otherCenter.y - nodeCenter.y
-            const side =
-                Math.abs(dx) >= Math.abs(dy)
-                    ? dx >= 0
-                        ? Position.Right
-                        : Position.Left
-                    : dy >= 0
-                      ? Position.Bottom
-                      : Position.Top
-
-            connectivityBySide[side] += 1
-        }
-
-        const preferredSideOrder = [
-            Position.Top,
-            Position.Right,
-            Position.Bottom,
-            Position.Left,
-        ]
-        const loopSide = preferredSideOrder.reduce((best, candidate) =>
-            connectivityBySide[candidate] < connectivityBySide[best]
-                ? candidate
-                : best
-        )
-
-        const sideLength =
-            loopSide === Position.Top || loopSide === Position.Bottom
-                ? nodeWidth
-                : nodeHeight
-        const loopInset = Math.max(
-            sideLength * SELF_LOOP_INSET_RATIO,
-            SELF_LOOP_INSET_MIN
-        )
-        sourcePos = loopSide
-        targetPos = loopSide
-
-        if (loopSide === Position.Top) {
-            const defaultSourcePoint = { x: nodeX + loopInset, y: nodeY }
-            const defaultTargetTipPoint = {
-                x: nodeX + nodeWidth - loopInset,
-                y: nodeY,
-            }
-            sourcePoint = startAnchorHint ?? defaultSourcePoint
-            targetTipPoint = endAnchorHint ?? defaultTargetTipPoint
-            normalX = 0
-            normalY = -1
-        } else if (loopSide === Position.Bottom) {
-            const defaultSourcePoint = {
-                x: nodeX + loopInset,
-                y: nodeY + nodeHeight,
-            }
-            const defaultTargetTipPoint = {
-                x: nodeX + nodeWidth - loopInset,
-                y: nodeY + nodeHeight,
-            }
-            sourcePoint = startAnchorHint ?? defaultSourcePoint
-            targetTipPoint = endAnchorHint ?? defaultTargetTipPoint
-            normalX = 0
-            normalY = 1
-        } else if (loopSide === Position.Left) {
-            const defaultSourcePoint = { x: nodeX, y: nodeY + loopInset }
-            const defaultTargetTipPoint = {
-                x: nodeX,
-                y: nodeY + nodeHeight - loopInset,
-            }
-            sourcePoint = startAnchorHint ?? defaultSourcePoint
-            targetTipPoint = endAnchorHint ?? defaultTargetTipPoint
-            normalX = -1
-            normalY = 0
-        } else {
-            const defaultSourcePoint = {
-                x: nodeX + nodeWidth,
-                y: nodeY + loopInset,
-            }
-            const defaultTargetTipPoint = {
-                x: nodeX + nodeWidth,
-                y: nodeY + nodeHeight - loopInset,
-            }
-            sourcePoint = startAnchorHint ?? defaultSourcePoint
-            targetTipPoint = endAnchorHint ?? defaultTargetTipPoint
-            normalX = 1
-            normalY = 0
-        }
-        targetPoint = getMarkerGapPoint({
-            tip: targetTipPoint,
-            from: sourcePoint,
-            fallbackNormal: { x: normalX, y: normalY },
-        })
-    } else {
-        const baseParams = getEdgeParams(
-            sourceNode,
-            targetNode,
-            sourceHint,
-            targetHint
-        )
-        const useParallelAnchorModeForCatmull =
-            !isStep &&
-            !isSelfLoop &&
-            algorithm === EDGE_ALGORITHM.CatmullRom &&
-            Math.abs(centeredIndex) > 1e-6
-
-        const rawDx = baseParams.tx - baseParams.sx
-        const rawDy = baseParams.ty - baseParams.sy
-        const pairDx = source <= target ? rawDx : -rawDx
-        const pairDy = source <= target ? rawDy : -rawDy
-        const pairLength = Math.hypot(pairDx, pairDy)
-
-        normalX = pairLength > 1e-6 ? -pairDy / pairLength : 0
-        normalY = pairLength > 1e-6 ? pairDx / pairLength : 0
-
-        const offset = useParallelAnchorModeForCatmull
-            ? centeredIndex * AUTO_PARALLEL_ANCHOR_OFFSET
-            : centeredIndex * PARALLEL_EDGE_SPACING
-        const parallelSourceHint =
-            Math.abs(offset) > 1e-6
-                ? {
-                      x: baseParams.tx + normalX * offset,
-                      y: baseParams.ty + normalY * offset,
-                  }
-                : undefined
-        const parallelTargetHint =
-            Math.abs(offset) > 1e-6
-                ? {
-                      x: baseParams.sx + normalX * offset,
-                      y: baseParams.sy + normalY * offset,
-                  }
-                : undefined
-        const params =
-            parallelSourceHint && parallelTargetHint
-                ? getEdgeParams(
-                      sourceNode,
-                      targetNode,
-                      parallelSourceHint,
-                      parallelTargetHint
-                  )
-                : baseParams
-
-        sourcePos = params.sourcePos
-        targetPos = params.targetPos
-
-        const endAnchorOffset = useParallelAnchorModeForCatmull
-            ? centeredIndex * AUTO_PARALLEL_ANCHOR_OFFSET
-            : 0
-
-        sourcePoint = {
-            x: params.sx,
-            y: params.sy,
-        }
-        targetTipPoint = endAnchorHint
-            ? {
-                  x: endAnchorHint.x,
-                  y: endAnchorHint.y,
-              }
-            : {
-                  x: params.tx + normalX * endAnchorOffset,
-                  y: params.ty + normalY * endAnchorOffset,
-              }
-        const endReferencePoint =
-            geometryStoredPoints.at(-1) ?? startAnchorHint ?? sourcePoint
-        targetPoint = getMarkerGapPoint({
-            tip: targetTipPoint,
-            from: endReferencePoint,
-            fallbackNormal: TARGET_GAP_BY_POSITION[targetPos],
-        })
-    }
-
-    const normalizedPoints =
-        isStep && geometryStoredPoints.length > 2
-            ? normalizeStepControlPoints({
-                  points: geometryStoredPoints,
-                  source: sourcePoint,
-                  target: targetPoint,
-                  sides: {
-                      fromSide: sourcePos,
-                      toSide: targetPos,
-                  },
-              })
-            : geometryStoredPoints
+    const {
+        startHandleId,
+        endHandleId,
+        startAnchorHint,
+        endAnchorHint,
+        geometryStoredPoints,
+        sourcePos,
+        targetPos,
+        sourcePoint,
+        targetPoint,
+        targetTipPoint,
+        allPoints,
+    } = computeRegulatoryEdgeLayout({
+        id,
+        source,
+        target,
+        algorithm,
+        storedPoints,
+        centeredIndex,
+        sourceNode,
+        targetNode,
+        edges,
+        nodeLookup,
+        endArrowType: regulatoryStyle.endArrowType,
+    })
 
     const latestStoredPointsRef = useRef<ControlPoint[]>(geometryStoredPoints)
-    const latestNormalizedPointsRef = useRef<ControlPoint[]>(normalizedPoints)
     latestStoredPointsRef.current = geometryStoredPoints
-    latestNormalizedPointsRef.current = normalizedPoints
-
-    const initialStepPoints = getSmoothStepPoints({
-        source: sourcePoint,
-        sourcePosition: sourcePos,
-        target: targetPoint,
-        targetPosition: targetPos,
-        offset: HANDLE_OFFSET,
-    }).map((point, index) => ({
-        ...point,
-        id: `${index}`,
-        active: false,
-    }))
-
-    const seedMainStepPoint: ControlPoint = {
-        id: `${id}-step-main`,
-        active: true,
-        x: (sourcePoint.x + targetPoint.x) / 2,
-        y: (sourcePoint.y + targetPoint.y) / 2,
-    }
-    const stepPointsForInteraction =
-        isStep && normalizedPoints.length === 0
-            ? [seedMainStepPoint]
-            : normalizedPoints
-    const hasSingleMainStepPoint =
-        isStep && stepPointsForInteraction.length === 1
-    const stepRenderPoints = hasSingleMainStepPoint
-        ? convertPathToStepPoints([
-              sourcePoint,
-              stepPointsForInteraction[0] as ControlPoint,
-              targetPoint,
-          ])
-        : stepPointsForInteraction
-    const useAutoParallelCatmullBend =
-        !isStep &&
-        !isSelfLoop &&
-        algorithm === EDGE_ALGORITHM.CatmullRom &&
-        normalizedPoints.length === 0 &&
-        Math.abs(centeredIndex) > 1e-6
-    const autoParallelControlPoint: ControlPoint | null =
-        useAutoParallelCatmullBend
-            ? {
-                  id: `${id}-auto-parallel`,
-                  active: false,
-                  x:
-                      (sourcePoint.x + targetPoint.x) / 2 +
-                      normalX *
-                          AUTO_PARALLEL_CATMULL_BEND *
-                          Math.sign(centeredIndex),
-                  y:
-                      (sourcePoint.y + targetPoint.y) / 2 +
-                      normalY *
-                          AUTO_PARALLEL_CATMULL_BEND *
-                          Math.sign(centeredIndex),
-              }
-            : null
-    const selfLoopLift = Math.max(
-        (sourceNode.measured.height ?? 0) * SELF_LOOP_LIFT_MULTIPLIER,
-        SELF_LOOP_MIN_LIFT
-    )
-    const renderPoints = isStep
-        ? stepRenderPoints
-        : autoParallelControlPoint
-          ? [autoParallelControlPoint]
-          : isSelfLoop && normalizedPoints.length === 0
-            ? [
-                  {
-                      id: `${id}-self-loop-main`,
-                      active: true,
-                      x:
-                          (sourcePoint.x + targetPoint.x) / 2 +
-                          normalX * selfLoopLift,
-                      y:
-                          (sourcePoint.y + targetPoint.y) / 2 +
-                          normalY * selfLoopLift,
-                  } as ControlPoint,
-              ]
-            : normalizedPoints
-    if (isSelfLoop) {
-        const selfLoopEndReference = renderPoints.at(-1) ?? sourcePoint
-        targetPoint = getMarkerGapPoint({
-            tip: targetTipPoint,
-            from: selfLoopEndReference,
-            fallbackNormal: { x: normalX, y: normalY },
-        })
-    }
-    const allPoints = [sourcePoint, ...renderPoints, targetPoint]
 
     const controlPoints = useStableControlPointIds(
         getEditableControlPoints({
@@ -1093,7 +96,6 @@ export function RegulatoryEdge({
                 fromSide: sourcePos,
                 toSide: targetPos,
             },
-            initialStepPoints,
         })
     )
     const visibleControlPoints = controlPoints.filter(
@@ -1103,48 +105,15 @@ export function RegulatoryEdge({
         startAnchorHint ?? projectToNodePerimeter(sourceNode, sourcePoint)
     const endHandlePosition = endAnchorHint ?? targetTipPoint
 
-    useEffect(() => {
-        if (!userSelectionActive || !userSelectionRect || selected) {
-            return
-        }
-
-        const [txTransform, tyTransform, zoom] = transform
-        const minX = userSelectionRect.x
-        const minY = userSelectionRect.y
-        const maxX = minX + userSelectionRect.width
-        const maxY = minY + userSelectionRect.height
-        const hitPadding = 6
-
-        const hitsControlPoint = controlPoints.some((point) => {
-            const sx = point.x * zoom + txTransform
-            const sy = point.y * zoom + tyTransform
-
-            return (
-                sx >= minX - hitPadding &&
-                sx <= maxX + hitPadding &&
-                sy >= minY - hitPadding &&
-                sy <= maxY + hitPadding
-            )
-        })
-
-        if (!hitsControlPoint) {
-            return
-        }
-
-        setEdges((currentEdges) =>
-            currentEdges.map((edge) =>
-                edge.id === id ? { ...edge, selected: true } : edge
-            )
-        )
-    }, [
+    useRegulatoryEdgeSelection({
         controlPoints,
         id,
-        selected,
+        selected: isSelected,
         setEdges,
         transform,
         userSelectionActive,
         userSelectionRect,
-    ])
+    })
 
     const path = getEditablePath({
         points: allPoints,
@@ -1153,218 +122,26 @@ export function RegulatoryEdge({
             fromSide: sourcePos,
             toSide: targetPos,
         },
-        initialStepPoints,
     })
 
-    const showControlPoints = Boolean(selected)
+    const showControlPoints = isSelected
     const edgeColor =
         typeof style?.stroke === 'string'
             ? style.stroke
             : (regulatoryStyle.stroke ?? '#b1b1b7')
     const markerId = `${id}-marker-${interactionType}`
-    const selectEdge = () => {
-        setEdges((currentEdges) =>
-            currentEdges.map((edge) => ({
-                ...edge,
-                selected: edge.id === id,
-            }))
-        )
-    }
-
-    const setControlPoints = (
-        updater: (points: ControlPoint[]) => ControlPoint[]
-    ) => {
-        setEdges((currentEdges) =>
-            currentEdges.map((edge) => {
-                if (edge.id !== id) {
-                    return edge
-                }
-
-                const edgeData = (edge.data ?? {}) as EditableRegulatoryEdge
-                const edgePoints = (edgeData.points ?? []) as ControlPoint[]
-                const existingStartAnchor = edgePoints.find(
-                    (point) => point.id === startHandleId
-                )
-                const existingEndAnchor = edgePoints.find(
-                    (point) => point.id === endHandleId
-                )
-                const geometryEdgePoints = edgePoints.filter(
-                    (point) =>
-                        point.id !== startHandleId && point.id !== endHandleId
-                )
-                const basePoints = isStep
-                    ? geometryEdgePoints.length > 0
-                        ? geometryEdgePoints
-                        : stepPointsForInteraction
-                    : geometryEdgePoints.length > 0
-                      ? geometryEdgePoints
-                      : latestStoredPointsRef.current
-                const nextPoints = updater(basePoints)
-                const nextActivePoints = nextPoints.filter(
-                    (point) => point.active
-                )
-                const currentAlgorithm = edgeData.algorithm ?? DEFAULT_ALGORITHM
-                const getOrientation = (
-                    from: XYPosition,
-                    to: XYPosition
-                ): 'horizontal' | 'vertical' | null => {
-                    const dx = Math.abs(to.x - from.x)
-                    const dy = Math.abs(to.y - from.y)
-                    const dominant = Math.max(dx, dy)
-
-                    if (dominant < 1e-6) {
-                        return null
-                    }
-
-                    const axisRatio = Math.min(dx, dy) / dominant
-                    if (axisRatio > 0.22) {
-                        return null
-                    }
-
-                    return dx >= dy ? 'horizontal' : 'vertical'
-                }
-                const singlePointOrthogonal =
-                    nextActivePoints.length === 1 &&
-                    (() => {
-                        const pivot = nextActivePoints[0]
-                        const first = getOrientation(sourcePoint, pivot)
-                        const second = getOrientation(pivot, targetPoint)
-                        return Boolean(first && second && first !== second)
-                    })()
-                const looksLinear =
-                    singlePointOrthogonal ||
-                    (nextActivePoints.length >= 2 &&
-                        shouldPromoteCatmullToLinear(nextActivePoints))
-                const nextAlgorithm =
-                    currentAlgorithm === EDGE_ALGORITHM.Step
-                        ? EDGE_ALGORITHM.Step
-                        : currentAlgorithm === EDGE_ALGORITHM.CatmullRom
-                          ? looksLinear
-                              ? EDGE_ALGORITHM.Linear
-                              : EDGE_ALGORITHM.CatmullRom
-                          : currentAlgorithm === EDGE_ALGORITHM.Linear
-                            ? looksLinear
-                                ? EDGE_ALGORITHM.Linear
-                                : EDGE_ALGORITHM.CatmullRom
-                            : currentAlgorithm
-                const promotedToStep =
-                    nextAlgorithm === EDGE_ALGORITHM.Step &&
-                    currentAlgorithm !== EDGE_ALGORITHM.Step
-                const basePointsById = new Map(
-                    basePoints
-                        .filter((point) => point.id)
-                        .map((point) => [point.id as string, point])
-                )
-                const createdPoints = nextPoints.filter(
-                    (point) => point.id && !basePointsById.has(point.id)
-                )
-                const movedPoints = nextPoints.filter((point) => {
-                    if (!point.id) {
-                        return false
-                    }
-
-                    const previous = basePointsById.get(point.id)
-                    if (!previous) {
-                        return false
-                    }
-
-                    return (
-                        Math.abs(point.x - previous.x) > 0.5 ||
-                        Math.abs(point.y - previous.y) > 0.5
-                    )
-                })
-                const latestInteractionPoint =
-                    createdPoints[createdPoints.length - 1] ??
-                    movedPoints[movedPoints.length - 1] ??
-                    nextPoints.filter((point) => point.active).at(-1)
-                const stepPromotionSeedPoints = promotedToStep
-                    ? latestInteractionPoint
-                        ? [latestInteractionPoint]
-                        : []
-                    : nextPoints
-                const stepSeedPoints = promotedToStep
-                    ? stepPromotionSeedPoints
-                    : nextPoints
-                const nextStoredPoints = [
-                    ...(existingStartAnchor ? [existingStartAnchor] : []),
-                    ...stepSeedPoints,
-                    ...(existingEndAnchor ? [existingEndAnchor] : []),
-                ]
-
-                return {
-                    ...edge,
-                    data: {
-                        ...edgeData,
-                        algorithm: nextAlgorithm,
-                        points: nextStoredPoints,
-                    },
-                }
-            })
-        )
-    }
-
-    const setAnchorHint = (anchorId: string, next: XYPosition) => {
-        const constrained =
-            anchorId === startHandleId
-                ? projectToNodePerimeter(sourceNode, next)
-                : projectToNodePerimeter(targetNode, next)
-
-        setEdges((currentEdges) =>
-            currentEdges.map((edge) => {
-                if (edge.id !== id) {
-                    return edge
-                }
-
-                const edgeData = (edge.data ?? {}) as EditableRegulatoryEdge
-                const edgePoints = (edgeData.points ?? []) as ControlPoint[]
-                const geometryPoints = edgePoints.filter(
-                    (point) =>
-                        point.id !== startHandleId && point.id !== endHandleId
-                )
-                const currentStart = edgePoints.find(
-                    (point) => point.id === startHandleId
-                )
-                const currentEnd = edgePoints.find(
-                    (point) => point.id === endHandleId
-                )
-
-                const nextStart =
-                    anchorId === startHandleId
-                        ? {
-                              ...(currentStart ?? {
-                                  id: startHandleId,
-                                  active: false,
-                              }),
-                              x: constrained.x,
-                              y: constrained.y,
-                          }
-                        : currentStart
-                const nextEnd =
-                    anchorId === endHandleId
-                        ? {
-                              ...(currentEnd ?? {
-                                  id: endHandleId,
-                                  active: false,
-                              }),
-                              x: constrained.x,
-                              y: constrained.y,
-                          }
-                        : currentEnd
-
-                return {
-                    ...edge,
-                    data: {
-                        ...edgeData,
-                        points: [
-                            ...(nextStart ? [nextStart] : []),
-                            ...geometryPoints,
-                            ...(nextEnd ? [nextEnd] : []),
-                        ],
-                    },
-                }
-            })
-        )
-    }
+    const { selectEdge, setControlPoints, setAnchorHint } =
+        useRegulatoryEdgeActions({
+            id,
+            setEdges,
+            startHandleId,
+            endHandleId,
+            latestStoredPointsRef,
+            sourcePoint,
+            targetPoint,
+            sourceNode,
+            targetNode,
+        })
 
     return (
         <>
@@ -1386,7 +163,6 @@ export function RegulatoryEdge({
                 }}
             />
             {showControlPoints &&
-                !isStep &&
                 visibleControlPoints.map((point, index) => (
                     <ControlPointHandle
                         key={point.id}
@@ -1396,68 +172,33 @@ export function RegulatoryEdge({
                         y={point.y}
                         color={edgeColor}
                         active={point.active}
-                        selected={Boolean(selected)}
+                        selected={isSelected}
                         setControlPoints={setControlPoints}
                         selectEdge={selectEdge}
                     />
                 ))}
-            {showControlPoints && !isStep && (
+            {showControlPoints && (
                 <AnchorHandle
                     id={startHandleId}
                     x={startHandlePosition.x}
                     y={startHandlePosition.y}
                     color={edgeColor}
-                    selected={Boolean(selected)}
+                    selected={isSelected}
                     onChange={(next) => setAnchorHint(startHandleId, next)}
                     selectEdge={selectEdge}
                 />
             )}
-            {showControlPoints && !isStep && (
+            {showControlPoints && (
                 <AnchorHandle
                     id={endHandleId}
                     x={endHandlePosition.x}
                     y={endHandlePosition.y}
                     color={edgeColor}
-                    selected={Boolean(selected)}
+                    selected={isSelected}
                     onChange={(next) => setAnchorHint(endHandleId, next)}
                     selectEdge={selectEdge}
                 />
             )}
-            {showControlPoints &&
-                isStep &&
-                hasSingleMainStepPoint &&
-                stepPointsForInteraction[0] && (
-                    <ControlPointHandle
-                        id={stepPointsForInteraction[0].id ?? 'step-main'}
-                        index={0}
-                        x={stepPointsForInteraction[0].x}
-                        y={stepPointsForInteraction[0].y}
-                        color={edgeColor}
-                        active={true}
-                        selected={Boolean(selected)}
-                        setControlPoints={setControlPoints}
-                        selectEdge={selectEdge}
-                    />
-                )}
-            {showControlPoints &&
-                isStep &&
-                !hasSingleMainStepPoint &&
-                controlPoints.map((point, index) => (
-                    <StepControlPointHandle
-                        key={point.id}
-                        id={point.id ?? `${index}`}
-                        index={index}
-                        x={point.x}
-                        y={point.y}
-                        color={edgeColor}
-                        active={point.active}
-                        selected={Boolean(selected)}
-                        direction={point.direction}
-                        initialStepPoints={initialStepPoints}
-                        setControlPoints={setControlPoints}
-                        selectEdge={selectEdge}
-                    />
-                ))}
         </>
     )
 }

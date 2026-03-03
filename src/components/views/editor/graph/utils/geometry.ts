@@ -7,211 +7,6 @@ import {
 } from '@/lib/types'
 import { createId } from './id'
 
-export const HANDLE_OFFSET = 20
-
-const sideVector: Record<Position, XYPosition> = {
-    [Position.Left]: { x: -1, y: 0 },
-    [Position.Right]: { x: 1, y: 0 },
-    [Position.Top]: { x: 0, y: -1 },
-    [Position.Bottom]: { x: 0, y: 1 },
-}
-
-function getPointDistance(a: XYPosition, b: XYPosition): number {
-    return Math.hypot(b.x - a.x, b.y - a.y)
-}
-
-function getCenter({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-}: {
-    sourceX: number
-    sourceY: number
-    targetX: number
-    targetY: number
-}): [number, number] {
-    const xOffset = Math.abs(targetX - sourceX) / 2
-    const centerX = targetX < sourceX ? targetX + xOffset : targetX - xOffset
-
-    const yOffset = Math.abs(targetY - sourceY) / 2
-    const centerY = targetY < sourceY ? targetY + yOffset : targetY - yOffset
-
-    return [centerX, centerY]
-}
-
-function getDirectionVector({
-    source,
-    sourcePosition = Position.Bottom,
-    target,
-}: {
-    source: XYPosition
-    sourcePosition?: Position
-    target: XYPosition
-}): XYPosition {
-    if (sourcePosition === Position.Left || sourcePosition === Position.Right) {
-        return source.x < target.x ? { x: 1, y: 0 } : { x: -1, y: 0 }
-    }
-
-    return source.y < target.y ? { x: 0, y: 1 } : { x: 0, y: -1 }
-}
-
-export function getSmoothStepPoints({
-    source,
-    sourcePosition = Position.Bottom,
-    target,
-    targetPosition = Position.Top,
-    center = { x: undefined, y: undefined },
-    offset = HANDLE_OFFSET,
-}: {
-    source: XYPosition
-    sourcePosition?: Position
-    target: XYPosition
-    targetPosition?: Position
-    center?: { x?: number; y?: number }
-    offset?: number
-}): XYPosition[] {
-    const sourceDir = sideVector[sourcePosition]
-    const targetDir = sideVector[targetPosition]
-
-    const sourceGapped = {
-        x: source.x + sourceDir.x * offset,
-        y: source.y + sourceDir.y * offset,
-    }
-
-    const targetGapped = {
-        x: target.x + targetDir.x * offset,
-        y: target.y + targetDir.y * offset,
-    }
-
-    const sourceTarget = getDirectionVector({
-        source: sourceGapped,
-        sourcePosition,
-        target: targetGapped,
-    })
-
-    const directionAxis = sourceTarget.x !== 0 ? 'x' : 'y'
-    const direction = sourceTarget[directionAxis]
-
-    const sourceGapOffset = { x: 0, y: 0 }
-    const targetGapOffset = { x: 0, y: 0 }
-
-    let defaultCenterX: number
-    let defaultCenterY: number
-    let points: XYPosition[] = []
-
-    const [centerX, centerY] = getCenter({
-        sourceX: source.x,
-        sourceY: source.y,
-        targetX: target.x,
-        targetY: target.y,
-    })
-
-    if (sourceDir[directionAxis] * targetDir[directionAxis] === -1) {
-        defaultCenterX = center.x ?? centerX
-        defaultCenterY = center.y ?? centerY
-
-        const verticalSplit = [
-            { x: defaultCenterX, y: sourceGapped.y },
-            { x: defaultCenterX, y: targetGapped.y },
-        ]
-
-        const horizontalSplit = [
-            { x: sourceGapped.x, y: defaultCenterY },
-            { x: targetGapped.x, y: defaultCenterY },
-        ]
-
-        if (sourceDir[directionAxis] === direction) {
-            points = directionAxis === 'x' ? verticalSplit : horizontalSplit
-        } else {
-            points = directionAxis === 'x' ? horizontalSplit : verticalSplit
-        }
-    } else {
-        const vertical = [{ x: sourceGapped.x, y: targetGapped.y }]
-        const horizontal = [{ x: targetGapped.x, y: sourceGapped.y }]
-
-        if (directionAxis === 'x') {
-            points = sourceDir.x === direction ? horizontal : vertical
-        } else {
-            points = sourceDir.y === direction ? vertical : horizontal
-        }
-
-        if (sourcePosition === targetPosition) {
-            const axisDistance = Math.abs(source[directionAxis] - target[directionAxis])
-
-            if (axisDistance <= offset) {
-                const gap = Math.min(offset - 1, offset - axisDistance)
-
-                if (sourceDir[directionAxis] === direction) {
-                    sourceGapOffset[directionAxis] =
-                        (sourceGapped[directionAxis] > source[directionAxis] ? -1 : 1) * gap
-                } else {
-                    targetGapOffset[directionAxis] =
-                        (targetGapped[directionAxis] > target[directionAxis] ? -1 : 1) * gap
-                }
-            }
-        }
-
-        if (sourcePosition !== targetPosition) {
-            const oppositeAxis = directionAxis === 'x' ? 'y' : 'x'
-            const sourceCrosses = sourceDir[directionAxis] === targetDir[oppositeAxis]
-            const sourceHigher = sourceGapped[oppositeAxis] > targetGapped[oppositeAxis]
-            const sourceLower = sourceGapped[oppositeAxis] < targetGapped[oppositeAxis]
-
-            if (
-                (sourceDir[directionAxis] === 1 &&
-                    ((!sourceCrosses && sourceHigher) || (sourceCrosses && sourceLower))) ||
-                (sourceDir[directionAxis] !== 1 &&
-                    ((!sourceCrosses && sourceLower) || (sourceCrosses && sourceHigher)))
-            ) {
-                points = directionAxis === 'x' ? vertical : horizontal
-            }
-        }
-
-        const sourceWithOffset = {
-            x: sourceGapped.x + sourceGapOffset.x,
-            y: sourceGapped.y + sourceGapOffset.y,
-        }
-
-        const targetWithOffset = {
-            x: targetGapped.x + targetGapOffset.x,
-            y: targetGapped.y + targetGapOffset.y,
-        }
-
-        const xSpread = Math.max(
-            Math.abs(sourceWithOffset.x - points[0].x),
-            Math.abs(targetWithOffset.x - points[0].x)
-        )
-
-        const ySpread = Math.max(
-            Math.abs(sourceWithOffset.y - points[0].y),
-            Math.abs(targetWithOffset.y - points[0].y)
-        )
-
-        if (xSpread >= ySpread) {
-            defaultCenterX = (sourceWithOffset.x + targetWithOffset.x) / 2
-            defaultCenterY = points[0].y
-        } else {
-            defaultCenterX = points[0].x
-            defaultCenterY = (sourceWithOffset.y + targetWithOffset.y) / 2
-        }
-    }
-
-    return [
-        source,
-        {
-            x: sourceGapped.x + sourceGapOffset.x,
-            y: sourceGapped.y + sourceGapOffset.y,
-        },
-        ...points,
-        {
-            x: targetGapped.x + targetGapOffset.x,
-            y: targetGapped.y + targetGapOffset.y,
-        },
-        target,
-    ]
-}
-
 function isControlPoint(point: XYPosition | ControlPoint): point is ControlPoint {
     return 'id' in point
 }
@@ -383,290 +178,44 @@ function getCatmullRomControlPoints(
     return result
 }
 
-function getStepCornerPath(
-    previous: XYPosition,
-    current: XYPosition,
-    next: XYPosition,
-    radius: number
-): string {
-    const cornerRadius = Math.min(
-        getPointDistance(previous, current) / 2,
-        getPointDistance(current, next) / 2,
-        radius
-    )
-
-    const { x, y } = current
-
-    if ((previous.x === x && x === next.x) || (previous.y === y && y === next.y)) {
-        return `L${x} ${y}`
-    }
-
-    if (previous.y === y) {
-        const horizontalDirection = previous.x < next.x ? -1 : 1
-        const verticalDirection = previous.y < next.y ? 1 : -1
-
-        return `L ${x + cornerRadius * horizontalDirection},${y}Q ${x},${y} ${x},${y + cornerRadius * verticalDirection}`
-    }
-
-    const horizontalDirection = previous.x < next.x ? 1 : -1
-    const verticalDirection = previous.y < next.y ? -1 : 1
-
-    return `L ${x},${y + cornerRadius * verticalDirection}Q ${x},${y} ${x + cornerRadius * horizontalDirection},${y}`
-}
-
-function getDefaultStepPoints({
-    points,
-    initialStepPoints,
-}: {
-    points: XYPosition[]
-    initialStepPoints: XYPosition[]
-}): XYPosition[] {
-    const shouldUseInitialPoints =
-        points.length === 2 && !points.some((point) => 'active' in point && point.active)
-
-    return shouldUseInitialPoints ? initialStepPoints : points
-}
-
-function alignToHandleAxis({
-    points,
-    side,
-    handlePosition,
-    isTarget = false,
-}: {
-    points: XYPosition[]
-    side: Position
-    handlePosition: XYPosition
-    isTarget?: boolean
-}): void {
-    let mainAxis: 'x' | 'y' = 'x'
-    let crossAxis: 'x' | 'y' = 'y'
-
-    if (side === Position.Left || side === Position.Right) {
-        mainAxis = 'y'
-        crossAxis = 'x'
-    }
-
-    let fixedIndex = 0
-    let movableIndex = 1
-
-    if (isTarget) {
-        fixedIndex = points.length - 1
-        movableIndex = points.length - 2
-    }
-
-    if (
-        points[movableIndex] &&
-        points[fixedIndex] &&
-        points[movableIndex][mainAxis] !== points[fixedIndex][mainAxis]
-    ) {
-        const vector = sideVector[side]
-
-        points[fixedIndex] = {
-            ...points[fixedIndex],
-            [crossAxis]: vector[crossAxis] * HANDLE_OFFSET + handlePosition[crossAxis],
-            [mainAxis]: handlePosition[mainAxis],
-        }
-
-        points[movableIndex] = {
-            ...points[movableIndex],
-            [crossAxis]: vector[crossAxis] * HANDLE_OFFSET + handlePosition[crossAxis],
-        }
-    }
-
-    if (
-        points[movableIndex] &&
-        points[fixedIndex] &&
-        points[movableIndex][mainAxis] === points[fixedIndex][mainAxis]
-    ) {
-        const vector = sideVector[side]
-
-        points[fixedIndex] = {
-            ...points[fixedIndex],
-            [mainAxis]: handlePosition[mainAxis],
-            [crossAxis]: vector[crossAxis] * HANDLE_OFFSET + handlePosition[crossAxis],
-        }
-
-        points[movableIndex] = {
-            ...points[movableIndex],
-            [mainAxis]: handlePosition[mainAxis],
-        }
-    }
-}
-
-export function normalizeStepControlPoints({
-    points,
-    sides,
-    source,
-    target,
-}: {
-    points: ControlPoint[]
-    sides: { fromSide: Position; toSide: Position }
-    source: XYPosition
-    target: XYPosition
-}): ControlPoint[] {
-    const normalized = [...points]
-
-    alignToHandleAxis({
-        points: normalized,
-        side: sides.fromSide,
-        handlePosition: source,
-    })
-
-    alignToHandleAxis({
-        points: normalized,
-        side: sides.toSide,
-        handlePosition: target,
-        isTarget: true,
-    })
-
-    return normalized as ControlPoint[]
-}
-
-export function getStepPath({
-    points,
-    initialStepPoints,
-}: {
-    points: XYPosition[]
-    initialStepPoints: XYPosition[]
-}): string {
-    const effectivePoints = getDefaultStepPoints({ points, initialStepPoints })
-    const cornerRadius = 5
-
-    const isAxisAligned = (a: XYPosition, b: XYPosition): boolean =>
-        a.x === b.x || a.y === b.y
-    const isOrthogonalTurn = (
-        previous: XYPosition,
-        current: XYPosition,
-        next: XYPosition
-    ): boolean => {
-        const inVertical = previous.x === current.x
-        const inHorizontal = previous.y === current.y
-        const outVertical = current.x === next.x
-        const outHorizontal = current.y === next.y
-
-        return (
-            isAxisAligned(previous, current) &&
-            isAxisAligned(current, next) &&
-            ((inVertical && outHorizontal) || (inHorizontal && outVertical))
-        )
-    }
-
-    return (
-        effectivePoints.reduce((path, point, index) => {
-            let segment = ''
-
-            if (index > 0 && index < effectivePoints.length - 1) {
-                const previous = effectivePoints[index - 1]
-                const next = effectivePoints[index + 1]
-                segment = isOrthogonalTurn(previous, point, next)
-                    ? getStepCornerPath(previous, point, next, cornerRadius)
-                    : `L${point.x} ${point.y}`
-            } else {
-                segment = `${index === 0 ? 'M' : 'L'}${point.x} ${point.y}`
-            }
-
-            return path + segment
-        }, '') || ''
-    )
-}
-
-function isStepSegmentActive({
-    nextPoint,
-}: {
-    nextPoint: XYPosition | ControlPoint
-}): boolean {
-    return 'active' in nextPoint ? nextPoint.active : false
-}
-
-export function getStepControlPoints({
-    points,
-    initialStepPoints,
-}: {
-    points: XYPosition[]
-    initialStepPoints: XYPosition[]
-}): ControlPoint[] {
-    const result: ControlPoint[] = []
-    const effectivePoints = getDefaultStepPoints({ points, initialStepPoints })
-
-    for (let index = 1; index < effectivePoints.length - 2; index++) {
-        const current = effectivePoints[index] as ControlPoint
-        const next = effectivePoints[index + 1] as ControlPoint
-
-        if (!current && !next) {
-            continue
-        }
-
-        const horizontal = current.x - next.x === 0
-
-        const x = horizontal ? current.x : (next.x - current.x) / 2 + current.x
-        const y = horizontal ? (next.y - current.y) / 2 + current.y : current.y
-
-        result.push({
-            prev: 'id' in current ? current.id : undefined,
-            id: `${current.id ?? ''}-${next.id ?? ''}`,
-            active: isStepSegmentActive({ nextPoint: next }),
-            x,
-            y,
-            direction: horizontal ? 'horizontal' : 'vertical',
-        })
-    }
-
-    return result
-}
-
 export function getEditableControlPoints({
-    points,
-    algorithm = EDGE_ALGORITHM.BezierCatmullRom,
-    sides = {
-        fromSide: Position.Left,
-        toSide: Position.Right,
-    },
-    initialStepPoints,
-}: {
-    points: XYPosition[]
-    algorithm?: EdgeAlgorithm
-    sides?: { fromSide: Position; toSide: Position }
-    initialStepPoints: XYPosition[]
-}): ControlPoint[] {
-    switch (algorithm) {
-        case EDGE_ALGORITHM.Linear:
-            return getMidPoints(points)
-        case EDGE_ALGORITHM.Step:
-            return getStepControlPoints({ points, initialStepPoints })
-        case EDGE_ALGORITHM.CatmullRom:
-            return getCatmullRomControlPoints(points)
-        case EDGE_ALGORITHM.BezierCatmullRom:
-            return getCatmullRomControlPoints(points, true, sides)
-        default:
-            return getCatmullRomControlPoints(points, true, sides)
-    }
-}
-
-export function getEditablePath({
     points,
     algorithm = DEFAULT_ALGORITHM,
     sides = {
         fromSide: Position.Left,
         toSide: Position.Right,
     },
-    initialStepPoints,
 }: {
     points: XYPosition[]
     algorithm?: EdgeAlgorithm
     sides?: { fromSide: Position; toSide: Position }
-    initialStepPoints: XYPosition[]
+}): ControlPoint[] {
+    switch (algorithm) {
+        case EDGE_ALGORITHM.Linear:
+            return getMidPoints(points)
+        case EDGE_ALGORITHM.CatmullRom:
+            return getCatmullRomControlPoints(points)
+        default:
+            return getCatmullRomControlPoints(points, false, sides)
+    }
+}
+
+export function getEditablePath({
+    points,
+    algorithm = DEFAULT_ALGORITHM,
+    sides,
+}: {
+    points: XYPosition[]
+    algorithm?: EdgeAlgorithm
+    sides?: { fromSide: Position; toSide: Position }
 }): string {
     switch (algorithm) {
         case EDGE_ALGORITHM.Linear:
             return getLinearPath(points)
-        case EDGE_ALGORITHM.Step:
-            return getStepPath({ points, initialStepPoints })
         case EDGE_ALGORITHM.CatmullRom:
             return getCatmullRomPath(points)
-        case EDGE_ALGORITHM.BezierCatmullRom:
-            return getCatmullRomPath(points, true, sides)
         default:
-            return getCatmullRomPath(points, true, sides)
+            return getCatmullRomPath(points, false, sides)
     }
 }
 
@@ -705,40 +254,6 @@ export function compressHorizontalRuns(points: ControlPoint[]): ControlPoint[] {
     return compressed
 }
 
-export function convertPathToStepPoints(pathPoints: XYPosition[]): ControlPoint[] {
-    if (pathPoints.length < 2) {
-        return []
-    }
-
-    const orthogonalPath: XYPosition[] = [pathPoints[0]]
-
-    for (let index = 1; index < pathPoints.length; index++) {
-        const previous = orthogonalPath[orthogonalPath.length - 1]
-        const current = pathPoints[index]
-
-        if (previous.x === current.x || previous.y === current.y) {
-            orthogonalPath.push(current)
-            continue
-        }
-
-        const dx = Math.abs(current.x - previous.x)
-        const dy = Math.abs(current.y - previous.y)
-        const corner =
-            dx >= dy
-                ? { x: current.x, y: previous.y }
-                : { x: previous.x, y: current.y }
-
-        orthogonalPath.push(corner, current)
-    }
-
-    return orthogonalPath.slice(1, -1).map((point) => ({
-        x: point.x,
-        y: point.y,
-        id: createId('spline'),
-        active: true,
-    }))
-}
-
 const ORTHOGONAL_AXIS_RATIO_THRESHOLD = 0.22
 
 function segmentOrientation(
@@ -762,46 +277,6 @@ function segmentOrientation(
     }
 
     return absDx >= absDy ? 'horizontal' : 'vertical'
-}
-
-export function shouldPromoteToStepAlgorithm(pathPoints: XYPosition[]): boolean {
-    // source + at least 2 control points + target
-    if (pathPoints.length < 4) {
-        return false
-    }
-
-    let previousOrientation: 'horizontal' | 'vertical' | null = null
-    let hasHorizontal = false
-    let hasVertical = false
-    let hasTurn = false
-
-    for (let index = 0; index < pathPoints.length - 1; index++) {
-        const orientation = segmentOrientation(
-            pathPoints[index],
-            pathPoints[index + 1]
-        )
-
-        if (!orientation) {
-            return false
-        }
-
-        if (orientation === 'horizontal') {
-            hasHorizontal = true
-        } else {
-            hasVertical = true
-        }
-
-        if (
-            previousOrientation !== null &&
-            previousOrientation !== orientation
-        ) {
-            hasTurn = true
-        }
-
-        previousOrientation = orientation
-    }
-
-    return hasHorizontal && hasVertical && hasTurn
 }
 
 export function shouldPromoteCatmullToLinear(controlPoints: XYPosition[]): boolean {

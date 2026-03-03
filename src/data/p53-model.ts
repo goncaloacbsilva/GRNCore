@@ -1,5 +1,4 @@
 import type { InternalGRNModel } from '@/lib/schema'
-import { EDGE_ALGORITHM } from '@/lib/types'
 import { Position } from '@xyflow/react'
 
 export const P53_MODEL: InternalGRNModel = {

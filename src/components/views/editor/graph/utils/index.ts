@@ -1,4 +1,6 @@
 export * from './edges'
+export * from './edge-routing'
 export * from './geometry'
 export * from './id'
+export * from './regulatory-edge-layout'
 export * from './use-stable-control-point-ids'

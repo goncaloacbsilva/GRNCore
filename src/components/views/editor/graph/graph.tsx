@@ -1,4 +1,8 @@
-import type { InternalGRNModel, RegulatoryNodeProperties } from '@/lib/schema'
+import type {
+    EditableRegulatoryEdge,
+    InternalGRNModel,
+    RegulatoryNodeProperties,
+} from '@/lib/schema'
 import {
     applyNodeChanges,
     type NodeChange,
@@ -123,13 +127,13 @@ export function Graph({ model }: GraphProps) {
                     return {
                         ...edge,
                         data: {
-                            ...edge.data,
+                            ...(edge.data ?? {}),
                             points: points.map((point) => ({
                                 ...point,
                                 x: point.x + dx,
                                 y: point.y + dy,
                             })),
-                        },
+                        } as EditableRegulatoryEdge,
                     }
                 })
             )
