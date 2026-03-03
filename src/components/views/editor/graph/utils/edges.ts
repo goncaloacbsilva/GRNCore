@@ -119,8 +119,10 @@ export function getParallelEdgeMeta(
     const siblings = edges
         .filter(
             (edge) =>
-                getUndirectedPairKey(String(edge.source), String(edge.target)) ===
-                pairKey
+                getUndirectedPairKey(
+                    String(edge.source),
+                    String(edge.target)
+                ) === pairKey
         )
         .sort((a, b) => String(a.id).localeCompare(String(b.id)))
 

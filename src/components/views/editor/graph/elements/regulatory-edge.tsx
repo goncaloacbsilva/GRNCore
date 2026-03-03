@@ -38,6 +38,7 @@ export function RegulatoryEdge({
     style,
     data,
 }: EdgeProps<RegulatoryGraphEdge>) {
+    const { setEdges } = useReactFlow()
     const sourceNode = useInternalNode(source)!
     const targetNode = useInternalNode(target)!
     const {
@@ -56,16 +57,14 @@ export function RegulatoryEdge({
         }),
         shallow
     )
-    const { setEdges } = useReactFlow()
+    const { centeredIndex } = getParallelEdgeMeta(edges, id, source, target)
 
     const algorithm = data?.algorithm ?? DEFAULT_ALGORITHM
     const storedPoints = data?.points ?? []
-    const { centeredIndex } = getParallelEdgeMeta(edges, id, source, target)
-
     const isSelected = Boolean(selected)
-    const interactionType: InteractionType =
-        (data?.type as InteractionType | undefined) ?? 'activation'
+    const interactionType: InteractionType = data?.type ?? 'activation'
     const regulatoryStyle = REGULATORY_EDGE_STYLES[interactionType]
+
     const {
         startHandleId,
         endHandleId,
@@ -102,6 +101,7 @@ export function RegulatoryEdge({
             },
         })
     )
+
     const editableControlPoints = controlPoints.filter(
         (point) => point.id !== startHandleId && point.id !== endHandleId
     )

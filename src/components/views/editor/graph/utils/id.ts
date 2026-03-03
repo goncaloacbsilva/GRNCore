@@ -1,5 +1,8 @@
 export function createId(prefix = 'spline'): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    if (
+        typeof crypto !== 'undefined' &&
+        typeof crypto.randomUUID === 'function'
+    ) {
         return `${prefix}-${crypto.randomUUID()}`
     }
 

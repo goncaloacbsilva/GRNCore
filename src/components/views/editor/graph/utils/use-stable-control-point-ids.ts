@@ -5,7 +5,9 @@ function toStableCoord(value: number): string {
     return Math.round(value * 100).toString(36)
 }
 
-export function useStableControlPointIds(points: ControlPoint[]): ControlPoint[] {
+export function useStableControlPointIds(
+    points: ControlPoint[]
+): ControlPoint[] {
     return useMemo(
         () =>
             points.map((point, index) => {

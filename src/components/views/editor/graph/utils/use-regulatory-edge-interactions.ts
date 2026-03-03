@@ -122,7 +122,7 @@ export function useRegulatoryEdgeActions({
                     }
 
                     const edgeData = (edge.data ?? {}) as EditableRegulatoryEdge
-                    const edgePoints = (edgeData.points ?? [])
+                    const edgePoints = edgeData.points ?? []
                     const existingStartAnchor = edgePoints.find(
                         (point) => point.id === startHandleId
                     )
@@ -209,7 +209,7 @@ export function useRegulatoryEdgeActions({
                     }
 
                     const edgeData = (edge.data ?? {}) as EditableRegulatoryEdge
-                    const edgePoints = (edgeData.points ?? [])
+                    const edgePoints = edgeData.points ?? []
                     const geometryPoints = edgePoints.filter(
                         (point) =>
                             point.id !== startHandleId &&

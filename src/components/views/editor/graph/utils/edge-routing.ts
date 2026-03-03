@@ -1,4 +1,9 @@
-import { Position, type Edge, type InternalNode, type XYPosition } from '@xyflow/react'
+import {
+    Position,
+    type Edge,
+    type InternalNode,
+    type XYPosition,
+} from '@xyflow/react'
 
 export function projectToNodePerimeter(
     node: InternalNode,

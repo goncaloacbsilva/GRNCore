@@ -1,10 +1,16 @@
-import { Position, type Edge, type InternalNode, type XYPosition } from '@xyflow/react'
-import { EDGE_ALGORITHM, type ControlPoint, type EdgeAlgorithm } from '@/lib/types'
-import { getEdgeParams } from './edges'
 import {
-    getLeastConnectedLoopSide,
-    getMarkerGapPoint,
-} from './edge-routing'
+    Position,
+    type Edge,
+    type InternalNode,
+    type XYPosition,
+} from '@xyflow/react'
+import {
+    EDGE_ALGORITHM,
+    type ControlPoint,
+    type EdgeAlgorithm,
+} from '@/lib/types'
+import { getEdgeParams } from './edges'
+import { getLeastConnectedLoopSide, getMarkerGapPoint } from './edge-routing'
 
 const PARALLEL_EDGE_SPACING = 19
 const AUTO_PARALLEL_CATMULL_BEND = PARALLEL_EDGE_SPACING * 0.6
@@ -67,7 +73,9 @@ export function computeRegulatoryEdgeLayout({
 }: LayoutArgs): RegulatoryEdgeLayout {
     const startHandleId = `${id}-start-control`
     const endHandleId = `${id}-end-control`
-    const startAnchorHint = storedPoints.find((point) => point.id === startHandleId)
+    const startAnchorHint = storedPoints.find(
+        (point) => point.id === startHandleId
+    )
     const endAnchorHint = storedPoints.find((point) => point.id === endHandleId)
     const geometryStoredPoints = storedPoints.filter(
         (point) => point.id !== startHandleId && point.id !== endHandleId
@@ -78,7 +86,8 @@ export function computeRegulatoryEdgeLayout({
     const targetHint = endAnchorHint ?? geometryStoredPoints.at(-1)
 
     const markerTipGap =
-        MARKER_TIP_GAP + (endArrowType === 'rect' ? INHIBITION_MARKER_EXTRA_GAP : 0)
+        MARKER_TIP_GAP +
+        (endArrowType === 'rect' ? INHIBITION_MARKER_EXTRA_GAP : 0)
 
     let sourcePos = Position.Top
     let targetPos = Position.Top
@@ -114,13 +123,19 @@ export function computeRegulatoryEdgeLayout({
 
         if (loopSide === Position.Top) {
             const defaultSourcePoint = { x: nodeX + loopInset, y: nodeY }
-            const defaultTargetTipPoint = { x: nodeX + nodeWidth - loopInset, y: nodeY }
+            const defaultTargetTipPoint = {
+                x: nodeX + nodeWidth - loopInset,
+                y: nodeY,
+            }
             sourcePoint = startAnchorHint ?? defaultSourcePoint
             targetTipPoint = endAnchorHint ?? defaultTargetTipPoint
             normalX = 0
             normalY = -1
         } else if (loopSide === Position.Bottom) {
-            const defaultSourcePoint = { x: nodeX + loopInset, y: nodeY + nodeHeight }
+            const defaultSourcePoint = {
+                x: nodeX + loopInset,
+                y: nodeY + nodeHeight,
+            }
             const defaultTargetTipPoint = {
                 x: nodeX + nodeWidth - loopInset,
                 y: nodeY + nodeHeight,
@@ -131,13 +146,19 @@ export function computeRegulatoryEdgeLayout({
             normalY = 1
         } else if (loopSide === Position.Left) {
             const defaultSourcePoint = { x: nodeX, y: nodeY + loopInset }
-            const defaultTargetTipPoint = { x: nodeX, y: nodeY + nodeHeight - loopInset }
+            const defaultTargetTipPoint = {
+                x: nodeX,
+                y: nodeY + nodeHeight - loopInset,
+            }
             sourcePoint = startAnchorHint ?? defaultSourcePoint
             targetTipPoint = endAnchorHint ?? defaultTargetTipPoint
             normalX = -1
             normalY = 0
         } else {
-            const defaultSourcePoint = { x: nodeX + nodeWidth, y: nodeY + loopInset }
+            const defaultSourcePoint = {
+                x: nodeX + nodeWidth,
+                y: nodeY + loopInset,
+            }
             const defaultTargetTipPoint = {
                 x: nodeX + nodeWidth,
                 y: nodeY + nodeHeight - loopInset,
@@ -155,7 +176,12 @@ export function computeRegulatoryEdgeLayout({
             fallbackNormal: { x: normalX, y: normalY },
         })
     } else {
-        const baseParams = getEdgeParams(sourceNode, targetNode, sourceHint, targetHint)
+        const baseParams = getEdgeParams(
+            sourceNode,
+            targetNode,
+            sourceHint,
+            targetHint
+        )
         const useParallelAnchorModeForCatmull =
             algorithm === EDGE_ALGORITHM.CatmullRom &&
             Math.abs(centeredIndex) > 1e-6
@@ -174,16 +200,27 @@ export function computeRegulatoryEdgeLayout({
             : centeredIndex * PARALLEL_EDGE_SPACING
         const parallelSourceHint =
             Math.abs(offset) > 1e-6
-                ? { x: baseParams.tx + normalX * offset, y: baseParams.ty + normalY * offset }
+                ? {
+                      x: baseParams.tx + normalX * offset,
+                      y: baseParams.ty + normalY * offset,
+                  }
                 : undefined
         const parallelTargetHint =
             Math.abs(offset) > 1e-6
-                ? { x: baseParams.sx + normalX * offset, y: baseParams.sy + normalY * offset }
+                ? {
+                      x: baseParams.sx + normalX * offset,
+                      y: baseParams.sy + normalY * offset,
+                  }
                 : undefined
 
         const params =
             parallelSourceHint && parallelTargetHint
-                ? getEdgeParams(sourceNode, targetNode, parallelSourceHint, parallelTargetHint)
+                ? getEdgeParams(
+                      sourceNode,
+                      targetNode,
+                      parallelSourceHint,
+                      parallelTargetHint
+                  )
                 : baseParams
 
         sourcePos = params.sourcePos
@@ -198,7 +235,10 @@ export function computeRegulatoryEdgeLayout({
             : { x: params.sx, y: params.sy }
         targetTipPoint = endAnchorHint
             ? { x: endAnchorHint.x, y: endAnchorHint.y }
-            : { x: params.tx + normalX * endAnchorOffset, y: params.ty + normalY * endAnchorOffset }
+            : {
+                  x: params.tx + normalX * endAnchorOffset,
+                  y: params.ty + normalY * endAnchorOffset,
+              }
 
         const endReferencePoint =
             geometryStoredPoints.at(-1) ?? startAnchorHint ?? sourcePoint
@@ -218,18 +258,23 @@ export function computeRegulatoryEdgeLayout({
         normalizedPoints.length === 0 &&
         Math.abs(centeredIndex) > 1e-6
 
-    const autoParallelControlPoint: ControlPoint | null = useAutoParallelCatmullBend
-        ? {
-              id: `${id}-auto-parallel`,
-              active: false,
-              x:
-                  (sourcePoint.x + targetPoint.x) / 2 +
-                  normalX * AUTO_PARALLEL_CATMULL_BEND * Math.sign(centeredIndex),
-              y:
-                  (sourcePoint.y + targetPoint.y) / 2 +
-                  normalY * AUTO_PARALLEL_CATMULL_BEND * Math.sign(centeredIndex),
-          }
-        : null
+    const autoParallelControlPoint: ControlPoint | null =
+        useAutoParallelCatmullBend
+            ? {
+                  id: `${id}-auto-parallel`,
+                  active: false,
+                  x:
+                      (sourcePoint.x + targetPoint.x) / 2 +
+                      normalX *
+                          AUTO_PARALLEL_CATMULL_BEND *
+                          Math.sign(centeredIndex),
+                  y:
+                      (sourcePoint.y + targetPoint.y) / 2 +
+                      normalY *
+                          AUTO_PARALLEL_CATMULL_BEND *
+                          Math.sign(centeredIndex),
+              }
+            : null
 
     const selfLoopLift = Math.max(
         (sourceNode.measured.height ?? 0) * SELF_LOOP_LIFT_MULTIPLIER,
@@ -242,8 +287,12 @@ export function computeRegulatoryEdgeLayout({
                 {
                     id: `${id}-self-loop-main`,
                     active: true,
-                    x: (sourcePoint.x + targetPoint.x) / 2 + normalX * selfLoopLift,
-                    y: (sourcePoint.y + targetPoint.y) / 2 + normalY * selfLoopLift,
+                    x:
+                        (sourcePoint.x + targetPoint.x) / 2 +
+                        normalX * selfLoopLift,
+                    y:
+                        (sourcePoint.y + targetPoint.y) / 2 +
+                        normalY * selfLoopLift,
                 } as ControlPoint,
             ]
           : normalizedPoints
