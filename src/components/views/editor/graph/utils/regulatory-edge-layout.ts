@@ -247,7 +247,9 @@ export function computeRegulatoryEdgeLayout({
         }
 
         const endReferencePoint =
-            geometryStoredPoints.at(-1) ?? projectedStartAnchorHint ?? sourcePoint
+            geometryStoredPoints.at(-1) ??
+            projectedStartAnchorHint ??
+            sourcePoint
         targetPoint = getMarkerGapPoint({
             tip: targetTipPoint,
             from: endReferencePoint,

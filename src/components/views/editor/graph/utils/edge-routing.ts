@@ -43,7 +43,8 @@ function getAnchoredSideForEdgeEndpoint(
     node: InternalNode,
     anchorId: string
 ): Position | null {
-    const edgePoints = (edge.data as { points?: EdgePoint[] } | undefined)?.points
+    const edgePoints = (edge.data as { points?: EdgePoint[] } | undefined)
+        ?.points
     if (!edgePoints || edgePoints.length === 0) {
         return null
     }
@@ -62,7 +63,8 @@ function getControlPointHintForEdgeEndpoint(
     nodeId: string,
     endpoint: 'start' | 'end'
 ): XYPosition | null {
-    const edgePoints = (edge.data as { points?: EdgePoint[] } | undefined)?.points
+    const edgePoints = (edge.data as { points?: EdgePoint[] } | undefined)
+        ?.points
     if (!edgePoints || edgePoints.length === 0) {
         return null
     }
@@ -199,7 +201,11 @@ export function getLeastConnectedLoopSide({
             edgeSource === nodeId
                 ? `${edge.id}-start-control`
                 : `${edge.id}-end-control`
-        const anchoredSide = getAnchoredSideForEdgeEndpoint(edge, node, anchorId)
+        const anchoredSide = getAnchoredSideForEdgeEndpoint(
+            edge,
+            node,
+            anchorId
+        )
         const controlPointHint = getControlPointHintForEdgeEndpoint(
             edge,
             nodeId,

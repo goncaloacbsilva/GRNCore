@@ -130,7 +130,8 @@ export function Graph({ model }: GraphProps) {
                             points: points.map((point) => ({
                                 ...point,
                                 x:
-                                    (point.id === startHandleId && sourceMoved) ||
+                                    (point.id === startHandleId &&
+                                        sourceMoved) ||
                                     (point.id === endHandleId && targetMoved) ||
                                     (moveGeometryPoints &&
                                         point.id !== startHandleId &&
@@ -138,7 +139,8 @@ export function Graph({ model }: GraphProps) {
                                         ? point.x + dx
                                         : point.x,
                                 y:
-                                    (point.id === startHandleId && sourceMoved) ||
+                                    (point.id === startHandleId &&
+                                        sourceMoved) ||
                                     (point.id === endHandleId && targetMoved) ||
                                     (moveGeometryPoints &&
                                         point.id !== startHandleId &&
