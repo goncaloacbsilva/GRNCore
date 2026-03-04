@@ -31,17 +31,16 @@ import {
     PAN_ON_SCROLL,
     SELECTION_ON_DRAG,
 } from './config'
-import {
-    normalizeRegulatoryNodes,
-    useGraphInteractions,
-} from './utils'
+import { normalizeRegulatoryNodes, useGraphInteractions } from './utils'
 
 interface GraphProps {
     model: InternalGRNModel
 }
 
 export function Graph({ model }: GraphProps) {
-    const [nodes, setNodes] = useNodesState(normalizeRegulatoryNodes(model.nodes))
+    const [nodes, setNodes] = useNodesState(
+        normalizeRegulatoryNodes(model.nodes)
+    )
     const [edges, setEdges, onEdgesChange] = useEdgesState<
         Edge<EditableRegulatoryEdge>
     >(model.edges)

@@ -1,9 +1,6 @@
 import type { Node } from '@xyflow/react'
 import type { RegulatoryNodeProperties } from '@/lib/schema'
-import {
-    DEFAULT_NODE_HEIGHT,
-    DEFAULT_NODE_TYPE,
-} from '../config'
+import { DEFAULT_NODE_HEIGHT, DEFAULT_NODE_TYPE } from '../config'
 import { getNodeContentMinWidth } from './node-size'
 
 export function normalizeRegulatoryNodes(

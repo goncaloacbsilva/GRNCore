@@ -22,14 +22,10 @@ type RegulatoryNode = Node<RegulatoryNodeProperties>
 type RegulatoryEdge = Edge<EditableRegulatoryEdge>
 
 type SetNodes = (
-    payload:
-        | RegulatoryNode[]
-        | ((nodes: RegulatoryNode[]) => RegulatoryNode[])
+    payload: RegulatoryNode[] | ((nodes: RegulatoryNode[]) => RegulatoryNode[])
 ) => void
 type SetEdges = (
-    payload:
-        | RegulatoryEdge[]
-        | ((edges: RegulatoryEdge[]) => RegulatoryEdge[])
+    payload: RegulatoryEdge[] | ((edges: RegulatoryEdge[]) => RegulatoryEdge[])
 ) => void
 
 function getEventClientPoint(
@@ -54,9 +50,9 @@ export function useGraphInteractions({
     setNodes: SetNodes
     setEdges: SetEdges
 }) {
-    const dragPreviousPositionsRef = useRef<Map<string, { x: number; y: number }>>(
-        new Map()
-    )
+    const dragPreviousPositionsRef = useRef<
+        Map<string, { x: number; y: number }>
+    >(new Map())
     const connectionStartNodeIdRef = useRef<string | null>(null)
     const connectionCreatedRef = useRef(false)
 
@@ -143,8 +139,7 @@ export function useGraphInteractions({
                 ? (document
                       .elementFromPoint(clientPoint.x, clientPoint.y)
                       ?.closest('.react-flow__node')
-                      ?.getAttribute('data-id') ??
-                  null)
+                      ?.getAttribute('data-id') ?? null)
                 : null
 
             if (dropTargetNode === startNodeId) {
