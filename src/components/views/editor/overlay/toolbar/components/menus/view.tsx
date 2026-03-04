@@ -35,14 +35,6 @@ export function ViewMenu() {
                         Reset Zoom <MenubarShortcut>Ctrl+R</MenubarShortcut>
                     </MenubarItem>
                 </MenubarGroup>
-                <MenubarSeparator />
-                <MenubarGroup>
-                    <MenubarItem>Toggle Fullscreen</MenubarItem>
-                </MenubarGroup>
-                <MenubarSeparator />
-                <MenubarGroup>
-                    <MenubarItem>Hide Sidebar</MenubarItem>
-                </MenubarGroup>
             </MenubarContent>
         </MenubarMenu>
     )
