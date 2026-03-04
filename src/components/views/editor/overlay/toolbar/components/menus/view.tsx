@@ -3,15 +3,22 @@ import {
     MenubarGroup,
     MenubarItem,
     MenubarMenu,
-    MenubarSeparator,
     MenubarShortcut,
     MenubarTrigger,
 } from '@/components/ui/menubar'
+import { FIT_VIEW_OPTIONS } from '@/components/views/editor/graph/config'
+import { useReactFlow } from '@xyflow/react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
 export function ViewMenu() {
+    const { fitView } = useReactFlow()
+
     const resetZoom = () => {
-        /* void graphRef?.current.zoomTo(1) */
+        void fitView({
+            duration: 300,
+            interpolate: 'smooth',
+            ...FIT_VIEW_OPTIONS,
+        })
     }
 
     useHotkeys('ctrl+r', resetZoom, {
@@ -26,14 +33,6 @@ export function ViewMenu() {
                     <MenubarItem onSelect={resetZoom}>
                         Reset Zoom <MenubarShortcut>Ctrl+R</MenubarShortcut>
                     </MenubarItem>
-                </MenubarGroup>
-                <MenubarSeparator />
-                <MenubarGroup>
-                    <MenubarItem>Toggle Fullscreen</MenubarItem>
-                </MenubarGroup>
-                <MenubarSeparator />
-                <MenubarGroup>
-                    <MenubarItem>Hide Sidebar</MenubarItem>
                 </MenubarGroup>
             </MenubarContent>
         </MenubarMenu>
