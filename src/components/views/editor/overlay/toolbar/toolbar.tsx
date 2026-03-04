@@ -1,6 +1,6 @@
 import { Menubar } from '@/components/ui/menubar'
 import { AddEdgeToggle } from './components/add-edge-toggle'
-import { AddNodeButton } from './components/add-node/add-node-button'
+import { AddNodeButton } from './components/add-node-button'
 import { EditMenu, FileMenu, ViewMenu } from './components/menus'
 
 export function Toolbar() {
