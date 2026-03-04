@@ -8,6 +8,8 @@ import {
     useConnection,
 } from '@xyflow/react'
 import type { RegulatoryNodeProperties } from '@/lib/schema'
+import { DEFAULT_NODE_HEIGHT } from '../config'
+import { getNodeContentMinWidth } from '../utils'
 
 const RegulatoryNode = ({
     id,
@@ -15,13 +17,14 @@ const RegulatoryNode = ({
     selected,
 }: NodeProps<Node<RegulatoryNodeProperties>>) => {
     const connection = useConnection()
+    const contentMinWidth = getNodeContentMinWidth(data.name)
 
     const isTarget = connection.inProgress && connection.fromNode.id !== id
 
     const connectModeActive = false
 
     return (
-        <div className="h-full px-4 py-2 flex flex-col items-center justify-center bg-white border-2 border-[#E2E8F0] rounded-sm text-sm">
+        <div className="h-full px-2 py-2 flex flex-col items-center justify-center bg-white border-2 border-[#E2E8F0] rounded-sm text-sm">
             <NodeResizer
                 color="#2f81ed"
                 handleStyle={{
@@ -30,8 +33,8 @@ const RegulatoryNode = ({
                     height: 8,
                 }}
                 isVisible={selected}
-                minWidth={100}
-                minHeight={30}
+                minWidth={contentMinWidth}
+                minHeight={DEFAULT_NODE_HEIGHT}
             />
             {!connection.inProgress && (
                 <Handle
@@ -50,7 +53,7 @@ const RegulatoryNode = ({
                     isConnectableStart={false}
                 />
             )}
-            <div>{data.name}</div>
+            <div className="whitespace-nowrap">{data.name}</div>
         </div>
     )
 }
