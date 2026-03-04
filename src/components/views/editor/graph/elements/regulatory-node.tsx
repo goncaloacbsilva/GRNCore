@@ -24,8 +24,6 @@ const RegulatoryNode = ({
         (state) => state.connectModeEnabled
     )
 
-    const isTarget = connection.inProgress && connection.fromNode.id !== id
-
     return (
         <div
             className={twJoin(
@@ -45,27 +43,22 @@ const RegulatoryNode = ({
                     width: 8,
                     height: 8,
                 }}
-                isVisible={selected}
+                isVisible={selected && !connectModeActive}
                 minWidth={contentMinWidth}
                 minHeight={DEFAULT_NODE_HEIGHT}
             />
-            {!connection.inProgress && (
-                <Handle
-                    isConnectable={connectModeActive}
-                    className="customHandle"
-                    position={Position.Right}
-                    type="source"
-                />
-            )}
-            {/* We want to disable the target handle, if the connection was started from this node */}
-            {(!connection.inProgress || isTarget) && (
-                <Handle
-                    className="customHandle"
-                    position={Position.Left}
-                    type="target"
-                    isConnectableStart={false}
-                />
-            )}
+            <Handle
+                isConnectable={connectModeActive}
+                className="customHandle"
+                position={Position.Right}
+                type="source"
+            />
+            <Handle
+                className="customHandle"
+                position={Position.Left}
+                type="target"
+                isConnectableStart={false}
+            />
             <div
                 className={twJoin(
                     'whitespace-nowrap',

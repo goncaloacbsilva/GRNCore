@@ -22,7 +22,8 @@ const AUTO_PARALLEL_ANCHOR_OFFSET = PARALLEL_EDGE_SPACING * 0.3
 const MARKER_TIP_GAP = 2
 const INHIBITION_MARKER_EXTRA_GAP = 0.8
 const SELF_LOOP_MIN_LIFT = 18
-const SELF_LOOP_INSET_MIN = 24
+const SELF_LOOP_INSET_MIN = 10
+const SELF_LOOP_INSET_MAX = 22
 const SELF_LOOP_INSET_RATIO = 0.2
 const SELF_LOOP_LIFT_MULTIPLIER = 0.18
 
@@ -123,9 +124,9 @@ export function computeRegulatoryEdgeLayout({
             loopSide === Position.Top || loopSide === Position.Bottom
                 ? nodeWidth
                 : nodeHeight
-        const loopInset = Math.max(
-            sideLength * SELF_LOOP_INSET_RATIO,
-            SELF_LOOP_INSET_MIN
+        const loopInset = Math.min(
+            SELF_LOOP_INSET_MAX,
+            Math.max(sideLength * SELF_LOOP_INSET_RATIO, SELF_LOOP_INSET_MIN)
         )
 
         sourcePos = loopSide
