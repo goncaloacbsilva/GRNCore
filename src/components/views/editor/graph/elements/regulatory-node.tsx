@@ -23,6 +23,10 @@ const RegulatoryNode = ({
     const connectModeActive = useEditorStore(
         (state) => state.connectModeEnabled
     )
+    const connectionFromThisNode =
+        connection.inProgress && connection.fromNode.id === id
+    const connectionToThisNode =
+        connection.inProgress && connection.toNode?.id === id
 
     return (
         <div
@@ -31,8 +35,7 @@ const RegulatoryNode = ({
                 connectModeActive
                     ? 'group border-[#e2e8f098] hover:border-[#3b83f6d9] transition-all'
                     : 'border-[#E2E8F0]',
-                connection.inProgress &&
-                    connection.fromNode.id === id &&
+                (connectionFromThisNode || connectionToThisNode) &&
                     'border-[#3b83f6d9]!'
             )}
         >
@@ -63,10 +66,7 @@ const RegulatoryNode = ({
                 className={twJoin(
                     'whitespace-nowrap',
                     connectModeActive &&
-                        !(
-                            connection.inProgress &&
-                            connection.fromNode.id === id
-                        ) &&
+                        !(connectionFromThisNode || connectionToThisNode) &&
                         'text-[#0a0a0a51] group-hover:text-[#0a0a0a]'
                 )}
             >
