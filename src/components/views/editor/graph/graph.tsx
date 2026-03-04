@@ -67,9 +67,8 @@ export function Graph({ model }: GraphProps) {
             _node: Node<RegulatoryNodeProperties>,
             draggedNodes: Node<RegulatoryNodeProperties>[]
         ) => {
-            const selectedDraggedNodes = draggedNodes.filter((n) => n.selected)
             dragPreviousPositionsRef.current = new Map(
-                selectedDraggedNodes.map((n) => [n.id, { ...n.position }])
+                draggedNodes.map((n) => [n.id, { ...n.position }])
             )
         },
         []
@@ -81,12 +80,11 @@ export function Graph({ model }: GraphProps) {
             _node: Node<RegulatoryNodeProperties>,
             draggedNodes: Node<RegulatoryNodeProperties>[]
         ) => {
-            const selectedDraggedNodes = draggedNodes.filter((n) => n.selected)
-            if (selectedDraggedNodes.length === 0) {
+            if (draggedNodes.length === 0) {
                 return
             }
 
-            const anchorNode = selectedDraggedNodes.find((n) =>
+            const anchorNode = draggedNodes.find((n) =>
                 dragPreviousPositionsRef.current.has(n.id)
             )
             if (!anchorNode) {
@@ -105,14 +103,14 @@ export function Graph({ model }: GraphProps) {
                 return
             }
 
-            const selectedIds = new Set(selectedDraggedNodes.map((n) => n.id))
+            const draggedIds = new Set(draggedNodes.map((n) => n.id))
 
             setEdges((currentEdges) =>
                 currentEdges.map((edge) => {
-                    if (
-                        !selectedIds.has(String(edge.source)) ||
-                        !selectedIds.has(String(edge.target))
-                    ) {
+                    const sourceMoved = draggedIds.has(String(edge.source))
+                    const targetMoved = draggedIds.has(String(edge.target))
+
+                    if (!sourceMoved && !targetMoved) {
                         return edge
                     }
 
@@ -121,14 +119,34 @@ export function Graph({ model }: GraphProps) {
                         return edge
                     }
 
+                    const startHandleId = `${edge.id}-start-control`
+                    const endHandleId = `${edge.id}-end-control`
+                    const moveGeometryPoints = sourceMoved && targetMoved
+
                     return {
                         ...edge,
                         data: {
                             ...(edge.data ?? {}),
                             points: points.map((point) => ({
                                 ...point,
-                                x: point.x + dx,
-                                y: point.y + dy,
+                                x:
+                                    (point.id === startHandleId &&
+                                        sourceMoved) ||
+                                    (point.id === endHandleId && targetMoved) ||
+                                    (moveGeometryPoints &&
+                                        point.id !== startHandleId &&
+                                        point.id !== endHandleId)
+                                        ? point.x + dx
+                                        : point.x,
+                                y:
+                                    (point.id === startHandleId &&
+                                        sourceMoved) ||
+                                    (point.id === endHandleId && targetMoved) ||
+                                    (moveGeometryPoints &&
+                                        point.id !== startHandleId &&
+                                        point.id !== endHandleId)
+                                        ? point.y + dy
+                                        : point.y,
                             })),
                         } as EditableRegulatoryEdge,
                     }
@@ -136,7 +154,7 @@ export function Graph({ model }: GraphProps) {
             )
 
             dragPreviousPositionsRef.current = new Map(
-                selectedDraggedNodes.map((n) => [n.id, { ...n.position }])
+                draggedNodes.map((n) => [n.id, { ...n.position }])
             )
         },
         [setEdges]

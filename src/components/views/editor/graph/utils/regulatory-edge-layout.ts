@@ -10,7 +10,11 @@ import {
     type EdgeAlgorithm,
 } from '@/lib/types'
 import { getEdgeParams } from './edges'
-import { getLeastConnectedLoopSide, getMarkerGapPoint } from './edge-routing'
+import {
+    getLeastConnectedLoopSide,
+    getMarkerGapPoint,
+    projectToNodePerimeter,
+} from './edge-routing'
 
 const PARALLEL_EDGE_SPACING = 19
 const AUTO_PARALLEL_CATMULL_BEND = PARALLEL_EDGE_SPACING * 0.6
@@ -77,13 +81,19 @@ export function computeRegulatoryEdgeLayout({
         (point) => point.id === startHandleId
     )
     const endAnchorHint = storedPoints.find((point) => point.id === endHandleId)
+    const projectedStartAnchorHint = startAnchorHint
+        ? projectToNodePerimeter(sourceNode, startAnchorHint)
+        : undefined
+    const projectedEndAnchorHint = endAnchorHint
+        ? projectToNodePerimeter(targetNode, endAnchorHint)
+        : undefined
     const geometryStoredPoints = storedPoints.filter(
         (point) => point.id !== startHandleId && point.id !== endHandleId
     )
 
     const isSelfLoop = source === target
-    const sourceHint = startAnchorHint ?? geometryStoredPoints[0]
-    const targetHint = endAnchorHint ?? geometryStoredPoints.at(-1)
+    const sourceHint = projectedStartAnchorHint ?? geometryStoredPoints[0]
+    const targetHint = projectedEndAnchorHint ?? geometryStoredPoints.at(-1)
 
     const markerTipGap =
         MARKER_TIP_GAP +
@@ -127,8 +137,8 @@ export function computeRegulatoryEdgeLayout({
                 x: nodeX + nodeWidth - loopInset,
                 y: nodeY,
             }
-            sourcePoint = startAnchorHint ?? defaultSourcePoint
-            targetTipPoint = endAnchorHint ?? defaultTargetTipPoint
+            sourcePoint = projectedStartAnchorHint ?? defaultSourcePoint
+            targetTipPoint = projectedEndAnchorHint ?? defaultTargetTipPoint
             normalX = 0
             normalY = -1
         } else if (loopSide === Position.Bottom) {
@@ -140,8 +150,8 @@ export function computeRegulatoryEdgeLayout({
                 x: nodeX + nodeWidth - loopInset,
                 y: nodeY + nodeHeight,
             }
-            sourcePoint = startAnchorHint ?? defaultSourcePoint
-            targetTipPoint = endAnchorHint ?? defaultTargetTipPoint
+            sourcePoint = projectedStartAnchorHint ?? defaultSourcePoint
+            targetTipPoint = projectedEndAnchorHint ?? defaultTargetTipPoint
             normalX = 0
             normalY = 1
         } else if (loopSide === Position.Left) {
@@ -150,8 +160,8 @@ export function computeRegulatoryEdgeLayout({
                 x: nodeX,
                 y: nodeY + nodeHeight - loopInset,
             }
-            sourcePoint = startAnchorHint ?? defaultSourcePoint
-            targetTipPoint = endAnchorHint ?? defaultTargetTipPoint
+            sourcePoint = projectedStartAnchorHint ?? defaultSourcePoint
+            targetTipPoint = projectedEndAnchorHint ?? defaultTargetTipPoint
             normalX = -1
             normalY = 0
         } else {
@@ -163,8 +173,8 @@ export function computeRegulatoryEdgeLayout({
                 x: nodeX + nodeWidth,
                 y: nodeY + nodeHeight - loopInset,
             }
-            sourcePoint = startAnchorHint ?? defaultSourcePoint
-            targetTipPoint = endAnchorHint ?? defaultTargetTipPoint
+            sourcePoint = projectedStartAnchorHint ?? defaultSourcePoint
+            targetTipPoint = projectedEndAnchorHint ?? defaultTargetTipPoint
             normalX = 1
             normalY = 0
         }
@@ -230,18 +240,16 @@ export function computeRegulatoryEdgeLayout({
             ? centeredIndex * AUTO_PARALLEL_ANCHOR_OFFSET
             : 0
 
-        sourcePoint = startAnchorHint
-            ? { x: startAnchorHint.x, y: startAnchorHint.y }
-            : { x: params.sx, y: params.sy }
-        targetTipPoint = endAnchorHint
-            ? { x: endAnchorHint.x, y: endAnchorHint.y }
-            : {
-                  x: params.tx + normalX * endAnchorOffset,
-                  y: params.ty + normalY * endAnchorOffset,
-              }
+        sourcePoint = projectedStartAnchorHint ?? { x: params.sx, y: params.sy }
+        targetTipPoint = projectedEndAnchorHint ?? {
+            x: params.tx + normalX * endAnchorOffset,
+            y: params.ty + normalY * endAnchorOffset,
+        }
 
         const endReferencePoint =
-            geometryStoredPoints.at(-1) ?? startAnchorHint ?? sourcePoint
+            geometryStoredPoints.at(-1) ??
+            projectedStartAnchorHint ??
+            sourcePoint
         targetPoint = getMarkerGapPoint({
             tip: targetTipPoint,
             from: endReferencePoint,
