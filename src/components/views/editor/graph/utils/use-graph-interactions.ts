@@ -17,6 +17,7 @@ import {
     mapDraggedNodePositions,
     shiftDraggedEdgePoints,
 } from './node-drag'
+import { useEditorStore } from '@/store'
 
 type RegulatoryNode = Node<RegulatoryNodeProperties>
 type RegulatoryEdge = Edge<EditableRegulatoryEdge>
@@ -55,6 +56,9 @@ export function useGraphInteractions({
     >(new Map())
     const connectionStartNodeIdRef = useRef<string | null>(null)
     const connectionCreatedRef = useRef(false)
+    const connectionInteraction = useEditorStore(
+        (state) => state.connectModeInteraction
+    )
 
     const onNodesChange = useCallback(
         (changes: NodeChange<RegulatoryNode>[]) => {
@@ -120,9 +124,20 @@ export function useGraphInteractions({
     const onConnect = useCallback(
         (params: Connection) => {
             connectionCreatedRef.current = true
-            setEdges((eds) => addEdge(params, eds))
+            setEdges((eds) =>
+                addEdge(
+                    {
+                        ...params,
+                        data: {
+                            type: connectionInteraction,
+                            target: 0,
+                        },
+                    },
+                    eds
+                )
+            )
         },
-        [setEdges]
+        [setEdges, connectionInteraction]
     )
 
     const onConnectEnd = useCallback(
