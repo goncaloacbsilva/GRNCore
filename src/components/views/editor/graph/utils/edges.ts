@@ -1,4 +1,6 @@
 import { Position, type Edge, type InternalNode } from '@xyflow/react'
+import type { ControlPoint } from '@/lib/types'
+import { projectToNodePerimeter } from './edge-routing'
 
 interface Point {
     x: number
@@ -104,6 +106,66 @@ export function getEdgeParams(
 const getUndirectedPairKey = (source: string, target: string) =>
     source < target ? `${source}::${target}` : `${target}::${source}`
 
+function getCanonicalSideKey(
+    sourceId: string,
+    targetId: string,
+    sourcePos: Position,
+    targetPos: Position
+): string {
+    return sourceId < targetId
+        ? `${sourcePos}->${targetPos}`
+        : `${targetPos}->${sourcePos}`
+}
+
+function getEdgeControlPoints(edge: Edge): ControlPoint[] {
+    const edgeData = edge.data as { points?: ControlPoint[] } | undefined
+    return edgeData?.points ?? []
+}
+
+function getEdgeSideKey(
+    edge: Edge,
+    nodeLookup: ReadonlyMap<string, InternalNode>
+): string {
+    const sourceId = String(edge.source)
+    const targetId = String(edge.target)
+
+    if (sourceId === targetId) {
+        return 'self-loop'
+    }
+
+    const sourceNode = nodeLookup.get(sourceId)
+    const targetNode = nodeLookup.get(targetId)
+    if (!sourceNode || !targetNode) {
+        return 'unknown'
+    }
+
+    const points = getEdgeControlPoints(edge)
+    const startHandleId = `${edge.id}-start-control`
+    const endHandleId = `${edge.id}-end-control`
+    const startAnchorHint = points.find((point) => point.id === startHandleId)
+    const endAnchorHint = points.find((point) => point.id === endHandleId)
+    const projectedStartAnchorHint = startAnchorHint
+        ? projectToNodePerimeter(sourceNode, startAnchorHint)
+        : undefined
+    const projectedEndAnchorHint = endAnchorHint
+        ? projectToNodePerimeter(targetNode, endAnchorHint)
+        : undefined
+    const geometryPoints = points.filter(
+        (point) => point.id !== startHandleId && point.id !== endHandleId
+    )
+    const sourceHint = projectedStartAnchorHint ?? geometryPoints[0]
+    const targetHint = projectedEndAnchorHint ?? geometryPoints.at(-1)
+
+    const { sourcePos, targetPos } = getEdgeParams(
+        sourceNode,
+        targetNode,
+        sourceHint,
+        targetHint
+    )
+
+    return getCanonicalSideKey(sourceId, targetId, sourcePos, targetPos)
+}
+
 /**
  * Returns stable parallel-edge positioning metadata for an edge.
  * Edges are grouped by undirected node pair so A->B and B->A are spaced together.
@@ -112,9 +174,14 @@ export function getParallelEdgeMeta(
     edges: Edge[],
     edgeId: string,
     source: string,
-    target: string
+    target: string,
+    nodeLookup: ReadonlyMap<string, InternalNode>
 ): ParallelEdgeMeta {
     const pairKey = getUndirectedPairKey(source, target)
+    const currentEdge = edges.find((edge) => String(edge.id) === edgeId)
+    const currentSideKey = currentEdge
+        ? getEdgeSideKey(currentEdge, nodeLookup)
+        : 'unknown'
 
     const siblings = edges
         .filter(
@@ -122,7 +189,8 @@ export function getParallelEdgeMeta(
                 getUndirectedPairKey(
                     String(edge.source),
                     String(edge.target)
-                ) === pairKey
+                ) === pairKey &&
+                getEdgeSideKey(edge, nodeLookup) === currentSideKey
         )
         .sort((a, b) => String(a.id).localeCompare(String(b.id)))
 

@@ -56,7 +56,13 @@ export function RegulatoryEdge({
         }),
         shallow
     )
-    const { centeredIndex } = getParallelEdgeMeta(edges, id, source, target)
+    const { centeredIndex } = getParallelEdgeMeta(
+        edges,
+        id,
+        source,
+        target,
+        nodeLookup
+    )
 
     const algorithm = data?.algorithm ?? DEFAULT_ALGORITHM
     const storedPoints = data?.points ?? []
