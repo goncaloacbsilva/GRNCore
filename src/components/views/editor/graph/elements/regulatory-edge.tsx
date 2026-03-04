@@ -14,7 +14,6 @@ import {
     getEditableControlPoints,
     getEditablePath,
     getParallelEdgeMeta,
-    projectToNodePerimeter,
     computeRegulatoryEdgeLayout,
 } from '../utils'
 import { REGULATORY_EDGE_STYLES } from '../config'
@@ -68,8 +67,6 @@ export function RegulatoryEdge({
     const {
         startHandleId,
         endHandleId,
-        startAnchorHint,
-        endAnchorHint,
         geometryStoredPoints,
         sourcePos,
         targetPos,
@@ -105,9 +102,8 @@ export function RegulatoryEdge({
     const editableControlPoints = controlPoints.filter(
         (point) => point.id !== startHandleId && point.id !== endHandleId
     )
-    const startHandlePosition =
-        startAnchorHint ?? projectToNodePerimeter(sourceNode, sourcePoint)
-    const endHandlePosition = endAnchorHint ?? targetTipPoint
+    const startHandlePosition = sourcePoint
+    const endHandlePosition = targetTipPoint
 
     useRegulatoryEdgeSelection({
         controlPoints,
