@@ -1,4 +1,5 @@
 import {
+    type Node,
     type ConnectionLineComponent,
     type EdgeTypes,
     type FitViewOptions,
@@ -9,7 +10,7 @@ import {
     RegulatoryEdge,
     RegulatoryNode,
 } from './elements'
-import type { InteractionType } from '@/lib/schema'
+import type { InteractionType, RegulatoryNodeProperties } from '@/lib/schema'
 
 export const PAN_ON_DRAG = false
 export const PAN_ON_SCROLL = true
@@ -32,8 +33,9 @@ export const DEFAULT_NODE_HEIGHT = 35
 export const EDGE_TYPES: EdgeTypes = { RegulatoryEdge }
 export const DEFAULT_EDGE_TYPE = 'RegulatoryEdge'
 
-export const CONNECTION_LINE_COMPONENT: ConnectionLineComponent =
-    CustomConnectionLine
+export const CONNECTION_LINE_COMPONENT: ConnectionLineComponent<
+    Node<RegulatoryNodeProperties>
+> = CustomConnectionLine
 
 export interface RegulatoryEdgeStyle {
     stroke: string

@@ -1,7 +1,12 @@
-import type { InternalGRNModel, RegulatoryNodeProperties } from '@/lib/schema'
+import type {
+    EditableRegulatoryEdge,
+    InternalGRNModel,
+    RegulatoryNodeProperties,
+} from '@/lib/schema'
 import {
     applyNodeChanges,
     type NodeChange,
+    type Edge,
     type Node,
     Background,
     MiniMap,
@@ -62,7 +67,9 @@ function importNodes(
 
 export function Graph({ model }: GraphProps) {
     const [nodes, setNodes] = useNodesState(importNodes(model.nodes))
-    const [edges, setEdges, onEdgesChange] = useEdgesState(model.edges)
+    const [edges, setEdges, onEdgesChange] = useEdgesState<
+        Edge<EditableRegulatoryEdge>
+    >(model.edges)
     const dragPreviousPositionsRef = useRef<
         Map<string, { x: number; y: number }>
     >(new Map())
@@ -126,7 +133,10 @@ export function Graph({ model }: GraphProps) {
     )
 
     return (
-        <ReactFlow
+        <ReactFlow<
+            Node<RegulatoryNodeProperties>,
+            Edge<EditableRegulatoryEdge>
+        >
             proOptions={{
                 hideAttribution: true,
             }}

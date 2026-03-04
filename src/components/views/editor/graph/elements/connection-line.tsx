@@ -1,14 +1,16 @@
 import {
     getStraightPath,
+    type Node,
     type ConnectionLineComponentProps,
 } from '@xyflow/react'
+import type { RegulatoryNodeProperties } from '@/lib/schema'
 
 export function CustomConnectionLine({
     fromX,
     fromY,
     toX,
     toY,
-}: ConnectionLineComponentProps) {
+}: ConnectionLineComponentProps<Node<RegulatoryNodeProperties>>) {
     const [edgePath] = getStraightPath({
         sourceX: fromX,
         sourceY: fromY,
