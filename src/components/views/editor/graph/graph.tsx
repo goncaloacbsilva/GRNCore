@@ -10,6 +10,8 @@ import {
     SelectionMode,
     useEdgesState,
     useNodesState,
+    addEdge,
+    type Connection,
 } from '@xyflow/react'
 import { useCallback, useRef } from 'react'
 import { Toolbar, ZoomControls } from '../overlay'
@@ -19,6 +21,7 @@ import './elements/regulatory-node-style.css'
 import {
     BACKGROUND_COLOR,
     BACKGROUND_DOTS_RADIUS,
+    CONNECTION_LINE_COMPONENT,
     DEFAULT_EDGE_TYPE,
     DEFAULT_NODE_HEIGHT,
     DEFAULT_NODE_TYPE,
@@ -117,6 +120,11 @@ export function Graph({ model }: GraphProps) {
         dragPreviousPositionsRef.current = new Map()
     }, [])
 
+    const onConnect = useCallback(
+        (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+        [setEdges]
+    )
+
     return (
         <ReactFlow
             proOptions={{
@@ -136,6 +144,8 @@ export function Graph({ model }: GraphProps) {
             panOnDrag={PAN_ON_DRAG}
             nodeTypes={NODE_TYPES}
             edgeTypes={EDGE_TYPES}
+            connectionLineComponent={CONNECTION_LINE_COMPONENT}
+            onConnect={onConnect}
             defaultEdgeOptions={{
                 type: DEFAULT_EDGE_TYPE,
                 selectable: true,
