@@ -3,12 +3,16 @@ import { useEditorStore } from '@/store'
 import { CirclePlus } from 'lucide-react'
 
 export function AddNodeButton() {
+    const connectModeEnabled = useEditorStore(
+        (state) => state.connectModeEnabled
+    )
     const setDialogVisible = useEditorStore(
         (state) => state.setAddNodeDialogVisible
     )
 
     return (
         <Button
+            disabled={connectModeEnabled}
             onClick={() => setDialogVisible(true)}
             variant="default"
             size="default"
