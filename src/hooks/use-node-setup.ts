@@ -1,4 +1,8 @@
-import { DEFAULT_NODE_TYPE } from '@/components/views/editor/graph/config'
+import {
+    DEFAULT_NODE_HEIGHT,
+    DEFAULT_NODE_TYPE,
+} from '@/components/views/editor/graph/config'
+import { getNodeContentMinWidth } from '@/components/views/editor/graph/utils'
 import type { RegulatoryNodeProperties } from '@/lib/schema'
 import { useEditorStore } from '@/store'
 import { useReactFlow } from '@xyflow/react'
@@ -20,6 +24,10 @@ export function useNodeSetup() {
                 type: DEFAULT_NODE_TYPE,
                 data: {
                     name: value,
+                },
+                style: {
+                    width: getNodeContentMinWidth(value),
+                    height: DEFAULT_NODE_HEIGHT,
                 },
             } as Node<RegulatoryNodeProperties>)
 

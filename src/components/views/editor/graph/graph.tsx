@@ -20,6 +20,7 @@ import {
     BACKGROUND_COLOR,
     BACKGROUND_DOTS_RADIUS,
     DEFAULT_EDGE_TYPE,
+    DEFAULT_NODE_HEIGHT,
     DEFAULT_NODE_TYPE,
     EDGE_TYPES,
     FIT_VIEW_OPTIONS,
@@ -31,6 +32,7 @@ import {
 } from './config'
 import {
     getNodeDragDelta,
+    getNodeContentMinWidth,
     mapDraggedNodePositions,
     shiftDraggedEdgePoints,
 } from './utils'
@@ -45,6 +47,13 @@ function importNodes(
     return nodes.map((node) => ({
         ...node,
         type: DEFAULT_NODE_TYPE,
+        style: {
+            width:
+                node.style?.width ??
+                getNodeContentMinWidth(String(node.data?.name ?? '')),
+            height: node.style?.height ?? DEFAULT_NODE_HEIGHT,
+            ...node.style,
+        },
     }))
 }
 

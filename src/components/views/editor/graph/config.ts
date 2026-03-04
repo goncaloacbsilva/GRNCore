@@ -21,6 +21,8 @@ export const MINIMAP_NODE_COLOR = '#e5e7eb'
 
 export const NODE_TYPES: NodeTypes = { RegulatoryNode }
 export const DEFAULT_NODE_TYPE = 'RegulatoryNode'
+export const DEFAULT_NODE_WIDTH = 100
+export const DEFAULT_NODE_HEIGHT = 35
 
 export const EDGE_TYPES: EdgeTypes = { RegulatoryEdge }
 export const DEFAULT_EDGE_TYPE = 'RegulatoryEdge'
