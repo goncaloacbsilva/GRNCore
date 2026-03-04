@@ -1,8 +1,4 @@
-import type {
-    EditableRegulatoryEdge,
-    InternalGRNModel,
-    RegulatoryNodeProperties,
-} from '@/lib/schema'
+import type { InternalGRNModel, RegulatoryNodeProperties } from '@/lib/schema'
 import {
     applyNodeChanges,
     type NodeChange,
@@ -33,6 +29,11 @@ import {
     PAN_ON_SCROLL,
     SELECTION_ON_DRAG,
 } from './config'
+import {
+    getNodeDragDelta,
+    mapDraggedNodePositions,
+    shiftDraggedEdgePoints,
+} from './utils'
 
 interface GraphProps {
     model: InternalGRNModel
@@ -67,9 +68,8 @@ export function Graph({ model }: GraphProps) {
             _node: Node<RegulatoryNodeProperties>,
             draggedNodes: Node<RegulatoryNodeProperties>[]
         ) => {
-            dragPreviousPositionsRef.current = new Map(
-                draggedNodes.map((n) => [n.id, { ...n.position }])
-            )
+            dragPreviousPositionsRef.current =
+                mapDraggedNodePositions(draggedNodes)
         },
         []
     )
@@ -80,82 +80,26 @@ export function Graph({ model }: GraphProps) {
             _node: Node<RegulatoryNodeProperties>,
             draggedNodes: Node<RegulatoryNodeProperties>[]
         ) => {
-            if (draggedNodes.length === 0) {
-                return
-            }
-
-            const anchorNode = draggedNodes.find((n) =>
-                dragPreviousPositionsRef.current.has(n.id)
-            )
-            if (!anchorNode) {
-                return
-            }
-
-            const previous = dragPreviousPositionsRef.current.get(anchorNode.id)
-            if (!previous) {
-                return
-            }
-
-            const dx = anchorNode.position.x - previous.x
-            const dy = anchorNode.position.y - previous.y
-
-            if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) {
+            const dragDelta = getNodeDragDelta({
+                draggedNodes,
+                previousPositions: dragPreviousPositionsRef.current,
+            })
+            if (!dragDelta) {
                 return
             }
 
             const draggedIds = new Set(draggedNodes.map((n) => n.id))
 
             setEdges((currentEdges) =>
-                currentEdges.map((edge) => {
-                    const sourceMoved = draggedIds.has(String(edge.source))
-                    const targetMoved = draggedIds.has(String(edge.target))
-
-                    if (!sourceMoved && !targetMoved) {
-                        return edge
-                    }
-
-                    const points = edge.data?.points
-                    if (!points || points.length === 0) {
-                        return edge
-                    }
-
-                    const startHandleId = `${edge.id}-start-control`
-                    const endHandleId = `${edge.id}-end-control`
-                    const moveGeometryPoints = sourceMoved && targetMoved
-
-                    return {
-                        ...edge,
-                        data: {
-                            ...(edge.data ?? {}),
-                            points: points.map((point) => ({
-                                ...point,
-                                x:
-                                    (point.id === startHandleId &&
-                                        sourceMoved) ||
-                                    (point.id === endHandleId && targetMoved) ||
-                                    (moveGeometryPoints &&
-                                        point.id !== startHandleId &&
-                                        point.id !== endHandleId)
-                                        ? point.x + dx
-                                        : point.x,
-                                y:
-                                    (point.id === startHandleId &&
-                                        sourceMoved) ||
-                                    (point.id === endHandleId && targetMoved) ||
-                                    (moveGeometryPoints &&
-                                        point.id !== startHandleId &&
-                                        point.id !== endHandleId)
-                                        ? point.y + dy
-                                        : point.y,
-                            })),
-                        } as EditableRegulatoryEdge,
-                    }
+                shiftDraggedEdgePoints({
+                    edges: currentEdges,
+                    draggedNodeIds: draggedIds,
+                    delta: dragDelta,
                 })
             )
 
-            dragPreviousPositionsRef.current = new Map(
-                draggedNodes.map((n) => [n.id, { ...n.position }])
-            )
+            dragPreviousPositionsRef.current =
+                mapDraggedNodePositions(draggedNodes)
         },
         [setEdges]
     )
