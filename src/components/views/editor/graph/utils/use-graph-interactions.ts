@@ -59,12 +59,20 @@ export function useGraphInteractions({
     const connectionInteraction = useEditorStore(
         (state) => state.connectModeInteraction
     )
+    const popSelectedNodeId = useEditorStore((state) => state.popSelectedNodeId)
 
     const onNodesChange = useCallback(
         (changes: NodeChange<RegulatoryNode>[]) => {
+            // Make sure we exclude the node from the selected node list
+            changes.forEach((change) => {
+                if (change.type == 'remove') {
+                    popSelectedNodeId(change.id)
+                }
+            })
+
             setNodes((prevNodes) => applyNodeChanges(changes, prevNodes))
         },
-        [setNodes]
+        [setNodes, popSelectedNodeId]
     )
 
     const onNodeDragStart = useCallback(
