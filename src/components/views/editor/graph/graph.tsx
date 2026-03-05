@@ -32,6 +32,7 @@ import {
     SELECTION_ON_DRAG,
 } from './config'
 import { normalizeRegulatoryNodes, useGraphInteractions } from './utils'
+import { useHotkeysSetup } from '@/hooks'
 
 interface GraphProps {
     model: InternalGRNModel
@@ -56,6 +57,8 @@ export function Graph({ model }: GraphProps) {
         setNodes,
         setEdges,
     })
+
+    useHotkeysSetup()
 
     return (
         <ReactFlow<Node<RegulatoryNodeProperties>, Edge<EditableRegulatoryEdge>>
