@@ -6,15 +6,15 @@ export function useHotkeysSetup() {
 
     // Shortcuts are defined here
 
-    useHotkeys('ctrl+d', () => duplicateAction(), {
+    useHotkeys('mod+d', () => duplicateAction(), {
         preventDefault: true,
     })
 
-    useHotkeys('ctrl+c', () => copyAction(), {
+    useHotkeys('mod+c', () => copyAction(), {
         preventDefault: true,
     })
 
-    useHotkeys('ctrl+v', () => pasteAction(), {
+    useHotkeys('mod+v', () => pasteAction(), {
         preventDefault: true,
     })
 }

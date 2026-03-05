@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useElementsActions } from '@/hooks'
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react'
-import { CopyIcon, TrashIcon } from 'lucide-react'
+import { ClipboardCopy, CopyIcon, TrashIcon } from 'lucide-react'
 import type { PropsWithChildren } from 'react'
 
 interface NodeToolbarProps {
@@ -51,7 +51,7 @@ function NodeToolbarButton({
 }
 
 export function NodeToolbar({ id, nodeIds, isVisible }: NodeToolbarProps) {
-    const { deleteAction, duplicateAction } = useElementsActions()
+    const { deleteAction, duplicateAction, copyAction } = useElementsActions()
     const toolbarTarget = nodeIds && nodeIds.length > 0 ? nodeIds : id
 
     return (
@@ -71,9 +71,17 @@ export function NodeToolbar({ id, nodeIds, isVisible }: NodeToolbarProps) {
                 </NodeToolbarButton>
                 <ButtonGroupSeparator />
                 <NodeToolbarButton
+                    onClick={copyAction}
+                    description="Copy"
+                    shortcut="⌘ + C"
+                >
+                    <ClipboardCopy />
+                </NodeToolbarButton>
+                <ButtonGroupSeparator />
+                <NodeToolbarButton
                     onClick={duplicateAction}
                     description="Duplicate"
-                    shortcut="Ctrl + D"
+                    shortcut="⌘ + D"
                 >
                     <CopyIcon />
                 </NodeToolbarButton>

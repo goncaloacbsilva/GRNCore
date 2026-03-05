@@ -2,6 +2,7 @@ import { useReactFlow, useStore } from '@xyflow/react'
 import { useShallow } from 'zustand/react/shallow'
 import { useEditorStore } from '@/store'
 import { getSelected } from '@/lib/graph'
+import { pasteModel } from '@/lib/graph/copy-paste'
 
 export function useElementsActions() {
     const reactFlowInstance = useReactFlow()
@@ -54,8 +55,26 @@ export function useElementsActions() {
         copyAction: () => copySelectedElements(reactFlowInstance),
         pasteAction,
         duplicateAction: () => {
-            copySelectedElements(reactFlowInstance)
-            pasteAction()
+            const selected = getSelected(reactFlowInstance)
+            if (!selected.nodes.length && !selected.edges.length) return
+
+            triggerNodeChanges(
+                selected.nodes.map((node) => ({
+                    id: node.id,
+                    type: 'select',
+                    selected: false,
+                }))
+            )
+
+            triggerEdgeChanges(
+                selected.edges.map((edge) => ({
+                    id: edge.id,
+                    type: 'select',
+                    selected: false,
+                }))
+            )
+
+            pasteModel(selected, reactFlowInstance)
         },
     }
 }

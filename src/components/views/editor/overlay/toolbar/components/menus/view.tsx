@@ -21,7 +21,7 @@ export function ViewMenu() {
         })
     }
 
-    useHotkeys('ctrl+r', resetZoom, {
+    useHotkeys('mod+r', resetZoom, {
         preventDefault: true,
     })
 
@@ -31,7 +31,7 @@ export function ViewMenu() {
             <MenubarContent className="w-44">
                 <MenubarGroup>
                     <MenubarItem onSelect={resetZoom}>
-                        Reset Zoom <MenubarShortcut>Ctrl+R</MenubarShortcut>
+                        Reset Zoom <MenubarShortcut>⌘+R</MenubarShortcut>
                     </MenubarItem>
                 </MenubarGroup>
             </MenubarContent>
