@@ -1,4 +1,4 @@
-import type { ReactFlowInstance, Node, Edge } from '@xyflow/react'
+import type { ReactFlowInstance, Node, Edge, XYPosition } from '@xyflow/react'
 import type {
     EditableRegulatoryEdge,
     InternalGRNModel,
@@ -9,9 +9,10 @@ import {
     createId,
     getNodeContentMinWidth,
 } from '@/components/views/editor/graph/utils'
-import { DEFAULT_NODE_HEIGHT } from '@/components/views/editor/graph/config'
-
-const COPY_OFFSET = 10
+import {
+    DEFAULT_NODE_HEIGHT,
+    NODE_PLACEMENT_OFFSET,
+} from '@/components/views/editor/graph/config'
 
 export function getSelected({
     getNodes,
@@ -43,16 +44,19 @@ export function getSelected({
 
 export function pasteModel(
     model: InternalGRNModel,
-    { addNodes, addEdges }: ReactFlowInstance
+    { addNodes, addEdges }: ReactFlowInstance,
+    basePosition: XYPosition = { x: -10, y: -10 }
 ) {
     const newNodes: Record<
         string,
         Node<RegulatoryNodeProperties>
     > = Object.fromEntries(
-        model.nodes.map((node) => [node.id, createNodeCopy(node)])
+        model.nodes.map((node) => [node.id, createNodeCopy(node, basePosition)])
     )
 
-    const newEdges = model.edges.map((edge) => createEdgeCopy(edge, newNodes))
+    const newEdges = model.edges.map((edge) =>
+        createEdgeCopy(edge, newNodes, basePosition)
+    )
 
     addNodes(Object.values(newNodes))
     if (newEdges.length > 0) {
@@ -60,13 +64,32 @@ export function pasteModel(
     }
 }
 
+export const getBasePosition = (
+    screenToFlowPosition: (
+        clientPosition: XYPosition,
+        options?: {
+            snapToGrid: boolean
+        }
+    ) => XYPosition,
+    domNode?: HTMLDivElement | null
+): XYPosition => ({
+    // Place new nodes at a consistent position in the viewport, respecting pan/zoom.
+    ...(domNode
+        ? screenToFlowPosition({
+              x: domNode.getBoundingClientRect().left + NODE_PLACEMENT_OFFSET.x,
+              y: domNode.getBoundingClientRect().top + NODE_PLACEMENT_OFFSET.y,
+          })
+        : screenToFlowPosition({ x: 10, y: 50 })),
+})
+
 const createNodeCopy = (
-    node: Node<RegulatoryNodeProperties>
+    node: Node<RegulatoryNodeProperties>,
+    offset: XYPosition
 ): Node<RegulatoryNodeProperties> => ({
     id: v4(),
     position: {
-        x: node.position.x - COPY_OFFSET,
-        y: node.position.y - COPY_OFFSET,
+        x: node.position.x + offset.x,
+        y: node.position.y + offset.y,
     },
     width: getNodeContentMinWidth(node.data.name),
     height: DEFAULT_NODE_HEIGHT,
@@ -77,7 +100,8 @@ const createNodeCopy = (
 
 const createEdgeCopy = (
     edge: Edge<EditableRegulatoryEdge>,
-    newNodes: Record<string, Node<RegulatoryNodeProperties>>
+    newNodes: Record<string, Node<RegulatoryNodeProperties>>,
+    offset: XYPosition
 ): Edge<EditableRegulatoryEdge> => ({
     ...edge,
     id: v4(),
@@ -91,8 +115,8 @@ const createEdgeCopy = (
         points: edge.data?.points?.map((point) => ({
             ...point,
             id: createId(),
-            x: point.x - COPY_OFFSET,
-            y: point.y - COPY_OFFSET,
+            x: point.x + offset.x,
+            y: point.y + offset.y,
         })),
     },
 })

@@ -6,6 +6,7 @@ import {
     findNextNodePosition,
     getNodeContentMinWidth,
 } from '@/components/views/editor/graph/utils'
+import { getBasePosition } from '@/lib/graph'
 import type {
     EditableRegulatoryEdge,
     RegulatoryNodeProperties,
@@ -29,25 +30,13 @@ export function useNodeSetup() {
     const domNode = useStore((state) => state.domNode)
     const setOpen = useEditorStore((state) => state.setAddNodeDialogVisible)
 
-    const getBasePosition = () => ({
-        // Place new nodes at a consistent position in the viewport, respecting pan/zoom.
-        ...screenToFlowPosition(
-            domNode
-                ? {
-                      x: domNode.getBoundingClientRect().left + 500,
-                      y: domNode.getBoundingClientRect().top + 300,
-                  }
-                : { x: 10, y: 50 }
-        ),
-    })
-
     return {
         addNode: (value: string) => {
             // TODO: Fetch metadata from NCBI
             const width = getNodeContentMinWidth(value)
             const height = DEFAULT_NODE_HEIGHT
             const position = findNextNodePosition({
-                basePosition: getBasePosition(),
+                basePosition: getBasePosition(screenToFlowPosition, domNode!),
                 width,
                 height,
                 nodes: getNodes(),

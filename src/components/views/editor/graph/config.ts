@@ -4,6 +4,7 @@ import {
     type EdgeTypes,
     type FitViewOptions,
     type NodeTypes,
+    type XYPosition,
 } from '@xyflow/react'
 import {
     CustomConnectionLine,
@@ -36,6 +37,11 @@ export const DEFAULT_EDGE_TYPE = 'RegulatoryEdge'
 export const CONNECTION_LINE_COMPONENT: ConnectionLineComponent<
     Node<RegulatoryNodeProperties>
 > = CustomConnectionLine
+
+export const NODE_PLACEMENT_OFFSET: XYPosition = {
+    x: 300,
+    y: 200,
+}
 
 export interface RegulatoryEdgeStyle {
     stroke: string

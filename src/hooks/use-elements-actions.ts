@@ -2,7 +2,7 @@ import { useReactFlow, useStore } from '@xyflow/react'
 import { useShallow } from 'zustand/react/shallow'
 import { useEditorStore } from '@/store'
 import { getSelected } from '@/lib/graph'
-import { pasteModel } from '@/lib/graph/copy-paste'
+import { getBasePosition, pasteModel } from '@/lib/graph/copy-paste'
 
 export function useElementsActions() {
     const reactFlowInstance = useReactFlow()
@@ -20,6 +20,20 @@ export function useElementsActions() {
             triggerEdgeChanges: state.triggerEdgeChanges,
         }))
     )
+    const domNode = useStore((state) => state.domNode)
+
+    const preserveViewport = (fn: () => void) => {
+        const viewport = reactFlowInstance.getViewport()
+
+        fn()
+
+        requestAnimationFrame(() => {
+            void reactFlowInstance.setViewport(viewport, { duration: 0 })
+            requestAnimationFrame(() => {
+                void reactFlowInstance.setViewport(viewport, { duration: 0 })
+            })
+        })
+    }
 
     const pasteAction = () => {
         if (!copyArea) return
@@ -42,7 +56,12 @@ export function useElementsActions() {
             }))
         )
 
-        pasteSelectedElements(reactFlowInstance)
+        const basePosition = getBasePosition(
+            reactFlowInstance.screenToFlowPosition,
+            domNode
+        )
+
+        preserveViewport(() => pasteSelectedElements(reactFlowInstance, basePosition))
     }
 
     const deleteAction = () =>
@@ -76,7 +95,14 @@ export function useElementsActions() {
                 }))
             )
 
-            pasteModel(selected, reactFlowInstance)
+            const basePosition = getBasePosition(
+                reactFlowInstance.screenToFlowPosition,
+                domNode
+            )
+
+            preserveViewport(() =>
+                pasteModel(selected, reactFlowInstance, basePosition)
+            )
         },
         cutAction: () => {
             copySelectedElements(reactFlowInstance)

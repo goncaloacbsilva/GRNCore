@@ -1,6 +1,6 @@
 import { getSelected, pasteModel } from '@/lib/graph'
 import { InteractionType, type InternalGRNModel } from '@/lib/schema'
-import type { ReactFlowInstance } from '@xyflow/react'
+import type { ReactFlowInstance, XYPosition } from '@xyflow/react'
 
 import { toast } from 'sonner'
 import { create } from 'zustand'
@@ -21,7 +21,10 @@ interface EditorState {
     popSelectedNodeId: (node: string) => void
 
     copySelectedElements: (instance: ReactFlowInstance) => void
-    pasteSelectedElements: (instance: ReactFlowInstance) => void
+    pasteSelectedElements: (
+        instance: ReactFlowInstance,
+        basePosition: XYPosition
+    ) => void
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -73,10 +76,10 @@ export const useEditorStore = create<EditorState>()(
                     copyArea: getSelected(instance),
                 }))
             },
-            pasteSelectedElements: (instance) => {
+            pasteSelectedElements: (instance, basePosition) => {
                 const model = get().copyArea
                 if (model) {
-                    pasteModel(model, instance)
+                    pasteModel(model, instance, basePosition)
                 }
             },
         })
