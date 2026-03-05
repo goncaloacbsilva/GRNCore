@@ -36,7 +36,7 @@ export function useNodeSetup() {
             const width = getNodeContentMinWidth(value)
             const height = DEFAULT_NODE_HEIGHT
             const position = findNextNodePosition({
-                basePosition: getBasePosition(screenToFlowPosition, domNode!),
+                basePosition: getBasePosition(screenToFlowPosition, domNode),
                 width,
                 height,
                 nodes: getNodes(),

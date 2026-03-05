@@ -61,7 +61,9 @@ export function useElementsActions() {
             domNode
         )
 
-        preserveViewport(() => pasteSelectedElements(reactFlowInstance, basePosition))
+        preserveViewport(() =>
+            pasteSelectedElements(reactFlowInstance, basePosition)
+        )
     }
 
     const deleteAction = () =>
