@@ -6,11 +6,10 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useNodesActions } from '@/hooks'
+import { useElementsActions } from '@/hooks'
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react'
 import { CopyIcon, TrashIcon } from 'lucide-react'
 import type { PropsWithChildren } from 'react'
-import { useHotkeys } from 'react-hotkeys-hook'
 
 interface NodeToolbarProps {
     id: string
@@ -52,12 +51,8 @@ function NodeToolbarButton({
 }
 
 export function NodeToolbar({ id, nodeIds, isVisible }: NodeToolbarProps) {
-    const { deleteNode, duplicateNode } = useNodesActions(nodeIds)
+    const { deleteAction, duplicateAction } = useElementsActions()
     const toolbarTarget = nodeIds && nodeIds.length > 0 ? nodeIds : id
-
-    useHotkeys('ctrl+d', () => isVisible && duplicateNode(), {
-        preventDefault: true,
-    })
 
     return (
         <ReactFlowNodeToolbar
@@ -68,7 +63,7 @@ export function NodeToolbar({ id, nodeIds, isVisible }: NodeToolbarProps) {
         >
             <ButtonGroup className="border rounded-full overflow-clip">
                 <NodeToolbarButton
-                    onClick={deleteNode}
+                    onClick={deleteAction}
                     description="Delete"
                     shortcut="←"
                 >
@@ -76,7 +71,7 @@ export function NodeToolbar({ id, nodeIds, isVisible }: NodeToolbarProps) {
                 </NodeToolbarButton>
                 <ButtonGroupSeparator />
                 <NodeToolbarButton
-                    onClick={duplicateNode}
+                    onClick={duplicateAction}
                     description="Duplicate"
                     shortcut="Ctrl + D"
                 >

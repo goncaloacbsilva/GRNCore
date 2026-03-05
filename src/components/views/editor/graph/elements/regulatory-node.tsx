@@ -46,7 +46,7 @@ const RegulatoryNode = ({
     )
     const isToolbarHost = selectedNodeIdsArray[0] === id
 
-    // Track selected node
+    // Track selected node ids
     useEffect(() => {
         if (selected) {
             pushSelectedNodeId(id)
