@@ -1,8 +1,18 @@
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useElementsActions } from './use-elements-actions'
+import { useEditorStore } from '@/store'
+import { useShallow } from 'zustand/react/shallow'
 
 export function useHotkeysSetup() {
     const { copyAction, pasteAction, duplicateAction } = useElementsActions()
+    const { setAddNodeDialogVisible, connectModeEnabled, setConnectMode } =
+        useEditorStore(
+            useShallow((state) => ({
+                setAddNodeDialogVisible: state.setAddNodeDialogVisible,
+                connectModeEnabled: state.connectModeEnabled,
+                setConnectMode: state.setConnectMode,
+            }))
+        )
 
     // Shortcuts are defined here
 
@@ -15,6 +25,20 @@ export function useHotkeysSetup() {
     })
 
     useHotkeys('mod+v', () => pasteAction(), {
+        preventDefault: true,
+    })
+
+    useHotkeys(
+        'mod+g',
+        () => {
+            if (!connectModeEnabled) {
+                setAddNodeDialogVisible(true)
+            }
+        },
+        { preventDefault: true }
+    )
+
+    useHotkeys('mod+e', () => setConnectMode(!connectModeEnabled), {
         preventDefault: true,
     })
 }
