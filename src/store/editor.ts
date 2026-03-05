@@ -1,4 +1,6 @@
-import { InteractionType } from '@/lib/schema'
+import { getSelected, pasteModel } from '@/lib/graph'
+import { InteractionType, type InternalGRNModel } from '@/lib/schema'
+import type { ReactFlowInstance } from '@xyflow/react'
 
 import { toast } from 'sonner'
 import { create } from 'zustand'
@@ -9,6 +11,7 @@ interface EditorState {
     connectModeEnabled: boolean
     connectModeInteraction: InteractionType
     selectedNodesIds: Set<string>
+    copyArea: InternalGRNModel | null
 
     setAddNodeDialogVisible: (visible: boolean) => void
     setConnectMode: (enabled: boolean) => void
@@ -16,6 +19,9 @@ interface EditorState {
 
     pushSelectedNodeId: (node: string) => void
     popSelectedNodeId: (node: string) => void
+
+    copySelectedElements: (instance: ReactFlowInstance) => void
+    pasteSelectedElements: (instance: ReactFlowInstance) => void
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -25,8 +31,9 @@ export const useEditorStore = create<EditorState>()(
             connectModeEnabled: false,
             connectModeInteraction: 'activation' as InteractionType,
             selectedNodesIds: new Set<string>(),
+            copyArea: null as InternalGRNModel | null,
         },
-        (set) => ({
+        (set, get) => ({
             setAddNodeDialogVisible: (visible) =>
                 set(() => ({ addNodeDialogVisible: visible })),
             setConnectMode: (enabled) => {
@@ -60,6 +67,17 @@ export const useEditorStore = create<EditorState>()(
                     next.delete(nodeId)
                     return { selectedNodesIds: next }
                 })
+            },
+            copySelectedElements: (instance) => {
+                set(() => ({
+                    copyArea: getSelected(instance),
+                }))
+            },
+            pasteSelectedElements: (instance) => {
+                const model = get().copyArea
+                if (model) {
+                    pasteModel(model, instance)
+                }
             },
         })
     )
