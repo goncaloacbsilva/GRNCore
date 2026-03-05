@@ -16,7 +16,8 @@ export function FileMenu() {
             <MenubarTrigger>File</MenubarTrigger>
             <MenubarContent>
                 <MenubarGroup>
-                    <MenubarSub>
+                    <MenubarItem disabled>Export</MenubarItem>
+                    {/* <MenubarSub>
                         <MenubarSubTrigger>Export</MenubarSubTrigger>
                         <MenubarSubContent>
                             <MenubarGroup>
@@ -30,7 +31,7 @@ export function FileMenu() {
                                 <MenubarItem>Image (.svg)</MenubarItem>
                             </MenubarGroup>
                         </MenubarSubContent>
-                    </MenubarSub>
+                    </MenubarSub> */}
                 </MenubarGroup>
             </MenubarContent>
         </MenubarMenu>

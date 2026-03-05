@@ -45,13 +45,15 @@ export function useElementsActions() {
         pasteSelectedElements(reactFlowInstance)
     }
 
+    const deleteAction = () =>
+        void reactFlowInstance.deleteElements({
+            nodes: getSelected(reactFlowInstance).nodes.map((node) => ({
+                id: node.id,
+            })),
+        })
+
     return {
-        deleteAction: () =>
-            void reactFlowInstance.deleteElements({
-                nodes: getSelected(reactFlowInstance).nodes.map((node) => ({
-                    id: node.id,
-                })),
-            }),
+        deleteAction,
         copyAction: () => copySelectedElements(reactFlowInstance),
         pasteAction,
         duplicateAction: () => {
@@ -75,6 +77,11 @@ export function useElementsActions() {
             )
 
             pasteModel(selected, reactFlowInstance)
+        },
+        cutAction: () => {
+            copySelectedElements(reactFlowInstance)
+
+            deleteAction()
         },
     }
 }

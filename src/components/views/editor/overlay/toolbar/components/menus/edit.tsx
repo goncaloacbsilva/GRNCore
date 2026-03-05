@@ -7,31 +7,34 @@ import {
     MenubarShortcut,
     MenubarTrigger,
 } from '@/components/ui/menubar'
+import { useElementsActions } from '@/hooks'
 
 export function EditMenu() {
+    const { copyAction, pasteAction, cutAction } = useElementsActions()
+
     return (
         <MenubarMenu>
             <MenubarTrigger>Edit</MenubarTrigger>
             <MenubarContent>
                 <MenubarGroup>
-                    <MenubarItem>
+                    <MenubarItem disabled>
                         Undo <MenubarShortcut>⌘Z</MenubarShortcut>
                     </MenubarItem>
-                    <MenubarItem>
+                    <MenubarItem disabled>
                         Redo <MenubarShortcut>⇧⌘Z</MenubarShortcut>
                     </MenubarItem>
                 </MenubarGroup>
                 <MenubarSeparator />
                 <MenubarGroup>
-                    <MenubarItem>
+                    <MenubarItem onSelect={cutAction}>
                         Cut
-                        <MenubarShortcut>⌘X</MenubarShortcut>
+                        <MenubarShortcut>⌘+X</MenubarShortcut>
                     </MenubarItem>
-                    <MenubarItem>
-                        Copy <MenubarShortcut>⌘C</MenubarShortcut>
+                    <MenubarItem onSelect={copyAction}>
+                        Copy <MenubarShortcut>⌘+C</MenubarShortcut>
                     </MenubarItem>
-                    <MenubarItem>
-                        Paste <MenubarShortcut>⌘V</MenubarShortcut>
+                    <MenubarItem onSelect={pasteAction}>
+                        Paste <MenubarShortcut>⌘+V</MenubarShortcut>
                     </MenubarItem>
                 </MenubarGroup>
             </MenubarContent>

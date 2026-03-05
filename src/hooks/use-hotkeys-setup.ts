@@ -4,7 +4,8 @@ import { useEditorStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
 
 export function useHotkeysSetup() {
-    const { copyAction, pasteAction, duplicateAction } = useElementsActions()
+    const { copyAction, pasteAction, duplicateAction, cutAction } =
+        useElementsActions()
     const { setAddNodeDialogVisible, connectModeEnabled, setConnectMode } =
         useEditorStore(
             useShallow((state) => ({
@@ -25,6 +26,10 @@ export function useHotkeysSetup() {
     })
 
     useHotkeys('mod+v', () => pasteAction(), {
+        preventDefault: true,
+    })
+
+    useHotkeys('mod+x', () => cutAction(), {
         preventDefault: true,
     })
 
