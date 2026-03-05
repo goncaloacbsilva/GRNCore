@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import {
     Handle,
     Position,
@@ -12,6 +12,7 @@ import { DEFAULT_NODE_HEIGHT } from '../config'
 import { getNodeContentMinWidth } from '../utils'
 import { useEditorStore } from '@/store'
 import { twJoin } from 'tailwind-merge'
+import { useShallow } from 'zustand/react/shallow'
 
 const RegulatoryNode = ({
     id,
@@ -20,13 +21,37 @@ const RegulatoryNode = ({
 }: NodeProps<Node<RegulatoryNodeProperties>>) => {
     const connection = useConnection()
     const contentMinWidth = getNodeContentMinWidth(data.name)
-    const connectModeActive = useEditorStore(
-        (state) => state.connectModeEnabled
+    const {
+        connectModeActive,
+        pushSelectedNodeId,
+        selectedNodesIds,
+        popSelectedNodeId,
+    } = useEditorStore(
+        useShallow((state) => ({
+            connectModeActive: state.connectModeEnabled,
+            pushSelectedNodeId: state.pushSelectedNodeId,
+            popSelectedNodeId: state.popSelectedNodeId,
+            selectedNodesIds: state.selectedNodesIds,
+        }))
     )
     const connectionFromThisNode =
         connection.inProgress && connection.fromNode.id === id
     const connectionToThisNode =
         connection.inProgress && connection.toNode?.id === id
+    const selectedNodeIdsArray = useMemo(
+        () => Array.from(selectedNodesIds),
+        [selectedNodesIds]
+    )
+    const isToolbarHost = selectedNodeIdsArray[0] === id
+
+    // Track selected node
+    useEffect(() => {
+        if (selected) {
+            pushSelectedNodeId(id)
+        } else {
+            popSelectedNodeId(id)
+        }
+    }, [selected, id, pushSelectedNodeId, popSelectedNodeId])
 
     return (
         <div
