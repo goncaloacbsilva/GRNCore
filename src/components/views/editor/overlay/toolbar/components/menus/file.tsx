@@ -3,10 +3,6 @@ import {
     MenubarGroup,
     MenubarItem,
     MenubarMenu,
-    MenubarSeparator,
-    MenubarSub,
-    MenubarSubContent,
-    MenubarSubTrigger,
     MenubarTrigger,
 } from '@/components/ui/menubar'
 
