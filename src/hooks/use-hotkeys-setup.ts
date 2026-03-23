@@ -1,4 +1,4 @@
-import { useHotkeys, useRecordHotkeys } from 'react-hotkeys-hook'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { useElementsActions } from './use-elements-actions'
 import { useEditorStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
