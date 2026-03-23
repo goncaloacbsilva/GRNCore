@@ -60,7 +60,14 @@ export function Graph({ model }: GraphProps) {
         if (!dragging) {
             takeSnapshot(nodes, edges)
         }
-    }, [nodes, edges, dragging, isApplyingHistory, isSnapshotPaused, takeSnapshot])
+    }, [
+        nodes,
+        edges,
+        dragging,
+        isApplyingHistory,
+        isSnapshotPaused,
+        takeSnapshot,
+    ])
 
     const {
         onNodesChange,
