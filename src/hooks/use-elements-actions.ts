@@ -1,11 +1,25 @@
-import { useReactFlow, useStore } from '@xyflow/react'
+import type {
+    EditableRegulatoryEdge,
+    RegulatoryNodeProperties,
+} from '@/lib/schema'
+import {
+    useReactFlow,
+    useStore,
+    type Edge,
+    type Node,
+    type ReactFlowInstance,
+} from '@xyflow/react'
 import { useShallow } from 'zustand/react/shallow'
-import { useEditorStore } from '@/store'
+import { useChangesTracking, useEditorStore } from '@/store'
 import { getSelected } from '@/lib/graph'
 import { getBasePosition, pasteModel } from '@/lib/graph/copy-paste'
 
 export function useElementsActions() {
-    const reactFlowInstance = useReactFlow()
+    const reactFlowInstance = useReactFlow<
+        Node<RegulatoryNodeProperties>,
+        Edge<EditableRegulatoryEdge>
+    >()
+    const baseInstance = reactFlowInstance as unknown as ReactFlowInstance
     const { copySelectedElements, pasteSelectedElements, copyArea } =
         useEditorStore(
             useShallow((state) => ({
@@ -14,6 +28,8 @@ export function useElementsActions() {
                 copyArea: state.copyArea,
             }))
         )
+    const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
+    const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
     const { triggerNodeChanges, triggerEdgeChanges } = useStore(
         useShallow((state) => ({
             triggerNodeChanges: state.triggerNodeChanges,
@@ -35,52 +51,28 @@ export function useElementsActions() {
         })
     }
 
+    const runAsSingleHistoryStep = (fn: () => void) => {
+        takeSnapshot(reactFlowInstance.getNodes(), reactFlowInstance.getEdges())
+        setSnapshotPaused(true)
+        fn()
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                setSnapshotPaused(false)
+            })
+        })
+    }
+
     const pasteAction = () => {
         if (!copyArea) return
 
-        const selected = getSelected(reactFlowInstance)
-
-        triggerNodeChanges(
-            selected.nodes.map((node) => ({
-                id: node.id,
-                type: 'select',
-                selected: false,
-            }))
-        )
-
-        triggerEdgeChanges(
-            selected.edges.map((edge) => ({
-                id: edge.id,
-                type: 'select',
-                selected: false,
-            }))
-        )
-
+        const selected = getSelected(baseInstance)
         const basePosition = getBasePosition(
             reactFlowInstance.screenToFlowPosition,
             domNode
         )
 
-        preserveViewport(() =>
-            pasteSelectedElements(reactFlowInstance, basePosition)
-        )
-    }
-
-    const deleteAction = () =>
-        void reactFlowInstance.deleteElements({
-            nodes: getSelected(reactFlowInstance).nodes.map((node) => ({
-                id: node.id,
-            })),
-        })
-
-    return {
-        deleteAction,
-        copyAction: () => copySelectedElements(reactFlowInstance),
-        pasteAction,
-        duplicateAction: () => {
-            const selected = getSelected(reactFlowInstance)
-            if (!selected.nodes.length && !selected.edges.length) return
-
+        runAsSingleHistoryStep(() => {
             triggerNodeChanges(
                 selected.nodes.map((node) => ({
                     id: node.id,
@@ -97,17 +89,56 @@ export function useElementsActions() {
                 }))
             )
 
+            preserveViewport(() =>
+                pasteSelectedElements(baseInstance, basePosition)
+            )
+        })
+    }
+
+    const deleteAction = () =>
+        void reactFlowInstance.deleteElements({
+            nodes: getSelected(baseInstance).nodes.map((node) => ({
+                id: node.id,
+            })),
+        })
+
+    return {
+        deleteAction,
+        copyAction: () => copySelectedElements(baseInstance),
+        pasteAction,
+        duplicateAction: () => {
+            const selected = getSelected(baseInstance)
+            if (!selected.nodes.length && !selected.edges.length) return
+
             const basePosition = getBasePosition(
                 reactFlowInstance.screenToFlowPosition,
                 domNode
             )
 
-            preserveViewport(() =>
-                pasteModel(selected, reactFlowInstance, basePosition)
-            )
+            runAsSingleHistoryStep(() => {
+                triggerNodeChanges(
+                    selected.nodes.map((node) => ({
+                        id: node.id,
+                        type: 'select',
+                        selected: false,
+                    }))
+                )
+
+                triggerEdgeChanges(
+                    selected.edges.map((edge) => ({
+                        id: edge.id,
+                        type: 'select',
+                        selected: false,
+                    }))
+                )
+
+                preserveViewport(() =>
+                    pasteModel(selected, baseInstance, basePosition)
+                )
+            })
         },
         cutAction: () => {
-            copySelectedElements(reactFlowInstance)
+            copySelectedElements(baseInstance)
 
             deleteAction()
         },

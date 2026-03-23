@@ -1,4 +1,5 @@
 import { useReactFlow, useStore } from '@xyflow/react'
+import { useEditorStore } from '@/store'
 import { type AnchorHandleProps } from './types'
 
 export function AnchorHandle({
@@ -12,6 +13,7 @@ export function AnchorHandle({
 }: AnchorHandleProps) {
     const domNode = useStore((state) => state.domNode)
     const { screenToFlowPosition } = useReactFlow()
+    const setDragging = useEditorStore((state) => state.setDragging)
 
     return (
         <circle
@@ -44,6 +46,7 @@ export function AnchorHandle({
                         return
                     }
                     moveEvent.preventDefault()
+                    setDragging(true)
 
                     onChange(
                         screenToFlowPosition({
@@ -58,9 +61,11 @@ export function AnchorHandle({
                         return
                     }
                     endEvent.preventDefault()
+                    setDragging(false)
                     target.removeEventListener('pointermove', onPointerMove)
                     target.removeEventListener('pointerup', onPointerEnd)
                     target.removeEventListener('pointerleave', onPointerEnd)
+                    target.removeEventListener('pointercancel', onPointerEnd)
 
                     onChange(
                         screenToFlowPosition({
@@ -73,6 +78,7 @@ export function AnchorHandle({
                 target.addEventListener('pointermove', onPointerMove)
                 target.addEventListener('pointerup', onPointerEnd)
                 target.addEventListener('pointerleave', onPointerEnd)
+                target.addEventListener('pointercancel', onPointerEnd)
             }}
             onKeyDown={(event) => {
                 switch (event.key) {

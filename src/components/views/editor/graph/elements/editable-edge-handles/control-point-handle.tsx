@@ -1,4 +1,5 @@
 import { useReactFlow, useStore, type XYPosition } from '@xyflow/react'
+import { useEditorStore } from '@/store'
 import { type ControlPointHandleProps } from './types'
 
 export function ControlPointHandle({
@@ -16,6 +17,7 @@ export function ControlPointHandle({
 }: ControlPointHandleProps) {
     const domNode = useStore((state) => state.domNode)
     const { screenToFlowPosition } = useReactFlow()
+    const setDragging = useEditorStore((state) => state.setDragging)
 
     const updatePoint = (next: XYPosition) => {
         setControlPoints((points) => {
@@ -136,6 +138,7 @@ export function ControlPointHandle({
                         return
                     }
                     moveEvent.preventDefault()
+                    setDragging(true)
 
                     updatePoint(
                         screenToFlowPosition({
@@ -150,6 +153,7 @@ export function ControlPointHandle({
                         return
                     }
                     endEvent.preventDefault()
+                    setDragging(false)
 
                     if (!active) {
                         endEvent.preventDefault()
@@ -158,6 +162,7 @@ export function ControlPointHandle({
                     target.removeEventListener('pointermove', onPointerMove)
                     target.removeEventListener('pointerup', onPointerEnd)
                     target.removeEventListener('pointerleave', onPointerEnd)
+                    target.removeEventListener('pointercancel', onPointerEnd)
 
                     updatePoint(
                         screenToFlowPosition({
@@ -170,6 +175,7 @@ export function ControlPointHandle({
                 target.addEventListener('pointermove', onPointerMove)
                 target.addEventListener('pointerup', onPointerEnd)
                 target.addEventListener('pointerleave', onPointerEnd)
+                target.addEventListener('pointercancel', onPointerEnd)
             }}
             onKeyDown={(event) => {
                 switch (event.key) {
