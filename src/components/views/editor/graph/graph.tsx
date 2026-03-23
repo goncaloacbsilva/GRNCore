@@ -50,16 +50,17 @@ export function Graph({ model }: GraphProps) {
     const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
     const dragging = useEditorStore((state) => state.isDragging)
     const isApplyingHistory = useEditorStore((state) => state.isApplyingHistory)
+    const isSnapshotPaused = useEditorStore((state) => state.isSnapshotPaused)
 
     useEffect(() => {
-        if (isApplyingHistory) {
+        if (isApplyingHistory || isSnapshotPaused) {
             return
         }
 
         if (!dragging) {
             takeSnapshot(nodes, edges)
         }
-    }, [nodes, edges, dragging, isApplyingHistory, takeSnapshot])
+    }, [nodes, edges, dragging, isApplyingHistory, isSnapshotPaused, takeSnapshot])
 
     const {
         onNodesChange,

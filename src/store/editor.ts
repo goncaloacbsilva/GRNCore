@@ -14,12 +14,14 @@ interface EditorState {
     copyArea: InternalGRNModel | null
     isDragging: boolean
     isApplyingHistory: boolean
+    isSnapshotPaused: boolean
 
     setAddNodeDialogVisible: (visible: boolean) => void
     setConnectMode: (enabled: boolean) => void
     setConnectModeInteraction: (interaction: InteractionType) => void
     setDragging: (value: boolean) => void
     setApplyingHistory: (value: boolean) => void
+    setSnapshotPaused: (value: boolean) => void
 
     pushSelectedNodeId: (node: string) => void
     popSelectedNodeId: (node: string) => void
@@ -41,6 +43,7 @@ export const useEditorStore = create<EditorState>()(
             copyArea: null as InternalGRNModel | null,
             isDragging: false,
             isApplyingHistory: false,
+            isSnapshotPaused: false,
         },
         (set, get) => ({
             setAddNodeDialogVisible: (visible) =>
@@ -68,6 +71,9 @@ export const useEditorStore = create<EditorState>()(
             },
             setApplyingHistory: (value) => {
                 set(() => ({ isApplyingHistory: value }))
+            },
+            setSnapshotPaused: (value) => {
+                set(() => ({ isSnapshotPaused: value }))
             },
             pushSelectedNodeId: (nodeId) => {
                 set((state) => ({

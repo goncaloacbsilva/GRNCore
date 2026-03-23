@@ -44,9 +44,6 @@ export const useChangesTracking = create<HistoryState>()(
                 ) => {
                     const currentSnapshot = get().snapshot
                     const nextSnapshot = { nodes, edges }
-                    const hasInitialSnapshot =
-                        Array.isArray(currentSnapshot.nodes) &&
-                        Array.isArray(currentSnapshot.edges)
                     const isSameSnapshot =
                         diff(currentSnapshot, nextSnapshot).length === 0
 
@@ -57,10 +54,6 @@ export const useChangesTracking = create<HistoryState>()(
                     set({
                         snapshot: nextSnapshot,
                     })
-
-                    if (!hasInitialSnapshot) {
-                        return
-                    }
 
                     const controls = useChangesTracking.getControls()
                     if ('archive' in controls) {
