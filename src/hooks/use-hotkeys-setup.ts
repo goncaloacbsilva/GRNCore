@@ -2,6 +2,7 @@ import { useHotkeys } from 'react-hotkeys-hook'
 import { useElementsActions } from './use-elements-actions'
 import { useEditorStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
+import { useHistory } from './use-history'
 
 export function useHotkeysSetup() {
     const {
@@ -19,6 +20,16 @@ export function useHotkeysSetup() {
                 setConnectMode: state.setConnectMode,
             }))
         )
+    const { undo, redo } = useHistory()
+
+    // History
+    useHotkeys('mod+shift+z', () => redo(), {
+        preventDefault: true,
+    })
+
+    useHotkeys('mod+z', () => undo(), {
+        preventDefault: true,
+    })
 
     // Support Windows delete
     useHotkeys('delete', () => deleteAction(), {
