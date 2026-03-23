@@ -1,7 +1,4 @@
-import type {
-    EditableRegulatoryEdge,
-    InternalGRNModel,
-} from '@/lib/schema'
+import type { EditableRegulatoryEdge, InternalGRNModel } from '@/lib/schema'
 import {
     type Edge,
     Background,
