@@ -4,8 +4,13 @@ import { useEditorStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
 
 export function useHotkeysSetup() {
-    const { copyAction, pasteAction, duplicateAction, cutAction } =
-        useElementsActions()
+    const {
+        copyAction,
+        pasteAction,
+        duplicateAction,
+        cutAction,
+        deleteAction,
+    } = useElementsActions()
     const { setAddNodeDialogVisible, connectModeEnabled, setConnectMode } =
         useEditorStore(
             useShallow((state) => ({
@@ -15,7 +20,10 @@ export function useHotkeysSetup() {
             }))
         )
 
-    // Shortcuts are defined here
+    // Support Windows delete
+    useHotkeys('delete', () => deleteAction(), {
+        preventDefault: true,
+    })
 
     useHotkeys('mod+d', () => duplicateAction(), {
         preventDefault: true,
