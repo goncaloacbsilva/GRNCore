@@ -1,11 +1,9 @@
 import type {
     EditableRegulatoryEdge,
     InternalGRNModel,
-    RegulatoryNodeProperties,
 } from '@/lib/schema'
 import {
     type Edge,
-    type Node,
     Background,
     MiniMap,
     Panel,
@@ -31,8 +29,14 @@ import {
     PAN_ON_SCROLL,
     SELECTION_ON_DRAG,
 } from './config'
-import { normalizeRegulatoryNodes, useGraphInteractions } from './utils'
+import {
+    normalizeRegulatoryNodes,
+    useGraphDragHandlers,
+    useGraphInteractions,
+} from './utils'
 import { useHotkeysSetup } from '@/hooks'
+import { useEffect } from 'react'
+import { useChangesTracking, useEditorStore } from '@/store'
 
 interface GraphProps {
     model: InternalGRNModel
@@ -45,6 +49,21 @@ export function Graph({ model }: GraphProps) {
     const [edges, setEdges, onEdgesChange] = useEdgesState<
         Edge<EditableRegulatoryEdge>
     >(model.edges)
+
+    const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
+    const dragging = useEditorStore((state) => state.isDragging)
+    const isApplyingHistory = useEditorStore((state) => state.isApplyingHistory)
+
+    useEffect(() => {
+        if (isApplyingHistory) {
+            return
+        }
+
+        if (!dragging) {
+            takeSnapshot(nodes, edges)
+        }
+    }, [nodes, edges, dragging, isApplyingHistory, takeSnapshot])
+
     const {
         onNodesChange,
         onNodeDragStart,
@@ -58,18 +77,34 @@ export function Graph({ model }: GraphProps) {
         setEdges,
     })
 
+    const {
+        handleNodeDragStart,
+        handleNodeDrag,
+        handleNodeDragStop,
+        handleSelectionDragStart,
+        handleSelectionDrag,
+        handleSelectionDragStop,
+    } = useGraphDragHandlers({
+        onNodeDragStart,
+        onNodeDrag,
+        onNodeDragStop,
+    })
+
     useHotkeysSetup()
 
     return (
-        <ReactFlow<Node<RegulatoryNodeProperties>, Edge<EditableRegulatoryEdge>>
+        <ReactFlow
             proOptions={{
                 hideAttribution: true,
             }}
             nodes={nodes}
             onNodesChange={onNodesChange}
-            onNodeDragStart={onNodeDragStart}
-            onNodeDrag={onNodeDrag}
-            onNodeDragStop={onNodeDragStop}
+            onNodeDragStart={handleNodeDragStart}
+            onNodeDrag={handleNodeDrag}
+            onNodeDragStop={handleNodeDragStop}
+            onSelectionDragStart={handleSelectionDragStart}
+            onSelectionDrag={handleSelectionDrag}
+            onSelectionDragStop={handleSelectionDragStop}
             edges={edges}
             onEdgesChange={onEdgesChange}
             panOnScroll={PAN_ON_SCROLL}
