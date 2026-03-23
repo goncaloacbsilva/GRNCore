@@ -31,6 +31,17 @@ interface HistoryState {
     ) => void
 }
 
+const sanitizeSnapshot = (
+    nodes: Node<RegulatoryNodeProperties>[],
+    edges: Edge<EditableRegulatoryEdge>[]
+): InternalGRNModel => ({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    nodes: nodes.map(({ selected: _, ...node }) => node),
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    edges: edges.map(({ selected: _, ...edge }) => edge),
+})
+
 export const useChangesTracking = create<HistoryState>()(
     travel(
         combine(
@@ -43,7 +54,7 @@ export const useChangesTracking = create<HistoryState>()(
                     edges: Edge<EditableRegulatoryEdge>[]
                 ) => {
                     const currentSnapshot = get().snapshot
-                    const nextSnapshot = { nodes, edges }
+                    const nextSnapshot = sanitizeSnapshot(nodes, edges)
                     const isSameSnapshot =
                         diff(currentSnapshot, nextSnapshot).length === 0
 
