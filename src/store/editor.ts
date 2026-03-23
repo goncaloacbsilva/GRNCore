@@ -12,10 +12,14 @@ interface EditorState {
     connectModeInteraction: InteractionType
     selectedNodesIds: Set<string>
     copyArea: InternalGRNModel | null
+    isDragging: boolean
+    isApplyingHistory: boolean
 
     setAddNodeDialogVisible: (visible: boolean) => void
     setConnectMode: (enabled: boolean) => void
     setConnectModeInteraction: (interaction: InteractionType) => void
+    setDragging: (value: boolean) => void
+    setApplyingHistory: (value: boolean) => void
 
     pushSelectedNodeId: (node: string) => void
     popSelectedNodeId: (node: string) => void
@@ -35,6 +39,8 @@ export const useEditorStore = create<EditorState>()(
             connectModeInteraction: 'activation' as InteractionType,
             selectedNodesIds: new Set<string>(),
             copyArea: null as InternalGRNModel | null,
+            isDragging: false,
+            isApplyingHistory: false,
         },
         (set, get) => ({
             setAddNodeDialogVisible: (visible) =>
@@ -56,6 +62,12 @@ export const useEditorStore = create<EditorState>()(
             },
             setConnectModeInteraction: (interaction) => {
                 set(() => ({ connectModeInteraction: interaction }))
+            },
+            setDragging: (value) => {
+                set(() => ({ isDragging: value }))
+            },
+            setApplyingHistory: (value) => {
+                set(() => ({ isApplyingHistory: value }))
             },
             pushSelectedNodeId: (nodeId) => {
                 set((state) => ({
