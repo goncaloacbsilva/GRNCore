@@ -1,6 +1,6 @@
 import * as z from 'zod'
 
-export const RegulatoryNodeProperties = z.object({
+export const RegulatoryNodePropertiesSchema = z.object({
     // Name of the Gene
     name: z.string().min(1).max(20),
 
@@ -11,4 +11,6 @@ export const RegulatoryNodeProperties = z.object({
     isInputNode: z.boolean().default(false),
 })
 
-export type RegulatoryNodeProperties = z.infer<typeof RegulatoryNodeProperties>
+export type RegulatoryNodeProperties = z.input<
+    typeof RegulatoryNodePropertiesSchema
+>

@@ -15,9 +15,13 @@ import { NAVIGATION_ITEMS } from './data'
 import { CreateModelButton } from './create-model'
 import { NavMain } from './nav-main'
 import { Button } from '@/components/ui/button'
+import { useEffect } from 'react'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const context = useSidebar()
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => context.setOpen(false), [])
 
     return (
         <Sidebar collapsible="icon" externalContext={context} {...props}>
