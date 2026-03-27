@@ -20,6 +20,7 @@ import { useEffect } from 'react'
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const context = useSidebar()
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => context.setOpen(false), [])
 
     return (
