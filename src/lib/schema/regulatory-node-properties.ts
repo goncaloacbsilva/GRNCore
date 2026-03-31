@@ -8,7 +8,7 @@ export const RegulatoryNodePropertiesSchema = z.object({
         .max(20, { error: 'Name must be at most 20 characters long' }),
 
     // Maximum activity level
-    activityLevels: z.int().positive().max(9).default(1),
+    activityLevels: z.int().positive().max(9).min(1).default(1),
 
     // Whether the node acts as an external input
     isInputNode: z.boolean().default(false),
