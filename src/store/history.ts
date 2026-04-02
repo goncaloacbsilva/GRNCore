@@ -11,6 +11,7 @@ import { combine } from 'zustand/middleware'
 
 interface HistoryState {
     snapshot: InternalGRNModel
+    pendingSelectionSnapshot: InternalGRNModel | null
 
     takeSnapshot: (
         nodes: Node<RegulatoryNodeProperties>[],
@@ -31,6 +32,14 @@ interface HistoryState {
     ) => void
 }
 
+const buildSnapshot = (
+    nodes: Node<RegulatoryNodeProperties>[],
+    edges: Edge<EditableRegulatoryEdge>[]
+): InternalGRNModel => ({
+    nodes: structuredClone(nodes),
+    edges: structuredClone(edges),
+})
+
 const sanitizeSnapshot = (
     nodes: Node<RegulatoryNodeProperties>[],
     edges: Edge<EditableRegulatoryEdge>[]
@@ -42,33 +51,75 @@ const sanitizeSnapshot = (
     edges: edges.map(({ selected: _, ...edge }) => edge),
 })
 
+const isDataChange = (path: readonly (string | number)[]) =>
+    (path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'data'
+
 export const useChangesTracking = create<HistoryState>()(
     travel(
         combine(
             {
                 snapshot: {} as InternalGRNModel,
+                pendingSelectionSnapshot: null as InternalGRNModel | null,
             },
             (set, get) => ({
                 takeSnapshot: (
                     nodes: Node<RegulatoryNodeProperties>[],
                     edges: Edge<EditableRegulatoryEdge>[]
                 ) => {
+                    const controls = useChangesTracking.getControls()
                     const currentSnapshot = get().snapshot
-                    const nextSnapshot = sanitizeSnapshot(nodes, edges)
-                    const isSameSnapshot =
-                        diff(currentSnapshot, nextSnapshot).length === 0
+                    const pendingSelectionSnapshot =
+                        get().pendingSelectionSnapshot
+                    const nextSnapshot = buildSnapshot(nodes, edges)
+                    const snapshotChanges = diff(
+                        sanitizeSnapshot(
+                            currentSnapshot.nodes ?? [],
+                            currentSnapshot.edges ?? []
+                        ),
+                        sanitizeSnapshot(nextSnapshot.nodes, nextSnapshot.edges)
+                    )
+                    const isSameSnapshot = snapshotChanges.length === 0
 
                     if (isSameSnapshot) {
+                        const selectionChanged =
+                            diff(currentSnapshot, nextSnapshot).length > 0
+
+                        if (selectionChanged) {
+                            set({
+                                pendingSelectionSnapshot: nextSnapshot,
+                            })
+                        }
+
                         return
+                    }
+
+                    const hasDataChanges = snapshotChanges.some((change) =>
+                        isDataChange(change.path)
+                    )
+
+                    if (hasDataChanges && pendingSelectionSnapshot) {
+                        set({
+                            snapshot: pendingSelectionSnapshot,
+                        })
+
+                        if ('archive' in controls) {
+                            controls.archive()
+                        }
                     }
 
                     set({
                         snapshot: nextSnapshot,
+                        pendingSelectionSnapshot: null,
                     })
 
-                    const controls = useChangesTracking.getControls()
                     if ('archive' in controls) {
                         controls.archive()
+                    }
+
+                    if (!hasDataChanges && pendingSelectionSnapshot) {
+                        set({
+                            pendingSelectionSnapshot: null,
+                        })
                     }
                 },
                 undo: (

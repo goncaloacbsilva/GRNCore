@@ -3,7 +3,7 @@ import { ButtonGroup } from '@/components/ui/button-group'
 import { useEditorStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
 import { twJoin } from 'tailwind-merge'
-import { InteractionType } from '@/lib/schema'
+import { InteractionLabel } from '@/components/shared'
 
 export function InteractionSwitch() {
     const connectModeEnabled = useEditorStore(
@@ -28,31 +28,19 @@ export function InteractionSwitch() {
                 variant="outline"
                 onClick={() => setInteraction('activation')}
             >
-                <span
-                    className={twJoin(
-                        'border-b-2 transition-all',
-                        interaction == InteractionType.Activation
-                            ? 'border-[#00c800dd]'
-                            : 'text-[#000000aa] hover:text-black'
-                    )}
-                >
-                    Positive
-                </span>
+                <InteractionLabel
+                    type="activation"
+                    selectedType={interaction}
+                />
             </Button>
             <Button
                 variant="outline"
                 onClick={() => setInteraction('inhibition')}
             >
-                <span
-                    className={twJoin(
-                        'border-b-2 transition-all',
-                        interaction == InteractionType.Inhibition
-                            ? 'border-[#e80606bd]'
-                            : 'text-[#000000aa] hover:text-black'
-                    )}
-                >
-                    Negative
-                </span>
+                <InteractionLabel
+                    type="inhibition"
+                    selectedType={interaction}
+                />
             </Button>
         </ButtonGroup>
     )

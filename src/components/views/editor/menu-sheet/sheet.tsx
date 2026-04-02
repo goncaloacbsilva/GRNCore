@@ -1,9 +1,12 @@
-import { useStore, type Node } from '@xyflow/react'
+import { useStore, type Edge, type Node } from '@xyflow/react'
 import { Sheet, SheetContent, SheetHeader } from '@/components/ui/sheet'
 import { shallow } from 'zustand/shallow'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { NodeBasePropertiesMenu } from './menus'
-import type { RegulatoryNodeProperties } from '@/lib/schema'
+import { EdgeBasePropertiesMenu, NodeBasePropertiesMenu } from './menus'
+import type {
+    EditableRegulatoryEdge,
+    RegulatoryNodeProperties,
+} from '@/lib/schema'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export function MenuSheet() {
@@ -12,7 +15,9 @@ export function MenuSheet() {
             selectedNodes: state.nodes.filter(
                 (node) => node.selected
             ) as Node<RegulatoryNodeProperties>[],
-            selectedEdges: state.edges.filter((edge) => edge.selected),
+            selectedEdges: state.edges.filter(
+                (edge) => edge.selected
+            ) as Edge<EditableRegulatoryEdge>[],
         }),
         shallow
     )
@@ -29,6 +34,7 @@ export function MenuSheet() {
                 className="top-12 pb-12 data-[state=closed]:duration-300! data-[state=open]:duration-300! w-80"
             >
                 <Tabs
+                    className="h-full"
                     defaultValue="base"
                     value={selectedElements > 1 ? 'style' : undefined}
                 >
@@ -65,10 +71,10 @@ export function MenuSheet() {
 
                     {/* Menus */}
                     {selectedNodes.length > 0 && (
-                        <NodeBasePropertiesMenu
-                            key={selectedNodes[0].id}
-                            node={selectedNodes[0]}
-                        />
+                        <NodeBasePropertiesMenu node={selectedNodes[0]} />
+                    )}
+                    {selectedEdges.length > 0 && (
+                        <EdgeBasePropertiesMenu edge={selectedEdges[0]} />
                     )}
                 </Tabs>
             </SheetContent>

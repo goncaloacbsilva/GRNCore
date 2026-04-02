@@ -14,6 +14,8 @@ interface NodeBasePropertiesMenuProps {
 
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     const { updateNode } = useReactFlow()
+    const activityLevelsSchema =
+        RegulatoryNodePropertiesSchema.shape.activityLevels.unwrap()
 
     const form = useAppForm({
         defaultValues: node.data,
@@ -39,16 +41,25 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
 
     return (
         <TabsContent value="base">
-            <div className="px-4">
-                <FieldGroup>
-                    <form.AppField
-                        name="name"
-                        children={(field) => (
-                            <field.TextField label="Name" placeholder="" />
-                        )}
-                    />
-                </FieldGroup>
-            </div>
+            <FieldGroup className="px-4 gap-4">
+                <form.AppField
+                    name="name"
+                    children={(field) => (
+                        <field.TextField label="Name" placeholder="" />
+                    )}
+                />
+                <form.AppField
+                    name="activityLevels"
+                    children={(field) => (
+                        <field.NumberField
+                            label="Activity Levels"
+                            placeholder=""
+                            min={activityLevelsSchema.minValue ?? undefined}
+                            max={activityLevelsSchema.maxValue ?? undefined}
+                        />
+                    )}
+                />
+            </FieldGroup>
         </TabsContent>
     )
 }

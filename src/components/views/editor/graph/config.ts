@@ -11,7 +11,7 @@ import {
     RegulatoryEdge,
     RegulatoryNode,
 } from './elements'
-import type { InteractionType, RegulatoryNodeProperties } from '@/lib/schema'
+import type { RegulatoryNodeProperties } from '@/lib/schema'
 
 export const PAN_ON_DRAG = false
 export const PAN_ON_SCROLL = true
@@ -50,10 +50,7 @@ export interface RegulatoryEdgeStyle {
     endArrowStroke?: string
 }
 
-export const REGULATORY_EDGE_STYLES: Record<
-    InteractionType,
-    RegulatoryEdgeStyle
-> = {
+export const REGULATORY_EDGE_STYLES: Record<string, RegulatoryEdgeStyle> = {
     activation: {
         stroke: '#00C800',
         endArrowType: 'vee',

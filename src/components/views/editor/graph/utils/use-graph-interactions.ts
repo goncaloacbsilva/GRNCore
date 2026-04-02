@@ -12,6 +12,7 @@ import type {
     EditableRegulatoryEdge,
     RegulatoryNodeProperties,
 } from '@/lib/schema'
+import { nanoid } from 'nanoid'
 import {
     getNodeDragDelta,
     mapDraggedNodePositions,
@@ -137,8 +138,13 @@ export function useGraphInteractions({
                     {
                         ...params,
                         data: {
-                            type: connectionInteraction,
-                            target: 0,
+                            levels: [
+                                {
+                                    id: nanoid(),
+                                    type: connectionInteraction,
+                                    target: 1,
+                                },
+                            ],
                         },
                     },
                     eds

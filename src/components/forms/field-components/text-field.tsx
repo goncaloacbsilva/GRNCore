@@ -20,10 +20,10 @@ export function TextField({ label, placeholder, description }: TextFieldProps) {
 
     return (
         <Field data-invalid={isInvalid}>
-            <div className="flex flex-row gap-4">
+            <div className="flex flex-row justify-between">
                 <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
                 <Input
-                    className="focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
+                    className="focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89] w-44"
                     id={field.name}
                     name={field.name}
                     value={field.state.value}

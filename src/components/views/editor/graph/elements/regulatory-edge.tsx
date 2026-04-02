@@ -7,7 +7,7 @@ import {
     useStore,
 } from '@xyflow/react'
 import { shallow } from 'zustand/shallow'
-import type { EditableRegulatoryEdge, InteractionType } from '@/lib/schema'
+import { InteractionType, type EditableRegulatoryEdge } from '@/lib/schema'
 import { DEFAULT_ALGORITHM } from '@/lib/types'
 import {
     useStableControlPointIds,
@@ -16,7 +16,7 @@ import {
     getParallelEdgeMeta,
     computeRegulatoryEdgeLayout,
 } from '../utils'
-import { REGULATORY_EDGE_STYLES } from '../config'
+import { REGULATORY_EDGE_STYLES, type RegulatoryEdgeStyle } from '../config'
 import { RegulatoryEdgeMarker } from './regulatory-edge-marker'
 import { AnchorHandle, ControlPointHandle } from './editable-edge-handles'
 import {
@@ -25,6 +25,8 @@ import {
 } from '../utils/use-regulatory-edge-interactions'
 
 const REGULATORY_EDGE_STROKE_WIDTH = 1.5
+const REGULATORY_EDGE_INTERACTION_WIDTH = 40
+const REGULATORY_EDGE_HITBOX_WIDTH = 5
 
 type RegulatoryGraphEdge = Edge<EditableRegulatoryEdge>
 
@@ -67,8 +69,10 @@ export function RegulatoryEdge({
     const algorithm = data?.algorithm ?? DEFAULT_ALGORITHM
     const storedPoints = data?.points ?? []
     const isSelected = Boolean(selected)
-    const interactionType: InteractionType = data?.type ?? 'activation'
-    const regulatoryStyle = REGULATORY_EDGE_STYLES[interactionType]
+
+    const regulatoryStyle = data
+        ? determineRegulatoryEdgeStyle(data)
+        : REGULATORY_EDGE_STYLES.activation
 
     const {
         startHandleId,
@@ -134,7 +138,8 @@ export function RegulatoryEdge({
         typeof style?.stroke === 'string'
             ? style.stroke
             : (regulatoryStyle.stroke ?? '#b1b1b7')
-    const markerId = `${id}-marker-${interactionType}`
+
+    const markerId = `${id}-marker`
     const { selectEdge, setControlPoints, setAnchorHint } =
         useRegulatoryEdgeActions({
             id,
@@ -156,8 +161,24 @@ export function RegulatoryEdge({
         <>
             <RegulatoryEdgeMarker
                 markerId={markerId}
-                interactionType={interactionType}
+                markerStyle={regulatoryStyle}
                 color={edgeColor}
+            />
+            <path
+                d={path}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={REGULATORY_EDGE_HITBOX_WIDTH}
+                pointerEvents="stroke"
+                className="cursor-pointer"
+                onClick={(event) => {
+                    event.stopPropagation()
+                    selectEdge()
+                }}
+                onMouseDown={(event) => {
+                    event.stopPropagation()
+                    selectEdge()
+                }}
             />
             <BaseEdge
                 id={id}
@@ -165,6 +186,7 @@ export function RegulatoryEdge({
                 path={path}
                 markerStart={markerStart}
                 markerEnd={`url(#${markerId})`}
+                interactionWidth={REGULATORY_EDGE_INTERACTION_WIDTH}
                 style={{
                     ...style,
                     stroke: edgeColor,
@@ -201,4 +223,26 @@ export function RegulatoryEdge({
                 ))}
         </>
     )
+}
+
+function determineRegulatoryEdgeStyle(
+    edgeData: EditableRegulatoryEdge
+): RegulatoryEdgeStyle {
+    if (
+        edgeData.levels.every(
+            (level) => level.type === InteractionType.Activation
+        )
+    ) {
+        return REGULATORY_EDGE_STYLES.activation
+    }
+
+    if (
+        edgeData.levels.every(
+            (level) => level.type === InteractionType.Inhibition
+        )
+    ) {
+        return REGULATORY_EDGE_STYLES.inhibition
+    }
+
+    return REGULATORY_EDGE_STYLES.dual
 }
