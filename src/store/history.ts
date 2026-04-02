@@ -59,7 +59,7 @@ export const useChangesTracking = create<HistoryState>()(
         combine(
             {
                 snapshot: {} as InternalGRNModel,
-                pendingSelectionSnapshot: null,
+                pendingSelectionSnapshot: null as InternalGRNModel | null,
             },
             (set, get) => ({
                 takeSnapshot: (
