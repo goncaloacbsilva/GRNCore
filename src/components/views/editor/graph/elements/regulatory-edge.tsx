@@ -25,6 +25,8 @@ import {
 } from '../utils/use-regulatory-edge-interactions'
 
 const REGULATORY_EDGE_STROKE_WIDTH = 1.5
+const REGULATORY_EDGE_INTERACTION_WIDTH = 40
+const REGULATORY_EDGE_HITBOX_WIDTH = 5
 
 type RegulatoryGraphEdge = Edge<EditableRegulatoryEdge>
 
@@ -159,12 +161,29 @@ export function RegulatoryEdge({
                 interactionType={interactionType}
                 color={edgeColor}
             />
+            <path
+                d={path}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={REGULATORY_EDGE_HITBOX_WIDTH}
+                pointerEvents="stroke"
+                className="cursor-pointer"
+                onClick={(event) => {
+                    event.stopPropagation()
+                    selectEdge()
+                }}
+                onMouseDown={(event) => {
+                    event.stopPropagation()
+                    selectEdge()
+                }}
+            />
             <BaseEdge
                 id={id}
                 className="react-flow__edge-path"
                 path={path}
                 markerStart={markerStart}
                 markerEnd={`url(#${markerId})`}
+                interactionWidth={REGULATORY_EDGE_INTERACTION_WIDTH}
                 style={{
                     ...style,
                     stroke: edgeColor,
