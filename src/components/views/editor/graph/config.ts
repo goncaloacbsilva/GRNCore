@@ -11,7 +11,7 @@ import {
     RegulatoryEdge,
     RegulatoryNode,
 } from './elements'
-import type { InteractionType, RegulatoryNodeProperties } from '@/lib/schema'
+import type { RegulatoryNodeProperties } from '@/lib/schema'
 
 export const PAN_ON_DRAG = false
 export const PAN_ON_SCROLL = true
