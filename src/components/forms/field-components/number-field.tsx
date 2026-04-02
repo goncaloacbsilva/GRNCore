@@ -28,7 +28,7 @@ export function NumberField({
 
     return (
         <Field data-invalid={isInvalid}>
-            <div className="flex flex-row justify-between">
+            <div className="flex flex-row justify-between gap-4">
                 <FieldLabel
                     className="w-fit whitespace-nowrap"
                     htmlFor={field.name}
@@ -45,7 +45,7 @@ export function NumberField({
                     onChange={(value: number) =>
                         field.setValue(value ?? min ?? 0)
                     }
-                    aria-invalid={isInvalid}
+                    invalid={isInvalid}
                     placeholder={placeholder}
                     maxValue={max}
                     minValue={min}
