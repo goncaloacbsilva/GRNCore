@@ -10,6 +10,11 @@ import { useReactFlow, type Edge, type Node } from '@xyflow/react'
 import { Plus } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { EdgeLevel } from './edge-level'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface EdgeBasePropertiesMenuProps {
     edge: Edge<EditableRegulatoryEdge>
@@ -21,6 +26,10 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
     const sourceNode = getNode(edge.source)
     const scrollContainerRef = useRef<HTMLDivElement | null>(null)
     const previousLevelsLengthRef = useRef(edge.data?.levels.length ?? 0)
+
+    const disableAddLevel =
+        (edge.data?.levels.length ?? 0) + 1 >
+        (sourceNode?.data.activityLevels ?? 0)
 
     useEffect(() => {
         const levelsLength = edge.data?.levels.length ?? 0
@@ -94,19 +103,10 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
             value="base"
             className="px-4 pb-4 flex h-full min-h-0 flex-col gap-4"
         >
-            <Button
-                variant="default"
-                size="sm"
-                className="hover:cursor-pointer w-full"
+            <AddEdgeLevelButton
                 onClick={addEdgeLevel}
-                disabled={
-                    (edge.data?.levels.length ?? 0) + 1 >
-                    (sourceNode?.data.activityLevels ?? 0)
-                }
-            >
-                <Plus />
-                Add level
-            </Button>
+                disabled={disableAddLevel}
+            />
             <div
                 ref={scrollContainerRef}
                 className="min-h-0 flex-1 overflow-y-auto rounded-md border"
@@ -124,5 +124,37 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
                 ))}
             </div>
         </TabsContent>
+    )
+}
+
+function AddEdgeLevelButton({
+    onClick,
+    disabled,
+}: {
+    onClick: () => void
+    disabled: boolean
+}) {
+    const btn = (
+        <span className="inline-block w-full">
+            <Button
+                variant="default"
+                size="sm"
+                className="hover:cursor-pointer w-full"
+                onClick={onClick}
+                disabled={disabled}
+            >
+                <Plus />
+                Add level
+            </Button>
+        </span>
+    )
+
+    return (
+        <Tooltip>
+            {disabled ? <TooltipTrigger asChild>{btn}</TooltipTrigger> : btn}
+            <TooltipContent side="bottom">
+                <p>Activitiy levels are limited by the source node</p>
+            </TooltipContent>
+        </Tooltip>
     )
 }
