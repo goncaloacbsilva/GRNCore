@@ -50,10 +50,7 @@ export interface RegulatoryEdgeStyle {
     endArrowStroke?: string
 }
 
-export const REGULATORY_EDGE_STYLES: Record<
-    InteractionType,
-    RegulatoryEdgeStyle
-> = {
+export const REGULATORY_EDGE_STYLES: Record<string, RegulatoryEdgeStyle> = {
     activation: {
         stroke: '#00C800',
         endArrowType: 'vee',
