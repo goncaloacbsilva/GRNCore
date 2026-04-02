@@ -16,6 +16,7 @@ const NumberInput = React.forwardRef<
         React.RefAttributes<HTMLDivElement> & {
             inputClassName?: string
             placeholder?: string
+            invalid?: boolean
         }
 >(
     (
@@ -25,6 +26,7 @@ const NumberInput = React.forwardRef<
             minValue,
             inputClassName,
             placeholder,
+            invalid,
             ...props
         },
         ref
@@ -35,9 +37,10 @@ const NumberInput = React.forwardRef<
                 className={cn('w-full space-y-2', className)}
                 maxValue={maxValue}
                 minValue={minValue}
+                isInvalid={invalid}
                 {...props}
             >
-                <Group className="dark:bg-input/30 border-input data-focus-within:ring-[#2f81ed89]/50 data-focus-within:border-[#2f81ed89] data-focus-within:has-aria-invalid:ring-destructive/20 dark:data-focus-within:has-aria-invalid:ring-destructive/40 data-focus-within:has-aria-invalid:border-destructive relative inline-flex h-9 w-full min-w-0 items-center overflow-hidden rounded-md border bg-transparent text-base whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none data-disabled:pointer-events-none data-disabled:cursor-not-allowed data-disabled:opacity-50 data-focus-within:ring-[3px] md:text-sm">
+                <Group className="dark:bg-input/30 border-input data-focus-within:ring-[#2f81ed89]/50 data-focus-within:border-[#2f81ed89] data-[invalid=true]:border-destructive data-[focus-within=true]:data-[invalid=true]:ring-destructive/20 dark:data-[focus-within=true]:data-[invalid=true]:ring-destructive/40 relative inline-flex h-9 w-full min-w-0 items-center overflow-hidden rounded-md border bg-transparent text-base whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none data-disabled:pointer-events-none data-disabled:cursor-not-allowed data-disabled:opacity-50 data-focus-within:ring-[3px] md:text-sm">
                     <Input
                         className={cn(
                             'selection:bg-primary selection:text-primary-foreground w-full grow px-3 py-2 text-center tabular-nums outline-none',
