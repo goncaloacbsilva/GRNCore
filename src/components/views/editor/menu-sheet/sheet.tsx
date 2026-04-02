@@ -71,10 +71,16 @@ export function MenuSheet() {
 
                     {/* Menus */}
                     {selectedNodes.length > 0 && (
-                        <NodeBasePropertiesMenu node={selectedNodes[0]} />
+                        <NodeBasePropertiesMenu
+                            key={selectedNodes[0].id}
+                            node={selectedNodes[0]}
+                        />
                     )}
                     {selectedEdges.length > 0 && (
-                        <EdgeBasePropertiesMenu edge={selectedEdges[0]} />
+                        <EdgeBasePropertiesMenu
+                            key={selectedEdges[0].id}
+                            edge={selectedEdges[0]}
+                        />
                     )}
                 </Tabs>
             </SheetContent>
