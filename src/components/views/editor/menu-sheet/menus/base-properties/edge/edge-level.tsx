@@ -14,6 +14,7 @@ import {
 import { useStore } from '@tanstack/react-form'
 import { type Edge, type Node } from '@xyflow/react'
 import { XIcon } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { Fragment } from 'react/jsx-runtime'
 import { twJoin } from 'tailwind-merge'
 
@@ -65,16 +66,24 @@ export function EdgeLevel({
                 }
             },
         },
-        listeners: {
-            onChange: ({ formApi }) => {
-                if (formApi.state.isFormValid) {
-                    updateCallback(level.id, formApi.state.values)
-                }
-            },
-        },
     })
 
     const interactionType = useStore(form.store, (state) => state.values.type)
+    const formValues = useStore(form.store, (state) => state.values)
+    const isValid = useStore(form.store, (state) => state.isValid)
+    const isTouched = useStore(form.store, (state) => state.isTouched)
+    const previousValuesRef = useRef(formValues)
+
+    useEffect(() => {
+        const valuesChanged = previousValuesRef.current !== formValues
+        previousValuesRef.current = formValues
+
+        if (!valuesChanged || !isTouched || !isValid) {
+            return
+        }
+
+        updateCallback(level.id, formValues)
+    }, [formValues, isTouched, isValid, level.id, updateCallback])
 
     return (
         <Fragment key={levelKey}>
@@ -107,6 +116,7 @@ export function EdgeLevel({
                                     variant="outline"
                                     type="single"
                                     value={field.state.value}
+                                    aria-label="Interaction type"
                                     onValueChange={(type) => {
                                         if (!type) return
                                         field.handleChange(
