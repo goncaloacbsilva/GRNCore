@@ -109,9 +109,12 @@ const createEdgeCopy = (
     target: newNodes[edge.target]?.id ?? edge.target,
     selected: true,
     data: {
-        type: edge.data?.type ?? 'activation',
-        target: edge.data?.target ?? 1,
         ...edge.data,
+        levels:
+            edge.data?.levels.map((level) => ({
+                ...level,
+                id: createId(),
+            })) ?? [],
         points: edge.data?.points?.map((point) => ({
             ...point,
             id: createId(),
