@@ -14,10 +14,10 @@ import {
     NODE_PLACEMENT_OFFSET,
 } from '@/components/views/editor/graph/config'
 
-export function getSelected({
-    getNodes,
-    getEdges,
-}: ReactFlowInstance): InternalGRNModel {
+export function getSelected(
+    { getNodes, getEdges }: ReactFlowInstance,
+    isDeleteAction = false
+): InternalGRNModel {
     const nodeIds = new Set<string>()
 
     const nodes = getNodes().filter((node) => {
@@ -32,8 +32,9 @@ export function getSelected({
     const edges = getEdges().filter(
         (edge) =>
             edge.selected &&
-            nodeIds.has(edge.source) &&
-            nodeIds.has(edge.target)
+            // If no nodes are selected and it's a delete action, allow selecting edges as well
+            ((isDeleteAction && nodes.length === 0) ||
+                (nodeIds.has(edge.source) && nodeIds.has(edge.target)))
     ) as Edge<EditableRegulatoryEdge>[]
 
     return {

@@ -95,12 +95,18 @@ export function useElementsActions() {
         })
     }
 
-    const deleteAction = () =>
+    const deleteAction = () => {
+        const selected = getSelected(baseInstance, true)
+
         void reactFlowInstance.deleteElements({
-            nodes: getSelected(baseInstance).nodes.map((node) => ({
+            nodes: selected.nodes.map((node) => ({
                 id: node.id,
             })),
+            edges: selected.edges.map((edge) => ({
+                id: edge.id,
+            })),
         })
+    }
 
     return {
         deleteAction,
