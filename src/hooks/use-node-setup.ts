@@ -51,6 +51,7 @@ export function useNodeSetup() {
                 type: DEFAULT_NODE_TYPE,
                 data: {
                     name: value,
+                    activityLevels: 1,
                 },
                 style: {
                     width,
