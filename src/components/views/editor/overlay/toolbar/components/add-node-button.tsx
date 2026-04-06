@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
+import { Toggle } from '@/components/ui/toggle'
 import {
     Tooltip,
     TooltipContent,
@@ -7,27 +7,38 @@ import {
 } from '@/components/ui/tooltip'
 import { useEditorStore } from '@/store'
 import { CirclePlus } from 'lucide-react'
+import { twJoin } from 'tailwind-merge'
+import { useShallow } from 'zustand/react/shallow'
 
 export function AddNodeButton() {
-    const connectModeEnabled = useEditorStore(
-        (state) => state.connectModeEnabled
-    )
-    const setDialogVisible = useEditorStore(
-        (state) => state.setAddNodeDialogVisible
+    const { addNodeDialogVisible, connectModeEnabled, setDialogVisible } =
+        useEditorStore(
+            useShallow((state) => ({
+                addNodeDialogVisible: state.addNodeDialogVisible,
+                connectModeEnabled: state.connectModeEnabled,
+                setDialogVisible: state.setAddNodeDialogVisible,
+            }))
     )
 
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <Button
+                <Toggle
+                    className={twJoin(
+                        'rounded-full text-sm cursor-pointer text-muted-foreground bg-white px-4 hover:border-[#3b83f682] hover:text-[#3B82F6] hover:bg-white transition-all',
+                        addNodeDialogVisible &&
+                            'border-2 border-[#3b83f6d9] text-[#3B82F6] bg-white'
+                    )}
                     disabled={connectModeEnabled}
-                    onClick={() => setDialogVisible(true)}
-                    variant="default"
+                    onPressedChange={setDialogVisible}
+                    pressed={addNodeDialogVisible}
+                    variant="outline"
                     size="default"
-                    className="rounded-full text-sm cursor-pointer"
+                    aria-label="Toggle add node dialog"
                 >
-                    <CirclePlus /> Add Node
-                </Button>
+                    Add Node
+                    <CirclePlus />
+                </Toggle>
             </TooltipTrigger>
             <TooltipContent>
                 <div className="flex items-center gap-2">
