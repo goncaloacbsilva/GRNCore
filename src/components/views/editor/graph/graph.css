@@ -1,0 +1,37 @@
+.editor-graph .react-flow__pane.selection {
+    cursor: default;
+}
+
+.editor-graph--windows .react-flow__resize-control.left,
+.editor-graph--windows .react-flow__resize-control.right {
+    cursor: ew-resize !important;
+}
+
+.editor-graph--windows .react-flow__resize-control.top,
+.editor-graph--windows .react-flow__resize-control.bottom {
+    cursor: ns-resize !important;
+}
+
+.editor-graph--windows .react-flow__resize-control.handle.top.left,
+.editor-graph--windows .react-flow__resize-control.handle.bottom.right {
+    cursor: nwse-resize !important;
+}
+
+.editor-graph--windows .react-flow__resize-control.handle.top.right,
+.editor-graph--windows .react-flow__resize-control.handle.bottom.left {
+    cursor: nesw-resize !important;
+}
+
+.editor-graph--mac .react-flow__resize-control.left,
+.editor-graph--mac .react-flow__resize-control.right {
+    cursor: col-resize !important;
+}
+
+.editor-graph--mac .react-flow__resize-control.top,
+.editor-graph--mac .react-flow__resize-control.bottom {
+    cursor: row-resize !important;
+}
+
+.editor-graph--mac .react-flow__resize-control.handle {
+    cursor: pointer !important;
+}

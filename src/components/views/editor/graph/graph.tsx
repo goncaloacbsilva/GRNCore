@@ -12,6 +12,7 @@ import {
 import { Toolbar, ZoomControls } from '../overlay'
 
 import '@xyflow/react/dist/style.css'
+import './graph.css'
 import './elements/regulatory-node-style.css'
 import {
     BACKGROUND_COLOR,
@@ -40,6 +41,12 @@ interface GraphProps {
 }
 
 export function Graph({ model }: GraphProps) {
+    const platformClass =
+        typeof navigator !== 'undefined' &&
+        /Mac|iPhone|iPad|iPod/.test(navigator.platform)
+            ? 'editor-graph--mac'
+            : 'editor-graph--windows'
+
     const [nodes, setNodes] = useNodesState(
         normalizeRegulatoryNodes(model.nodes)
     )
@@ -99,6 +106,7 @@ export function Graph({ model }: GraphProps) {
 
     return (
         <ReactFlow
+            className={`editor-graph ${platformClass}`}
             proOptions={{
                 hideAttribution: true,
             }}
