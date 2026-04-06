@@ -13,7 +13,7 @@ import {
 } from './elements'
 import type { RegulatoryNodeProperties } from '@/lib/schema'
 
-export const PAN_ON_DRAG = false
+export const PAN_ON_DRAG = [1]
 export const PAN_ON_SCROLL = true
 export const SELECTION_ON_DRAG = true
 
