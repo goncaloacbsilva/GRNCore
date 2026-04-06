@@ -9,6 +9,11 @@ import {
 } from 'react-aria-components'
 
 import { cn } from '@/lib/utils'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 const NumberInput = React.forwardRef<
     HTMLDivElement,
@@ -17,6 +22,7 @@ const NumberInput = React.forwardRef<
             inputClassName?: string
             placeholder?: string
             invalid?: boolean
+            decrementTooltip?: string
         }
 >(
     (
@@ -27,10 +33,21 @@ const NumberInput = React.forwardRef<
             inputClassName,
             placeholder,
             invalid,
+            decrementTooltip,
             ...props
         },
         ref
     ) => {
+        const decrementButton = (
+            <Button
+                slot="decrement"
+                className="border-input bg-background text-muted-foreground hover:bg-accent hover:text-foreground -me-px flex aspect-square h-[inherit] items-center justify-center border text-sm transition-[color,box-shadow] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                <MinusIcon className="size-4" />
+                <span className="sr-only">Decrement</span>
+            </Button>
+        )
+
         return (
             <NumberField
                 ref={ref}
@@ -49,13 +66,20 @@ const NumberInput = React.forwardRef<
                         placeholder={placeholder}
                         autoComplete="off"
                     />
-                    <Button
-                        slot="decrement"
-                        className="border-input bg-background text-muted-foreground hover:bg-accent hover:text-foreground -me-px flex aspect-square h-[inherit] items-center justify-center border text-sm transition-[color,box-shadow] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <MinusIcon className="size-4" />
-                        <span className="sr-only">Decrement</span>
-                    </Button>
+                    {decrementTooltip ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="flex h-[inherit]">
+                                    {decrementButton}
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                <p>{decrementTooltip}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : (
+                        decrementButton
+                    )}
                     <Button
                         slot="increment"
                         className="border-input bg-background text-muted-foreground hover:bg-accent hover:text-foreground -me-px flex aspect-square h-[inherit] items-center justify-center rounded-r-md border text-sm transition-[color,box-shadow] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"

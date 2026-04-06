@@ -3,10 +3,13 @@ import { getNodeContentMinWidth } from '@/components/views/editor/graph/utils'
 import { FieldGroup } from '@/components/ui/field'
 import { TabsContent } from '@/components/ui/tabs'
 import {
+    type EditableRegulatoryEdge,
     type RegulatoryNodeProperties,
     RegulatoryNodePropertiesSchema,
 } from '@/lib/schema'
-import { useReactFlow, type Node } from '@xyflow/react'
+import { useStore as useFormStore } from '@tanstack/react-form'
+import { useStore, useReactFlow, type Edge, type Node } from '@xyflow/react'
+import { shallow } from 'zustand/shallow'
 
 interface NodeBasePropertiesMenuProps {
     node: Node<RegulatoryNodeProperties>
@@ -14,8 +17,22 @@ interface NodeBasePropertiesMenuProps {
 
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     const { updateNode } = useReactFlow()
+    const outgoingEdges = useStore(
+        (state) =>
+            state.edges.filter(
+                (edge) => edge.source === node.id
+            ) as Edge<EditableRegulatoryEdge>[],
+        shallow
+    )
     const activityLevelsSchema =
         RegulatoryNodePropertiesSchema.shape.activityLevels.unwrap()
+    const baseMinActivityLevels = activityLevelsSchema.minValue ?? 1
+    const minActivityLevels = Math.max(
+        baseMinActivityLevels,
+        ...outgoingEdges.flatMap(
+            (edge) => edge.data?.levels.map((level) => level.target) ?? []
+        )
+    )
 
     const form = useAppForm({
         defaultValues: node.data,
@@ -38,6 +55,13 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
             },
         },
     })
+    const currentActivityLevels = useFormStore(
+        form.store,
+        (state) => state.values.activityLevels ?? baseMinActivityLevels
+    )
+    const isAtEdgeTargetBoundary =
+        minActivityLevels > baseMinActivityLevels &&
+        currentActivityLevels <= minActivityLevels
 
     return (
         <TabsContent value="base">
@@ -54,8 +78,13 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                         <field.NumberField
                             label="Activity Levels"
                             placeholder=""
-                            min={activityLevelsSchema.minValue ?? undefined}
+                            min={minActivityLevels}
                             max={activityLevelsSchema.maxValue ?? undefined}
+                            decrementTooltip={
+                                isAtEdgeTargetBoundary
+                                    ? 'Remove edge levels targeting this value before decreasing it'
+                                    : undefined
+                            }
                         />
                     )}
                 />

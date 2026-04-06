@@ -13,6 +13,7 @@ interface NumberFieldProps {
     description?: string
     max?: number
     min?: number
+    decrementTooltip?: string
 }
 
 export function NumberField({
@@ -21,6 +22,7 @@ export function NumberField({
     description,
     max,
     min,
+    decrementTooltip,
 }: NumberFieldProps) {
     const field = useFieldContext<number>()
 
@@ -49,6 +51,7 @@ export function NumberField({
                     placeholder={placeholder}
                     maxValue={max}
                     minValue={min}
+                    decrementTooltip={decrementTooltip}
                 />
             </div>
             {description && <FieldDescription>{description}</FieldDescription>}
