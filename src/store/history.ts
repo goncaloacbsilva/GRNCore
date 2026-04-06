@@ -150,6 +150,7 @@ export const useChangesTracking = create<HistoryState>()(
         ),
         {
             autoArchive: false,
+            maxHistory: 100,
         }
     )
 )
