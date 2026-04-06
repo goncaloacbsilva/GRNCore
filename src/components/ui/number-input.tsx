@@ -22,7 +22,7 @@ const NumberInput = React.forwardRef<
             inputClassName?: string
             placeholder?: string
             invalid?: boolean
-            decrementTooltip?: string
+            decrementTooltip?: React.ReactElement
         }
 >(
     (
@@ -73,8 +73,8 @@ const NumberInput = React.forwardRef<
                                     {decrementButton}
                                 </span>
                             </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                <p>{decrementTooltip}</p>
+                            <TooltipContent side="bottom" className="w-fit">
+                                {decrementTooltip}
                             </TooltipContent>
                         </Tooltip>
                     ) : (

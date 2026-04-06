@@ -16,7 +16,8 @@ interface NodeBasePropertiesMenuProps {
 }
 
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
-    const { updateNode } = useReactFlow()
+    const { updateNode, getNode } =
+        useReactFlow<Node<RegulatoryNodeProperties>>()
     const outgoingEdges = useStore(
         (state) =>
             state.edges.filter(
@@ -81,9 +82,26 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                             min={minActivityLevels}
                             max={activityLevelsSchema.maxValue ?? undefined}
                             decrementTooltip={
-                                isAtEdgeTargetBoundary
-                                    ? 'Remove edge levels targeting this value before decreasing it'
-                                    : undefined
+                                isAtEdgeTargetBoundary ? (
+                                    <p>
+                                        Remove the levels targeting this value
+                                        in the <br /> following edges before
+                                        decreasing it:
+                                        <ul className="list-disc ps-4 mt-2">
+                                            {outgoingEdges.map((edge) => (
+                                                <li key={edge.id}>
+                                                    <strong>
+                                                        {node.data.name} -{'>'}{' '}
+                                                        {
+                                                            getNode(edge.target)
+                                                                ?.data.name
+                                                        }
+                                                    </strong>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </p>
+                                ) : undefined
                             }
                         />
                     )}

@@ -13,7 +13,7 @@ interface NumberFieldProps {
     description?: string
     max?: number
     min?: number
-    decrementTooltip?: string
+    decrementTooltip?: React.ReactElement
 }
 
 export function NumberField({
