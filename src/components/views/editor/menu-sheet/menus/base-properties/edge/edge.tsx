@@ -153,7 +153,10 @@ function AddEdgeLevelButton({
         <Tooltip>
             {disabled ? <TooltipTrigger asChild>{btn}</TooltipTrigger> : btn}
             <TooltipContent side="bottom">
-                <p>Activitiy levels are limited by the source node</p>
+                <p>
+                    Edge interaction levels are limited by the source node
+                    activity levels
+                </p>
             </TooltipContent>
         </Tooltip>
     )

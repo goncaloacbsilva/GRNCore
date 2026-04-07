@@ -73,6 +73,14 @@ export function EdgeLevel({
     const isValid = useStore(form.store, (state) => state.isValid)
     const isTouched = useStore(form.store, (state) => state.isTouched)
     const previousValuesRef = useRef(formValues)
+    const maxTargetLevel =
+        sourceNode?.data.activityLevels ??
+        activityLevelsSchema.maxValue ??
+        undefined
+    const isAtMaxTargetLevel =
+        maxTargetLevel !== undefined &&
+        (formValues.target ?? activityLevelsSchema.minValue ?? 1) >=
+            maxTargetLevel
 
     useEffect(() => {
         const valuesChanged = previousValuesRef.current !== formValues
@@ -100,10 +108,15 @@ export function EdgeLevel({
                                         activityLevelsSchema.minValue ??
                                         undefined
                                     }
-                                    max={
-                                        sourceNode?.data.activityLevels ??
-                                        activityLevelsSchema.maxValue ??
-                                        undefined
+                                    max={maxTargetLevel}
+                                    incrementTooltip={
+                                        isAtMaxTargetLevel ? (
+                                            <p>
+                                                Target level can't be greater
+                                                than the source node activity
+                                                levels
+                                            </p>
+                                        ) : undefined
                                     }
                                 />
                             )}

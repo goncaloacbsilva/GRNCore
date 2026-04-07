@@ -14,6 +14,7 @@ interface NumberFieldProps {
     max?: number
     min?: number
     decrementTooltip?: React.ReactElement
+    incrementTooltip?: React.ReactElement
 }
 
 export function NumberField({
@@ -23,6 +24,7 @@ export function NumberField({
     max,
     min,
     decrementTooltip,
+    incrementTooltip,
 }: NumberFieldProps) {
     const field = useFieldContext<number>()
 
@@ -52,6 +54,7 @@ export function NumberField({
                     maxValue={max}
                     minValue={min}
                     decrementTooltip={decrementTooltip}
+                    incrementTooltip={incrementTooltip}
                 />
             </div>
             {description && <FieldDescription>{description}</FieldDescription>}
