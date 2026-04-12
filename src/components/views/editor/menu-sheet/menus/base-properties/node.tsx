@@ -9,6 +9,7 @@ import {
 } from '@/lib/schema'
 import { useStore as useFormStore } from '@tanstack/react-form'
 import { useStore, useReactFlow, type Edge, type Node } from '@xyflow/react'
+import { useEffect, useRef } from 'react'
 import { shallow } from 'zustand/shallow'
 
 interface NodeBasePropertiesMenuProps {
@@ -18,6 +19,15 @@ interface NodeBasePropertiesMenuProps {
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     const { updateNode, getNode } =
         useReactFlow<Node<RegulatoryNodeProperties>>()
+    const persistNodeData = (values: RegulatoryNodeProperties) => {
+        updateNode(node.id, (currentNode) => ({
+            data: values,
+            style: {
+                ...currentNode.style,
+                width: getNodeContentMinWidth(values.name),
+            },
+        }))
+    }
     const outgoingEdges = useStore(
         (state) =>
             state.edges.filter(
@@ -25,6 +35,15 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
             ) as Edge<EditableRegulatoryEdge>[],
         shallow
     )
+
+    const incomingEdges = useStore(
+        (state) =>
+            state.edges.filter(
+                (edge) => edge.target === node.id
+            ) as Edge<EditableRegulatoryEdge>[],
+        shallow
+    )
+
     const activityLevelsSchema =
         RegulatoryNodePropertiesSchema.shape.activityLevels.unwrap()
     const baseMinActivityLevels = activityLevelsSchema.minValue ?? 1
@@ -43,23 +62,35 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         listeners: {
             onBlur: ({ formApi }) => {
                 if (formApi.state.isFormValid) {
-                    updateNode(node.id, (currentNode) => ({
-                        data: formApi.state.values,
-                        style: {
-                            ...currentNode.style,
-                            width: getNodeContentMinWidth(
-                                formApi.state.values.name
-                            ),
-                        },
-                    }))
+                    persistNodeData(formApi.state.values)
                 }
             },
         },
     })
+    const formValues = useFormStore(form.store, (state) => state.values)
+    const isFormTouched = useFormStore(form.store, (state) => state.isTouched)
+    const isFormValid = useFormStore(form.store, (state) => state.isValid)
     const currentActivityLevels = useFormStore(
         form.store,
         (state) => state.values.activityLevels ?? baseMinActivityLevels
     )
+    const previousIsInputNodeRef = useRef(formValues.isInputNode)
+
+    useEffect(() => {
+        const previousIsInputNode = previousIsInputNodeRef.current
+        previousIsInputNodeRef.current = formValues.isInputNode
+
+        if (
+            previousIsInputNode === formValues.isInputNode ||
+            !isFormTouched ||
+            !isFormValid
+        ) {
+            return
+        }
+
+        persistNodeData(formValues)
+    }, [formValues, isFormTouched, isFormValid])
+
     const isAtEdgeTargetBoundary =
         minActivityLevels > baseMinActivityLevels &&
         currentActivityLevels <= minActivityLevels
@@ -67,6 +98,41 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     return (
         <TabsContent value="base">
             <FieldGroup className="px-4 gap-4">
+                <form.AppField
+                    name="isInputNode"
+                    children={(field) => (
+                        <field.CheckboxField
+                            label="Input Node"
+                            disabled={incomingEdges.length > 0}
+                            description={
+                                field.state.value
+                                    ? 'The behavior of this node is determined by external factors.'
+                                    : ''
+                            }
+                            disabledTooltip={
+                                <p>
+                                    Input nodes cannot have incoming edges.
+                                    <br />
+                                    Remove the following edges before changing
+                                    this property:
+                                    <ul className="list-disc ps-4 mt-2">
+                                        {incomingEdges.map((edge) => (
+                                            <li key={edge.id}>
+                                                <strong>
+                                                    {
+                                                        getNode(edge.source)
+                                                            ?.data.name
+                                                    }{' '}
+                                                    -{'>'} {node.data.name}
+                                                </strong>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </p>
+                            }
+                        />
+                    )}
+                />
                 <form.AppField
                     name="name"
                     children={(field) => (

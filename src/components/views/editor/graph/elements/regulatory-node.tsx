@@ -74,7 +74,8 @@ const RegulatoryNode = ({
                         ? 'group border-[#e2e8f098] hover:border-[#3b83f6d9] transition-all'
                         : 'border-[#E2E8F0]',
                     (connectionFromThisNode || connectionToThisNode) &&
-                        'border-[#3b83f6d9]!'
+                        'border-[#3b83f6d9]!',
+                    data.isInputNode && 'border-dashed'
                 )}
             >
                 <NodeResizer
@@ -95,6 +96,7 @@ const RegulatoryNode = ({
                     type="source"
                 />
                 <Handle
+                    isConnectable={!data.isInputNode}
                     className="customHandle"
                     position={Position.Left}
                     type="target"
