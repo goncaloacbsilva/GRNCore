@@ -9,7 +9,7 @@ import {
 } from '@/lib/schema'
 import { useStore as useFormStore } from '@tanstack/react-form'
 import { useStore, useReactFlow, type Edge, type Node } from '@xyflow/react'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { shallow } from 'zustand/shallow'
 
 interface NodeBasePropertiesMenuProps {
@@ -19,15 +19,18 @@ interface NodeBasePropertiesMenuProps {
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     const { updateNode, getNode } =
         useReactFlow<Node<RegulatoryNodeProperties>>()
-    const persistNodeData = (values: RegulatoryNodeProperties) => {
-        updateNode(node.id, (currentNode) => ({
-            data: values,
-            style: {
-                ...currentNode.style,
-                width: getNodeContentMinWidth(values.name),
-            },
-        }))
-    }
+    const persistNodeData = useCallback(
+        (values: RegulatoryNodeProperties) => {
+            updateNode(node.id, (currentNode) => ({
+                data: values,
+                style: {
+                    ...currentNode.style,
+                    width: getNodeContentMinWidth(values.name),
+                },
+            }))
+        },
+        [node.id, updateNode]
+    )
     const outgoingEdges = useStore(
         (state) =>
             state.edges.filter(
@@ -89,7 +92,7 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         }
 
         persistNodeData(formValues)
-    }, [formValues, isFormTouched, isFormValid])
+    }, [formValues, isFormTouched, isFormValid, persistNodeData])
 
     const isAtEdgeTargetBoundary =
         minActivityLevels > baseMinActivityLevels &&
