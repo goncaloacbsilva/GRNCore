@@ -18,7 +18,7 @@ export function AddNodeButton() {
                 connectModeEnabled: state.connectModeEnabled,
                 setDialogVisible: state.setAddNodeDialogVisible,
             }))
-    )
+        )
 
     return (
         <Tooltip>
