@@ -6,24 +6,41 @@ import {
     FieldError,
     FieldLabel,
 } from '@/components/ui/field'
+import { twJoin } from 'tailwind-merge'
 
 interface TextFieldProps {
     label: string
     placeholder: string
     description?: string
+    orientation?: 'horizontal' | 'vertical'
 }
 
-export function TextField({ label, placeholder, description }: TextFieldProps) {
+export function TextField({
+    label,
+    placeholder,
+    description,
+    orientation,
+}: TextFieldProps) {
     const field = useFieldContext<string>()
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
 
     return (
         <Field data-invalid={isInvalid}>
-            <div className="flex flex-row justify-between">
+            <div
+                className={twJoin(
+                    'flex',
+                    orientation == 'vertical'
+                        ? 'flex-col gap-2'
+                        : 'flex-row justify-between'
+                )}
+            >
                 <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
                 <Input
-                    className="focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89] w-44"
+                    className={twJoin(
+                        'focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]',
+                        orientation != 'vertical' && 'w-44'
+                    )}
                     id={field.name}
                     name={field.name}
                     value={field.state.value}
