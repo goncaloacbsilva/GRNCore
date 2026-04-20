@@ -5,7 +5,6 @@ import {
     FieldDescription,
     FieldError,
     FieldLabel,
-    FieldTitle,
 } from '@/components/ui/field'
 import { Checkbox } from '@/components/ui/checkbox.tsx'
 import { ControlledWrapperTooltip } from '@/components/shared/controlled-tooltip.tsx'
