@@ -52,6 +52,8 @@ export function useNodeSetup() {
                 data: {
                     name: value,
                     activityLevels: 1,
+                    isInputNode: false,
+                    rules: [],
                 },
                 style: {
                     width,
