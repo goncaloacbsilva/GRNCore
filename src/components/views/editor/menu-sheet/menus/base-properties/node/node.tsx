@@ -11,6 +11,7 @@ import { useStore as useFormStore } from '@tanstack/react-form'
 import { useStore, useReactFlow, type Edge, type Node } from '@xyflow/react'
 import { useCallback, useEffect, useRef } from 'react'
 import { shallow } from 'zustand/shallow'
+import { NodeRules } from './node-rules'
 import {
     NodeIncomingEdgesTooltipContent,
     NodeOutgoingEdgesTooltipContent,
@@ -20,12 +21,27 @@ interface NodeBasePropertiesMenuProps {
     node: Node<RegulatoryNodeProperties>
 }
 
+const NodeBasePropertiesFormSchema = RegulatoryNodePropertiesSchema.pick({
+    name: true,
+    activityLevels: true,
+    isInputNode: true,
+})
+
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     const { updateNode } = useReactFlow<Node<RegulatoryNodeProperties>>()
+    const nodeData = RegulatoryNodePropertiesSchema.parse(node.data)
     const persistNodeData = useCallback(
-        (values: RegulatoryNodeProperties) => {
+        (
+            values: Pick<
+                RegulatoryNodeProperties,
+                'name' | 'activityLevels' | 'isInputNode'
+            >
+        ) => {
             updateNode(node.id, (currentNode) => ({
-                data: values,
+                data: {
+                    ...currentNode.data,
+                    ...values,
+                },
                 style: {
                     ...currentNode.style,
                     width: getNodeContentMinWidth(values.name),
@@ -61,9 +77,13 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     )
 
     const form = useAppForm({
-        defaultValues: node.data,
+        defaultValues: {
+            name: nodeData.name,
+            activityLevels: nodeData.activityLevels,
+            isInputNode: nodeData.isInputNode,
+        },
         validators: {
-            onChange: RegulatoryNodePropertiesSchema,
+            onChange: NodeBasePropertiesFormSchema,
         },
         listeners: {
             onBlur: ({ formApi }) => {
@@ -80,7 +100,15 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         form.store,
         (state) => state.values.activityLevels ?? baseMinActivityLevels
     )
+    const currentIsInputNode = useFormStore(
+        form.store,
+        (state) => state.values.isInputNode
+    )
     const previousIsInputNodeRef = useRef(formValues.isInputNode)
+    const currentNodeData: RegulatoryNodeProperties = {
+        ...nodeData,
+        ...formValues,
+    }
 
     useEffect(() => {
         const previousIsInputNode = previousIsInputNodeRef.current
@@ -102,8 +130,11 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         currentActivityLevels <= minActivityLevels
 
     return (
-        <TabsContent value="base">
-            <FieldGroup className="px-4 gap-5">
+        <TabsContent
+            value="base"
+            className="px-4 pb-4 flex h-full min-h-0 flex-col gap-5"
+        >
+            <FieldGroup className="gap-5">
                 <form.AppField
                     name="name"
                     children={(field) => (
@@ -150,6 +181,15 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                     )}
                 />
             </FieldGroup>
+            {/* <div className="flex flex-col items-start gap-1 mt-6">
+                <div className="text-sm text-muted-foreground">
+                    Update Rules
+                </div>
+                <Separator />
+            </div> */}
+            {!currentIsInputNode && (
+                <NodeRules node={{ ...node, data: currentNodeData }} />
+            )}
         </TabsContent>
     )
 }
