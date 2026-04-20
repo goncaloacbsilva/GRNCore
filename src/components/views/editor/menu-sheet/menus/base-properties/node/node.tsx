@@ -103,7 +103,7 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
 
     return (
         <TabsContent value="base">
-            <FieldGroup className="px-4 gap-4">
+            <FieldGroup className="px-4 gap-5">
                 <form.AppField
                     name="name"
                     children={(field) => (

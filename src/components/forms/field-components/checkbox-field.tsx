@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/field'
 import { Checkbox } from '@/components/ui/checkbox.tsx'
 import { ControlledWrapperTooltip } from '@/components/shared/controlled-tooltip.tsx'
+import { twJoin } from 'tailwind-merge'
 
 interface CheckboxFieldProps {
     label: string
@@ -23,25 +24,39 @@ function _checkboxField({
     disabled,
     isInvalid,
     field,
+    group,
 }: CheckboxFieldProps & {
     isInvalid: boolean
     field: ReturnType<typeof useFieldContext<boolean>>
 }) {
     return (
         <Field data-invalid={isInvalid}>
-            <div className="flex flex-row justify-start">
-                <FieldContent>
+            <div
+                className={twJoin(
+                    'flex flex-row',
+                    group ? 'justify-between' : 'gap-10'
+                )}
+            >
+                {group ? (
+                    <FieldContent>
+                        <FieldLabel
+                            className={disabled ? 'text-muted-foreground' : ''}
+                        >
+                            {label}
+                        </FieldLabel>
+                        {description && (
+                            <FieldDescription className="text-[12px]">
+                                {description}
+                            </FieldDescription>
+                        )}
+                    </FieldContent>
+                ) : (
                     <FieldLabel
                         className={disabled ? 'text-muted-foreground' : ''}
                     >
                         {label}
                     </FieldLabel>
-                    {description && (
-                        <FieldDescription className="text-[12px]">
-                            {description}
-                        </FieldDescription>
-                    )}
-                </FieldContent>
+                )}
                 <Checkbox
                     disabled={disabled}
                     className="data-[state=checked]:bg-[#2f81ed] data-[state=checked]:border-[#2f81ed]"

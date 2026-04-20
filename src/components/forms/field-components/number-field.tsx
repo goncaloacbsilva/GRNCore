@@ -32,7 +32,7 @@ export function NumberField({
 
     return (
         <Field data-invalid={isInvalid}>
-            <div className="flex flex-row justify-between gap-4">
+            <div className="flex flex-row justify-between gap-3">
                 <FieldLabel
                     className="w-fit whitespace-nowrap"
                     htmlFor={field.name}
