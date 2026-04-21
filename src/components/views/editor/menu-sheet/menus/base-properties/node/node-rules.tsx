@@ -14,17 +14,19 @@ import { Plus } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { useEffect, useRef } from 'react'
 import { NodeRule } from './node-rule'
-import {
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-} from '@/components/ui/empty'
+import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty'
 
 interface NodeRulesProps {
     node: Node<RegulatoryNodeProperties>
+    variableSuggestions: string[]
+    variableActivityLevels: Record<string, number>
 }
 
-export function NodeRules({ node }: NodeRulesProps) {
+export function NodeRules({
+    node,
+    variableSuggestions,
+    variableActivityLevels,
+}: NodeRulesProps) {
     const { updateNode } = useReactFlow<Node<RegulatoryNodeProperties>>()
     const nodeData = RegulatoryNodePropertiesSchema.parse(node.data)
     const scrollContainerRef = useRef<HTMLDivElement | null>(null)
@@ -81,7 +83,8 @@ export function NodeRules({ node }: NodeRulesProps) {
         const newRule: RegulatoryNodeRule = {
             id: nanoid(),
             target: findNextTarget(),
-            expression: 'true',
+            expression:
+                '# Insert regulatory expression\n# For syntax refer to: https://colomoto.github.io\n',
         }
         const nextRules: RegulatoryNodeRule[] = [...nodeData.rules, newRule]
 
@@ -105,6 +108,8 @@ export function NodeRules({ node }: NodeRulesProps) {
                             ruleKey={index}
                             rule={rule}
                             node={{ ...node, data: nodeData }}
+                            variableSuggestions={variableSuggestions}
+                            variableActivityLevels={variableActivityLevels}
                             updateCallback={updateNodeRule}
                             removeCallback={removeNodeRule}
                         />

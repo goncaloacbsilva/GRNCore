@@ -20,6 +20,8 @@ interface NodeRuleProps {
     ruleKey: number
     rule: RegulatoryNodeRule
     node: Node<RegulatoryNodeProperties>
+    variableSuggestions: string[]
+    variableActivityLevels: Record<string, number>
     updateCallback: (ruleId: string, rule: RegulatoryNodeRule) => void
     removeCallback: (ruleId: string) => void
 }
@@ -28,6 +30,8 @@ export function NodeRule({
     ruleKey,
     rule,
     node,
+    variableSuggestions,
+    variableActivityLevels,
     updateCallback,
     removeCallback,
 }: NodeRuleProps) {
@@ -93,7 +97,14 @@ export function NodeRule({
         }
 
         updateCallback(rule.id, formValues)
-    }, [expressionValue, formValues, isTouched, isValid, rule.id, updateCallback])
+    }, [
+        expressionValue,
+        formValues,
+        isTouched,
+        isValid,
+        rule.id,
+        updateCallback,
+    ])
 
     return (
         <Fragment key={ruleKey}>
@@ -114,10 +125,13 @@ export function NodeRule({
                         <form.AppField
                             name="expression"
                             children={(field) => (
-                                <field.TextField
+                                <field.RuleEditorField
                                     label="Expression"
-                                    placeholder="true"
-                                    orientation="vertical"
+                                    placeholder="Insert regulatory expression"
+                                    variableSuggestions={variableSuggestions}
+                                    variableActivityLevels={
+                                        variableActivityLevels
+                                    }
                                 />
                             )}
                         />

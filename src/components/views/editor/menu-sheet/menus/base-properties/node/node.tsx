@@ -25,10 +25,12 @@ const NodeBasePropertiesFormSchema = RegulatoryNodePropertiesSchema.pick({
     name: true,
     activityLevels: true,
     isInputNode: true,
+    rules: true,
 })
 
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
-    const { updateNode } = useReactFlow<Node<RegulatoryNodeProperties>>()
+    const { getNode, updateNode } =
+        useReactFlow<Node<RegulatoryNodeProperties>>()
     const nodeData = RegulatoryNodePropertiesSchema.parse(node.data)
     const persistNodeData = useCallback(
         (
@@ -109,6 +111,23 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         ...nodeData,
         ...formValues,
     }
+    const variableSuggestions = Array.from(
+        new Set(
+            incomingEdges
+                .map((edge) => getNode(edge.source)?.data.name)
+                .filter((name): name is string => Boolean(name))
+        )
+    )
+    const variableActivityLevels = Object.fromEntries(
+        incomingEdges.flatMap((edge) => {
+            const sourceNode = getNode(edge.source)
+            const sourceName = sourceNode?.data.name
+
+            return sourceName
+                ? [[sourceName, sourceNode.data.activityLevels]]
+                : []
+        })
+    )
 
     useEffect(() => {
         const previousIsInputNode = previousIsInputNodeRef.current
@@ -181,14 +200,12 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                     )}
                 />
             </FieldGroup>
-            {/* <div className="flex flex-col items-start gap-1 mt-6">
-                <div className="text-sm text-muted-foreground">
-                    Update Rules
-                </div>
-                <Separator />
-            </div> */}
             {!currentIsInputNode && (
-                <NodeRules node={{ ...node, data: currentNodeData }} />
+                <NodeRules
+                    node={{ ...node, data: currentNodeData }}
+                    variableSuggestions={variableSuggestions}
+                    variableActivityLevels={variableActivityLevels}
+                />
             )}
         </TabsContent>
     )
