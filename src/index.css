@@ -141,7 +141,11 @@
 
 .monaco-editor .suggest-widget .monaco-list-row .monaco-icon-label,
 .monaco-editor .suggest-widget .monaco-list-row .monaco-icon-label .label-name,
-.monaco-editor .suggest-widget .monaco-list-row .monaco-icon-label .label-description,
+.monaco-editor
+    .suggest-widget
+    .monaco-list-row
+    .monaco-icon-label
+    .label-description,
 .monaco-editor .suggest-widget .monaco-list-row .contents,
 .monaco-editor .suggest-widget .monaco-list-row .main {
     color: #0f172a !important;
@@ -169,8 +173,16 @@
 }
 
 .monaco-editor .suggest-widget .monaco-list-row.focused .monaco-icon-label,
-.monaco-editor .suggest-widget .monaco-list-row.focused .monaco-icon-label .label-name,
-.monaco-editor .suggest-widget .monaco-list-row.focused .monaco-icon-label .label-description,
+.monaco-editor
+    .suggest-widget
+    .monaco-list-row.focused
+    .monaco-icon-label
+    .label-name,
+.monaco-editor
+    .suggest-widget
+    .monaco-list-row.focused
+    .monaco-icon-label
+    .label-description,
 .monaco-editor .suggest-widget .monaco-list-row.focused .contents,
 .monaco-editor .suggest-widget .monaco-list-row.focused .main {
     color: #0f172a !important;

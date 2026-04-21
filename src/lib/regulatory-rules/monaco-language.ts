@@ -22,9 +22,7 @@ export function clearRegulatoryRuleSuggestions(modelUri: string) {
     suggestionsByModelUri.delete(modelUri)
 }
 
-export function ensureRegulatoryRuleEditorSetup(
-    monacoInstance: typeof monaco
-) {
+export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
     if (isRuleLanguageRegistered) {
         return
     }
@@ -35,15 +33,9 @@ export function ensureRegulatoryRuleEditorSetup(
         comments: {
             lineComment: '#',
         },
-        brackets: [
-            ['(', ')'],
-        ],
-        autoClosingPairs: [
-            { open: '(', close: ')' },
-        ],
-        surroundingPairs: [
-            { open: '(', close: ')' },
-        ],
+        brackets: [['(', ')']],
+        autoClosingPairs: [{ open: '(', close: ')' }],
+        surroundingPairs: [{ open: '(', close: ')' }],
     })
 
     monacoInstance.languages.setMonarchTokensProvider(RULE_LANGUAGE_ID, {
@@ -92,22 +84,22 @@ export function ensureRegulatoryRuleEditorSetup(
                     suggestions: [
                         {
                             label: '&&',
-                            kind: monacoInstance.languages
-                                .CompletionItemKind.Operator,
+                            kind: monacoInstance.languages.CompletionItemKind
+                                .Operator,
                             insertText: '&& ',
                             range,
                         },
                         {
                             label: '||',
-                            kind: monacoInstance.languages
-                                .CompletionItemKind.Operator,
+                            kind: monacoInstance.languages.CompletionItemKind
+                                .Operator,
                             insertText: '|| ',
                             range,
                         },
                         {
                             label: '!',
-                            kind: monacoInstance.languages
-                                .CompletionItemKind.Operator,
+                            kind: monacoInstance.languages.CompletionItemKind
+                                .Operator,
                             insertText: '! ',
                             range,
                         },
