@@ -83,8 +83,7 @@ export function NodeRules({
         const newRule: RegulatoryNodeRule = {
             id: nanoid(),
             target: findNextTarget(),
-            expression:
-                '# Insert regulatory expression\n# For syntax refer to: https://colomoto.github.io\n',
+            expression: '',
         }
         const nextRules: RegulatoryNodeRule[] = [...nodeData.rules, newRule]
 
