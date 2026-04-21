@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import * as z from 'zod'
 
 export const RegulatoryNodeRuleSchema = z.object({
@@ -8,6 +9,13 @@ export const RegulatoryNodeRuleSchema = z.object({
 
     expression: z.string().nonempty({ message: 'Expression cannot be empty' }),
 })
+
+export const RegulatoryNodeRuleWithDefaultsSchema =
+    RegulatoryNodeRuleSchema.extend({
+        id: RegulatoryNodeRuleSchema.shape.id.default(() => nanoid()),
+        target: RegulatoryNodeRuleSchema.shape.target.default(1),
+        expression: RegulatoryNodeRuleSchema.shape.expression.default(''),
+    })
 
 export const RegulatoryNodePropertiesSchema = z.object({
     // Name of the Gene
@@ -23,7 +31,7 @@ export const RegulatoryNodePropertiesSchema = z.object({
     isInputNode: z.boolean().default(false),
 
     // Logical rules
-    rules: z.array(RegulatoryNodeRuleSchema).default([]),
+    rules: z.array(RegulatoryNodeRuleWithDefaultsSchema).default([]),
 })
 
 export type RegulatoryNodeProperties = z.infer<
