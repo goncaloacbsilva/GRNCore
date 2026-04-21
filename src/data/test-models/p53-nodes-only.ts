@@ -9,6 +9,7 @@ export const P53_NODES_ONLY_MODEL: InternalGRNModel = {
                 name: 'p53',
                 activityLevels: 2,
                 isInputNode: false,
+                rules: [],
             },
         },
         {
@@ -18,6 +19,7 @@ export const P53_NODES_ONLY_MODEL: InternalGRNModel = {
                 name: 'DNAdam',
                 activityLevels: 1,
                 isInputNode: false,
+                rules: [],
             },
         },
         {
@@ -27,6 +29,7 @@ export const P53_NODES_ONLY_MODEL: InternalGRNModel = {
                 name: 'Mdm2cyt',
                 activityLevels: 2,
                 isInputNode: false,
+                rules: [],
             },
         },
         {
@@ -36,6 +39,7 @@ export const P53_NODES_ONLY_MODEL: InternalGRNModel = {
                 name: 'Mdm2nuc',
                 activityLevels: 1,
                 isInputNode: false,
+                rules: [],
             },
         },
     ],

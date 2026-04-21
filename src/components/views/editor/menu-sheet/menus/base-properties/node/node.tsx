@@ -10,6 +10,7 @@ import {
 import { useStore as useFormStore } from '@tanstack/react-form'
 import { useStore, useReactFlow, type Edge, type Node } from '@xyflow/react'
 import { useCallback, useEffect, useRef } from 'react'
+import * as z from 'zod'
 import { shallow } from 'zustand/shallow'
 import { NodeRules } from './node-rules'
 import {
@@ -21,11 +22,11 @@ interface NodeBasePropertiesMenuProps {
     node: Node<RegulatoryNodeProperties>
 }
 
-const NodeBasePropertiesFormSchema = RegulatoryNodePropertiesSchema.pick({
-    name: true,
-    activityLevels: true,
-    isInputNode: true,
-    rules: true,
+const NodeBasePropertiesFormSchema = z.object({
+    name: RegulatoryNodePropertiesSchema.shape.name,
+    activityLevels:
+        RegulatoryNodePropertiesSchema.shape.activityLevels.unwrap(),
+    isInputNode: RegulatoryNodePropertiesSchema.shape.isInputNode.unwrap(),
 })
 
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
@@ -85,7 +86,8 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
             isInputNode: nodeData.isInputNode,
         },
         validators: {
-            onChange: NodeBasePropertiesFormSchema,
+            onChange: ({ formApi }) =>
+                formApi.parseValuesWithSchema(NodeBasePropertiesFormSchema),
         },
         listeners: {
             onBlur: ({ formApi }) => {

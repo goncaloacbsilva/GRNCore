@@ -68,7 +68,9 @@ export function RuleEditorField({
                     theme={RULE_THEME_ID}
                     value={field.state.value}
                     onChange={(value) => field.handleChange(value ?? '')}
-                    onBlur={field.handleBlur}
+                    onMount={(editor) => {
+                        editor.onDidBlurEditorText(field.handleBlur)
+                    }}
                     loading={null}
                     options={{
                         automaticLayout: true,
@@ -95,7 +97,9 @@ export function RuleEditorField({
                         suggestOnTriggerCharacters: true,
                         hover: { enabled: false },
                         codeLens: false,
-                        lightbulb: { enabled: 'off' },
+                        lightbulb: {
+                            enabled: monaco.editor.ShowLightbulbIconMode.Off,
+                        },
                         wordBasedSuggestions: 'off',
                         suggest: {
                             showWords: false,
