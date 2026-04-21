@@ -30,11 +30,11 @@ function _checkboxField({
     field: ReturnType<typeof useFieldContext<boolean>>
 }) {
     return (
-        <Field data-invalid={isInvalid}>
+        <Field data-invalid={isInvalid} className="w-fit">
             <div
                 className={twJoin(
                     'flex flex-row',
-                    group ? 'justify-between' : 'gap-10'
+                    group ? 'justify-between' : 'gap-10 w-fit'
                 )}
             >
                 {group ? (
@@ -68,6 +68,11 @@ function _checkboxField({
                     id={field.name}
                 />
             </div>
+            {!group && description && (
+                <FieldDescription className="text-[12px]">
+                    {description}
+                </FieldDescription>
+            )}
             {isInvalid && <FieldError errors={field.state.meta.errors} />}
         </Field>
     )

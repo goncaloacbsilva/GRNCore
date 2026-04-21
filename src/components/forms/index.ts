@@ -1,6 +1,11 @@
 import { createFormHook } from '@tanstack/react-form'
 import { fieldContext, formContext } from './form-context'
-import { CheckboxField, NumberField, TextField } from './field-components'
+import {
+    CheckboxField,
+    NumberField,
+    RuleEditorField,
+    TextField,
+} from './field-components'
 
 export const { useAppForm } = createFormHook({
     fieldContext,
@@ -9,6 +14,7 @@ export const { useAppForm } = createFormHook({
         TextField,
         NumberField,
         CheckboxField,
+        RuleEditorField,
     },
     formComponents: {},
 })

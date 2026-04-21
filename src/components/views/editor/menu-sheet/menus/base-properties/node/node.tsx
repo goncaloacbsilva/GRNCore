@@ -10,7 +10,9 @@ import {
 import { useStore as useFormStore } from '@tanstack/react-form'
 import { useStore, useReactFlow, type Edge, type Node } from '@xyflow/react'
 import { useCallback, useEffect, useRef } from 'react'
+import * as z from 'zod'
 import { shallow } from 'zustand/shallow'
+import { NodeRules } from './node-rules'
 import {
     NodeIncomingEdgesTooltipContent,
     NodeOutgoingEdgesTooltipContent,
@@ -20,12 +22,29 @@ interface NodeBasePropertiesMenuProps {
     node: Node<RegulatoryNodeProperties>
 }
 
+const NodeBasePropertiesFormSchema = z.object({
+    name: RegulatoryNodePropertiesSchema.shape.name,
+    activityLevels:
+        RegulatoryNodePropertiesSchema.shape.activityLevels.unwrap(),
+    isInputNode: RegulatoryNodePropertiesSchema.shape.isInputNode.unwrap(),
+})
+
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
-    const { updateNode } = useReactFlow<Node<RegulatoryNodeProperties>>()
+    const { getNode, updateNode } =
+        useReactFlow<Node<RegulatoryNodeProperties>>()
+    const nodeData = RegulatoryNodePropertiesSchema.parse(node.data)
     const persistNodeData = useCallback(
-        (values: RegulatoryNodeProperties) => {
+        (
+            values: Pick<
+                RegulatoryNodeProperties,
+                'name' | 'activityLevels' | 'isInputNode'
+            >
+        ) => {
             updateNode(node.id, (currentNode) => ({
-                data: values,
+                data: {
+                    ...currentNode.data,
+                    ...values,
+                },
                 style: {
                     ...currentNode.style,
                     width: getNodeContentMinWidth(values.name),
@@ -61,9 +80,14 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     )
 
     const form = useAppForm({
-        defaultValues: node.data,
+        defaultValues: {
+            name: nodeData.name,
+            activityLevels: nodeData.activityLevels,
+            isInputNode: nodeData.isInputNode,
+        },
         validators: {
-            onChange: RegulatoryNodePropertiesSchema,
+            onChange: ({ formApi }) =>
+                formApi.parseValuesWithSchema(NodeBasePropertiesFormSchema),
         },
         listeners: {
             onBlur: ({ formApi }) => {
@@ -80,7 +104,32 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         form.store,
         (state) => state.values.activityLevels ?? baseMinActivityLevels
     )
+    const currentIsInputNode = useFormStore(
+        form.store,
+        (state) => state.values.isInputNode
+    )
     const previousIsInputNodeRef = useRef(formValues.isInputNode)
+    const currentNodeData: RegulatoryNodeProperties = {
+        ...nodeData,
+        ...formValues,
+    }
+    const variableSuggestions = Array.from(
+        new Set(
+            incomingEdges
+                .map((edge) => getNode(edge.source)?.data.name)
+                .filter((name): name is string => Boolean(name))
+        )
+    )
+    const variableActivityLevels = Object.fromEntries(
+        incomingEdges.flatMap((edge) => {
+            const sourceNode = getNode(edge.source)
+            const sourceName = sourceNode?.data.name
+
+            return sourceName
+                ? [[sourceName, sourceNode.data.activityLevels]]
+                : []
+        })
+    )
 
     useEffect(() => {
         const previousIsInputNode = previousIsInputNodeRef.current
@@ -102,8 +151,11 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         currentActivityLevels <= minActivityLevels
 
     return (
-        <TabsContent value="base">
-            <FieldGroup className="px-4 gap-5">
+        <TabsContent
+            value="base"
+            className="px-4 pb-4 flex h-full min-h-0 flex-col gap-5"
+        >
+            <FieldGroup className="gap-5">
                 <form.AppField
                     name="name"
                     children={(field) => (
@@ -150,6 +202,13 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                     )}
                 />
             </FieldGroup>
+            {!currentIsInputNode && (
+                <NodeRules
+                    node={{ ...node, data: currentNodeData }}
+                    variableSuggestions={variableSuggestions}
+                    variableActivityLevels={variableActivityLevels}
+                />
+            )}
         </TabsContent>
     )
 }

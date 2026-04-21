@@ -16,7 +16,9 @@ export function ControlledWrapperTooltip({
             {visible ? (
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <span className="flex h-[inherit]">{children}</span>
+                        <span className="flex h-[inherit] w-fit">
+                            {children}
+                        </span>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="w-fit">
                         {tooltip}

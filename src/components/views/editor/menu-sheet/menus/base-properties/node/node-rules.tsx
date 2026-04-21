@@ -1,0 +1,163 @@
+import { Button } from '@/components/ui/button'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+    RegulatoryNodePropertiesSchema,
+    type RegulatoryNodeProperties,
+    type RegulatoryNodeRule,
+} from '@/lib/schema'
+import { useReactFlow, type Node } from '@xyflow/react'
+import { Plus } from 'lucide-react'
+import { nanoid } from 'nanoid'
+import { useEffect, useRef } from 'react'
+import { NodeRule } from './node-rule'
+import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty'
+
+interface NodeRulesProps {
+    node: Node<RegulatoryNodeProperties>
+    variableSuggestions: string[]
+    variableActivityLevels: Record<string, number>
+}
+
+export function NodeRules({
+    node,
+    variableSuggestions,
+    variableActivityLevels,
+}: NodeRulesProps) {
+    const { updateNode } = useReactFlow<Node<RegulatoryNodeProperties>>()
+    const nodeData = RegulatoryNodePropertiesSchema.parse(node.data)
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+    const previousRulesLengthRef = useRef(nodeData.rules.length)
+
+    const disableAddRule = nodeData.rules.length + 1 > nodeData.activityLevels
+
+    useEffect(() => {
+        const rulesLength = nodeData.rules.length
+
+        if (rulesLength > previousRulesLengthRef.current) {
+            scrollContainerRef.current?.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: 'smooth',
+            })
+        }
+
+        previousRulesLengthRef.current = rulesLength
+    }, [nodeData.rules.length])
+
+    const updateNodeRules = (rules: RegulatoryNodeRule[]) => {
+        updateNode(node.id, (currentNode) => ({
+            ...currentNode,
+            data: {
+                ...currentNode.data,
+                rules,
+            },
+        }))
+    }
+
+    const updateNodeRule = (ruleId: string, rule: RegulatoryNodeRule) => {
+        updateNodeRules(
+            nodeData.rules.map((currentRule) =>
+                currentRule.id === ruleId ? rule : currentRule
+            )
+        )
+    }
+
+    const removeNodeRule = (ruleId: string) => {
+        updateNodeRules(nodeData.rules.filter((rule) => rule.id !== ruleId))
+    }
+
+    const findNextTarget = () => {
+        for (let target = 1; target <= nodeData.activityLevels; target++) {
+            if (!nodeData.rules.some((rule) => rule.target === target)) {
+                return target
+            }
+        }
+
+        return nodeData.activityLevels
+    }
+
+    const addNodeRule = () => {
+        const newRule: RegulatoryNodeRule = {
+            id: nanoid(),
+            target: findNextTarget(),
+            expression:
+                '# Insert regulatory expression\n# For syntax refer to: https://colomoto.github.io\n',
+        }
+        const nextRules: RegulatoryNodeRule[] = [...nodeData.rules, newRule]
+
+        updateNodeRules(nextRules)
+    }
+
+    return (
+        <div className="flex h-full min-h-0 flex-col gap-4">
+            <AddNodeRuleButton
+                onClick={addNodeRule}
+                disabled={disableAddRule}
+            />
+            <div
+                ref={scrollContainerRef}
+                className="min-h-0 flex-1 overflow-y-auto rounded-md border"
+            >
+                {nodeData.rules.length > 0 ? (
+                    nodeData.rules.map((rule, index) => (
+                        <NodeRule
+                            key={rule.id}
+                            ruleKey={index}
+                            rule={rule}
+                            node={{ ...node, data: nodeData }}
+                            variableSuggestions={variableSuggestions}
+                            variableActivityLevels={variableActivityLevels}
+                            updateCallback={updateNodeRule}
+                            removeCallback={removeNodeRule}
+                        />
+                    ))
+                ) : (
+                    <Empty>
+                        <EmptyHeader className="w-54">
+                            <EmptyDescription className="text-xs">
+                                No rules have been added <br />
+                                Target level will be equal to{' '}
+                                {nodeData.activityLevels}
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                )}
+            </div>
+        </div>
+    )
+}
+
+function AddNodeRuleButton({
+    onClick,
+    disabled,
+}: {
+    onClick: () => void
+    disabled: boolean
+}) {
+    const btn = (
+        <span className="inline-block w-full">
+            <Button
+                variant="default"
+                size="sm"
+                className="hover:cursor-pointer w-full"
+                onClick={onClick}
+                disabled={disabled}
+            >
+                <Plus />
+                Add rule
+            </Button>
+        </span>
+    )
+
+    return (
+        <Tooltip>
+            {disabled ? <TooltipTrigger asChild>{btn}</TooltipTrigger> : btn}
+            <TooltipContent side="bottom">
+                <p>Node rules are limited by the node activity levels</p>
+            </TooltipContent>
+        </Tooltip>
+    )
+}
