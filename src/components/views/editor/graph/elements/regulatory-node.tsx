@@ -14,6 +14,11 @@ import { useEditorStore } from '@/store'
 import { twJoin } from 'tailwind-merge'
 import { NodeToolbar } from './node-toolbar'
 import { useShallow } from 'zustand/react/shallow'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 const RegulatoryNode = ({
     id,
@@ -45,6 +50,7 @@ const RegulatoryNode = ({
         [selectedNodesIds]
     )
     const isToolbarHost = selectedNodeIdsArray[0] === id
+    const hasInvalidRules = data.rules.some((rule) => !rule.isValid)
 
     // Track selected node ids
     useEffect(() => {
@@ -69,7 +75,7 @@ const RegulatoryNode = ({
             />
             <div
                 className={twJoin(
-                    'h-full px-2 py-2 flex flex-col items-center justify-center bg-white border-2 rounded-sm text-sm',
+                    'relative h-full px-2 py-2 flex flex-col items-center justify-center bg-white border-2 rounded-sm text-sm',
                     connectModeActive
                         ? 'group border-[#e2e8f098] hover:border-[#3b83f6d9] transition-all'
                         : 'border-[#E2E8F0]',
@@ -78,6 +84,16 @@ const RegulatoryNode = ({
                     data.isInputNode && 'border-dashed'
                 )}
             >
+                {hasInvalidRules && (
+                    <Tooltip>
+                        <div className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold leading-none text-white shadow-sm">
+                            <TooltipTrigger>!</TooltipTrigger>
+                        </div>
+                        <TooltipContent>
+                            This node has invalid rules
+                        </TooltipContent>
+                    </Tooltip>
+                )}
                 <NodeResizer
                     color="#2f81ed"
                     handleStyle={{
