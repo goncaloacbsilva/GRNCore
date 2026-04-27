@@ -1,4 +1,5 @@
 import type { EditableRegulatoryEdge, InternalGRNModel } from '@/lib/schema'
+import { isRegulatoryRuleExpressionValid } from '@/lib/regulatory-rules'
 import {
     type Edge,
     Background,
@@ -75,6 +76,66 @@ export function Graph({ model }: GraphProps) {
         isSnapshotPaused,
         takeSnapshot,
     ])
+
+    useEffect(() => {
+        setNodes((currentNodes) => {
+            const incomingNodeNamesByTargetId = new Map<string, string[]>()
+
+            edges.forEach((edge) => {
+                const sourceNodeName = currentNodes.find(
+                    (node) => node.id === edge.source
+                )?.data.name
+
+                if (!sourceNodeName) {
+                    return
+                }
+
+                const incomingNodeNames =
+                    incomingNodeNamesByTargetId.get(edge.target) ?? []
+                incomingNodeNames.push(sourceNodeName)
+                incomingNodeNamesByTargetId.set(edge.target, incomingNodeNames)
+            })
+
+            let hasChanges = false
+            const nextNodes = currentNodes.map((node) => {
+                if (node.data.rules.length === 0) {
+                    return node
+                }
+
+                const incomingNodeNames =
+                    incomingNodeNamesByTargetId.get(node.id) ?? []
+                const nextRules = node.data.rules.map((rule) => {
+                    const isValid = isRegulatoryRuleExpressionValid(
+                        rule.expression,
+                        incomingNodeNames
+                    )
+
+                    return rule.isValid === isValid
+                        ? rule
+                        : { ...rule, isValid }
+                })
+
+                const rulesChanged = nextRules.some(
+                    (rule, index) => rule !== node.data.rules[index]
+                )
+
+                if (!rulesChanged) {
+                    return node
+                }
+
+                hasChanges = true
+                return {
+                    ...node,
+                    data: {
+                        ...node.data,
+                        rules: nextRules,
+                    },
+                }
+            })
+
+            return hasChanges ? nextNodes : currentNodes
+        })
+    }, [edges, setNodes])
 
     const {
         onNodesChange,

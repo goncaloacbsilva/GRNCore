@@ -1,0 +1,27 @@
+RegulatoryRule {
+  RuleExpr = Expr end
+
+  Expr = OrExpr
+  OrExpr = OrExpr OrOp AndExpr  -- binary
+         | AndExpr
+  AndExpr = AndExpr AndOp UnaryExpr  -- binary
+          | UnaryExpr
+  UnaryExpr = Not* Primary
+
+  Primary = "(" Expr ")"  -- paren
+          | Condition     -- condition
+          | Var           -- var
+          | Val           -- val
+
+  Condition = Var ":" Val
+
+  AndOp = "&&" | "&"
+  OrOp = "||" | "|"
+  Not = "!"
+
+  Var = ident
+  Val = digit
+
+  ident = (letter | "_") identRest*
+  identRest = letter | digit | "_"
+}
