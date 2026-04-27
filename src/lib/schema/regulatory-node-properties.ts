@@ -8,12 +8,16 @@ export const RegulatoryNodeRuleSchema = z.object({
     target: z.int().positive().max(9).min(1),
 
     expression: z.string().nonempty({ message: 'Expression cannot be empty' }),
+
+    // Internal validity flag for the current graph context
+    isValid: z.boolean(),
 })
 
 export const RegulatoryNodeRuleDraftSchema = z.object({
     id: RegulatoryNodeRuleSchema.shape.id.default(() => nanoid()),
     target: RegulatoryNodeRuleSchema.shape.target.default(1),
     expression: z.string().default(''),
+    isValid: RegulatoryNodeRuleSchema.shape.isValid.default(false),
 })
 
 export const RegulatoryNodePropertiesSchema = z.object({
