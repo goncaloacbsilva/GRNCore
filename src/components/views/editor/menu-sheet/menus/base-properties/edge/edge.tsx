@@ -42,15 +42,17 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
                             currentLevel.target === level.target
                     ) ?? false
                 const isWithinSourceRange =
-                    maxTargetLevel === undefined || level.target <= maxTargetLevel
+                    maxTargetLevel === undefined ||
+                    level.target <= maxTargetLevel
                 const isValid = !hasConflict && isWithinSourceRange
 
                 return level.isValid === isValid ? level : { ...level, isValid }
             }) ?? []
 
         const levelsChanged =
-            edge.data?.levels.some((level, index) => level !== nextLevels[index]) ??
-            false
+            edge.data?.levels.some(
+                (level, index) => level !== nextLevels[index]
+            ) ?? false
 
         if (!levelsChanged) {
             return
