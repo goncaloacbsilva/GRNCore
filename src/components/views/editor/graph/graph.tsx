@@ -110,7 +110,9 @@ export function Graph({ model }: GraphProps) {
                         incomingNodeNames
                     )
 
-                    return rule.isValid === isValid ? rule : { ...rule, isValid }
+                    return rule.isValid === isValid
+                        ? rule
+                        : { ...rule, isValid }
                 })
 
                 const rulesChanged = nextRules.some(

@@ -2,55 +2,11 @@ import * as ohm from 'ohm-js'
 import regulatoryRuleGrammarSource from './regulatory-rule.ohm?raw'
 
 const regulatoryRuleGrammar = ohm.grammar(regulatoryRuleGrammarSource)
-const regulatoryRuleSemantics = regulatoryRuleGrammar
-    .createSemantics()
-    .addOperation<string[]>('referencedVars', {
-        RuleExpr(expression, _end) {
-            return expression.referencedVars()
-        },
-        Expr(expression) {
-            return expression.referencedVars()
-        },
-        OrExpr_binary(left, _operator, right) {
-            return [...left.referencedVars(), ...right.referencedVars()]
-        },
-        OrExpr(andExpression) {
-            return andExpression.referencedVars()
-        },
-        AndExpr_binary(left, _operator, right) {
-            return [...left.referencedVars(), ...right.referencedVars()]
-        },
-        AndExpr(unaryExpression) {
-            return unaryExpression.referencedVars()
-        },
-        UnaryExpr(_nots, primary) {
-            return primary.referencedVars()
-        },
-        Primary_paren(_open, expression, _close) {
-            return expression.referencedVars()
-        },
-        Primary_condition(condition) {
-            return condition.referencedVars()
-        },
-        Primary_var(variable) {
-            return variable.referencedVars()
-        },
-        Primary_val(_value) {
-            return []
-        },
-        Condition(variable, _colon, _value) {
-            return variable.referencedVars()
-        },
-        Var(_ident) {
-            return [this.sourceString]
-        },
-        _iter(...children) {
-            return children.flatMap((child) => child.referencedVars())
-        },
-        _terminal() {
-            return []
-        },
-    })
+const VARIABLE_PATTERN = /[A-Za-z_][A-Za-z0-9_]*/g
+
+function getReferencedVariables(expression: string) {
+    return Array.from(new Set(expression.match(VARIABLE_PATTERN) ?? []))
+}
 
 export function validateRegulatoryRuleExpression(
     expression: string,
@@ -72,10 +28,7 @@ export function validateRegulatoryRuleExpression(
     }
 
     const allowedNodes = new Set(incomingNodes)
-    const referencedVariables = new Set(
-        regulatoryRuleSemantics(matchResult).referencedVars() as string[]
-    )
-    const unknownVariables = Array.from(referencedVariables).filter(
+    const unknownVariables = getReferencedVariables(trimmedExpression).filter(
         (variable) => !allowedNodes.has(variable)
     )
 
