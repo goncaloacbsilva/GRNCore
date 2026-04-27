@@ -11,7 +11,7 @@ import {
 import { useStore } from '@tanstack/react-form'
 import { type Node } from '@xyflow/react'
 import { XIcon } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Fragment } from 'react/jsx-runtime'
 
 const targetSchema = RegulatoryNodeRuleSchema.shape.target
@@ -35,12 +35,12 @@ export function NodeRule({
     updateCallback,
     removeCallback,
 }: NodeRuleProps) {
-    const [shouldValidate, setShouldValidate] = useState(false)
+    const shouldValidateRef = useRef(false)
     const form = useAppForm({
         defaultValues: rule,
         validators: {
             onChange: ({ value, formApi }) => {
-                if (!shouldValidate) {
+                if (!shouldValidateRef.current) {
                     return
                 }
 
@@ -83,16 +83,16 @@ export function NodeRule({
 
     useEffect(() => {
         if (
-            shouldValidate ||
+            shouldValidateRef.current ||
             (formValues.target === rule.target &&
                 formValues.expression === rule.expression)
         ) {
             return
         }
 
-        setShouldValidate(true)
+        shouldValidateRef.current = true
         void form.validateAllFields('change')
-    }, [form, formValues, rule.expression, rule.target, shouldValidate])
+    }, [form, formValues, rule.expression, rule.target])
 
     useEffect(() => {
         const targetChanged = previousTargetRef.current !== targetValue
