@@ -40,6 +40,12 @@ export function EdgeLevel({
     updateCallback,
     removeCallback,
 }: EdgeLevelProps) {
+    const hasTargetConflict =
+        edge.data?.levels.some(
+            (currentLevel) =>
+                currentLevel.id !== level.id &&
+                currentLevel.target === level.target
+        ) ?? false
     const form = useAppForm({
         defaultValues: level,
         validators: {
@@ -70,7 +76,6 @@ export function EdgeLevel({
 
     const interactionType = useStore(form.store, (state) => state.values.type)
     const formValues = useStore(form.store, (state) => state.values)
-    const isValid = useStore(form.store, (state) => state.isValid)
     const isTouched = useStore(form.store, (state) => state.isTouched)
     const previousValuesRef = useRef(formValues)
     const maxTargetLevel =
@@ -83,15 +88,53 @@ export function EdgeLevel({
             maxTargetLevel
 
     useEffect(() => {
-        const valuesChanged = previousValuesRef.current !== formValues
-        previousValuesRef.current = formValues
-
-        if (!valuesChanged || !isTouched || !isValid) {
+        if (!hasTargetConflict && !isTouched) {
             return
         }
 
-        updateCallback(level.id, formValues)
-    }, [formValues, isTouched, isValid, level.id, updateCallback])
+        if (hasTargetConflict) {
+            form.setFieldMeta('target', (prev) => ({
+                ...prev,
+                isTouched: true,
+            }))
+        }
+
+        void form.validateField('target', 'change')
+    }, [form, hasTargetConflict, isTouched])
+
+    useEffect(() => {
+        const valuesChanged = previousValuesRef.current !== formValues
+        previousValuesRef.current = formValues
+
+        if (
+            !valuesChanged ||
+            !isTouched ||
+            !activityLevelsSchema.safeParse(formValues.target).success
+        ) {
+            return
+        }
+
+        const hasConflict =
+            edge.data?.levels.some(
+                (currentLevel) =>
+                    currentLevel.id !== level.id &&
+                    currentLevel.target === formValues.target
+            ) ?? false
+        const isWithinSourceRange =
+            maxTargetLevel === undefined || formValues.target <= maxTargetLevel
+
+        updateCallback(level.id, {
+            ...formValues,
+            isValid: !hasConflict && isWithinSourceRange,
+        })
+    }, [
+        edge.data?.levels,
+        formValues,
+        isTouched,
+        level.id,
+        maxTargetLevel,
+        updateCallback,
+    ])
 
     return (
         <Fragment key={levelKey}>

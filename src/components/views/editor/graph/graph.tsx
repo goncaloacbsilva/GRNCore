@@ -137,6 +137,54 @@ export function Graph({ model }: GraphProps) {
         })
     }, [edges, setNodes])
 
+    useEffect(() => {
+        setEdges((currentEdges) => {
+            let hasChanges = false
+            const nextEdges = currentEdges.map((edge) => {
+                const sourceActivityLevels = nodes.find(
+                    (node) => node.id === edge.source
+                )?.data.activityLevels
+                const nextLevels =
+                    edge.data?.levels.map((level) => {
+                        const hasConflict =
+                            edge.data?.levels.some(
+                                (currentLevel) =>
+                                    currentLevel.id !== level.id &&
+                                    currentLevel.target === level.target
+                            ) ?? false
+                        const isWithinSourceRange =
+                            sourceActivityLevels === undefined ||
+                            level.target <= sourceActivityLevels
+                        const isValid = !hasConflict && isWithinSourceRange
+
+                        return level.isValid === isValid
+                            ? level
+                            : { ...level, isValid }
+                    }) ?? []
+
+                const levelsChanged =
+                    edge.data?.levels.some(
+                        (level, index) => level !== nextLevels[index]
+                    ) ?? false
+
+                if (!levelsChanged) {
+                    return edge
+                }
+
+                hasChanges = true
+                return {
+                    ...edge,
+                    data: {
+                        ...edge.data,
+                        levels: nextLevels,
+                    },
+                }
+            })
+
+            return hasChanges ? nextEdges : currentEdges
+        })
+    }, [nodes, setEdges])
+
     const {
         onNodesChange,
         onNodeDragStart,

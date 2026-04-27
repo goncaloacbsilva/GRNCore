@@ -73,6 +73,8 @@ export function RegulatoryEdge({
     const regulatoryStyle = data
         ? determineRegulatoryEdgeStyle(data)
         : REGULATORY_EDGE_STYLES.activation
+    const hasInvalidLevels =
+        data?.levels.some((level) => !level.isValid) ?? false
 
     const {
         startHandleId,
@@ -156,6 +158,12 @@ export function RegulatoryEdge({
         { id: startHandleId, position: startHandlePosition },
         { id: endHandleId, position: endHandlePosition },
     ]
+    const baseWarningPoint =
+        allPoints[Math.floor(allPoints.length / 2)] ?? sourcePoint
+    const warningPoint = {
+        x: baseWarningPoint.x - 25,
+        y: baseWarningPoint.y,
+    }
 
     return (
         <>
@@ -193,6 +201,29 @@ export function RegulatoryEdge({
                     strokeWidth: REGULATORY_EDGE_STROKE_WIDTH,
                 }}
             />
+            {hasInvalidLevels && (
+                <>
+                    <circle
+                        cx={warningPoint.x}
+                        cy={warningPoint.y}
+                        r={8}
+                        fill="#ef4444"
+                        stroke="#ffffff"
+                        strokeWidth={1.5}
+                    />
+                    <text
+                        x={warningPoint.x}
+                        y={warningPoint.y + 3}
+                        textAnchor="middle"
+                        fontSize="10"
+                        fontWeight="700"
+                        fill="#ffffff"
+                        pointerEvents="none"
+                    >
+                        !
+                    </text>
+                </>
+            )}
             {isSelected &&
                 editableControlPoints.map((point, index) => (
                     <ControlPointHandle

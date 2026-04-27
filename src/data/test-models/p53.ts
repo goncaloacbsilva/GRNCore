@@ -50,7 +50,12 @@ export const P53_MODEL: InternalGRNModel = {
             target: 'node-2',
             data: {
                 levels: [
-                    { id: 'edge-1-level-1', type: 'inhibition', target: 1 },
+                    {
+                        id: 'edge-1-level-1',
+                        type: 'inhibition',
+                        target: 1,
+                        isValid: true,
+                    },
                 ],
             },
         },
@@ -60,7 +65,12 @@ export const P53_MODEL: InternalGRNModel = {
             target: 'node-3',
             data: {
                 levels: [
-                    { id: 'edge-2-level-1', type: 'activation', target: 1 },
+                    {
+                        id: 'edge-2-level-1',
+                        type: 'activation',
+                        target: 1,
+                        isValid: true,
+                    },
                 ],
             },
         },
@@ -70,7 +80,12 @@ export const P53_MODEL: InternalGRNModel = {
             target: 'node-4',
             data: {
                 levels: [
-                    { id: 'edge-3-level-1', type: 'inhibition', target: 1 },
+                    {
+                        id: 'edge-3-level-1',
+                        type: 'inhibition',
+                        target: 1,
+                        isValid: true,
+                    },
                 ],
             },
         },
@@ -80,7 +95,12 @@ export const P53_MODEL: InternalGRNModel = {
             target: 'node-4',
             data: {
                 levels: [
-                    { id: 'edge-4-level-1', type: 'activation', target: 1 },
+                    {
+                        id: 'edge-4-level-1',
+                        type: 'activation',
+                        target: 1,
+                        isValid: true,
+                    },
                 ],
             },
         },
@@ -90,7 +110,12 @@ export const P53_MODEL: InternalGRNModel = {
             target: 'node-4',
             data: {
                 levels: [
-                    { id: 'edge-5-level-1', type: 'inhibition', target: 1 },
+                    {
+                        id: 'edge-5-level-1',
+                        type: 'inhibition',
+                        target: 1,
+                        isValid: true,
+                    },
                 ],
             },
         },
@@ -100,7 +125,12 @@ export const P53_MODEL: InternalGRNModel = {
             target: 'node-1',
             data: {
                 levels: [
-                    { id: 'edge-6-level-1', type: 'inhibition', target: 1 },
+                    {
+                        id: 'edge-6-level-1',
+                        type: 'inhibition',
+                        target: 1,
+                        isValid: true,
+                    },
                 ],
             },
         },
@@ -110,7 +140,12 @@ export const P53_MODEL: InternalGRNModel = {
             target: 'node-2',
             data: {
                 levels: [
-                    { id: 'edge-7-level-1', type: 'activation', target: 1 },
+                    {
+                        id: 'edge-7-level-1',
+                        type: 'activation',
+                        target: 1,
+                        isValid: true,
+                    },
                 ],
             },
         },

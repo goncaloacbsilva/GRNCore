@@ -17,6 +17,9 @@ const RegulatoryEdgeLevelBaseSchema = z.object({
 
     // Target activity level threshold for the interaction to occur (1-9)
     target: z.int().positive().max(9).min(1),
+
+    // Internal validity flag for the current graph context
+    isValid: z.boolean(),
 })
 
 export const RegulatoryEdgeLevelSchema = RegulatoryEdgeLevelBaseSchema
@@ -32,6 +35,8 @@ export const RegulatoryEdgeLevelWithDefaultsSchema =
 
         // Target activity level threshold for the interaction to occur (1-9)
         target: RegulatoryEdgeLevelBaseSchema.shape.target.default(1),
+
+        isValid: RegulatoryEdgeLevelBaseSchema.shape.isValid.default(false),
     })
 
 export const RegulatoryEdgeProperties = z.object({

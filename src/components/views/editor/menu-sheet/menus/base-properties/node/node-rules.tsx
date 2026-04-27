@@ -37,10 +37,17 @@ export function NodeRules({
 
     useEffect(() => {
         const nextRules = nodeData.rules.map((rule) => {
-            const isValid = isRegulatoryRuleExpressionValid(
-                rule.expression,
-                variableSuggestions
+            const hasTargetConflict = nodeData.rules.some(
+                (currentRule) =>
+                    currentRule.id !== rule.id &&
+                    currentRule.target === rule.target
             )
+            const isValid =
+                !hasTargetConflict &&
+                isRegulatoryRuleExpressionValid(
+                    rule.expression,
+                    variableSuggestions
+                )
 
             return rule.isValid === isValid ? rule : { ...rule, isValid }
         })
@@ -132,7 +139,7 @@ export function NodeRules({
                 {nodeData.rules.length > 0 ? (
                     nodeData.rules.map((rule, index) => (
                         <NodeRule
-                            key={rule.id}
+                            key={`${rule.id}:${rule.target}:${rule.expression}:${rule.isValid}`}
                             ruleKey={index}
                             rule={rule}
                             node={{ ...node, data: nodeData }}

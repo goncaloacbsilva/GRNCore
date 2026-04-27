@@ -143,6 +143,7 @@ export function useGraphInteractions({
                                     id: nanoid(),
                                     type: connectionInteraction,
                                     target: 1,
+                                    isValid: true,
                                 },
                             ],
                         },

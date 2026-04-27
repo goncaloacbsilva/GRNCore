@@ -40,6 +40,7 @@ export function NodeRule({
     removeCallback,
 }: NodeRuleProps) {
     const shouldValidateRef = useRef(false)
+
     const form = useAppForm({
         defaultValues: rule,
         validators: {
@@ -94,6 +95,10 @@ export function NodeRule({
     const isTouched = useStore(form.store, (state) => state.isTouched)
     const previousTargetRef = useRef(targetValue)
     const previousExpressionRef = useRef(expressionValue)
+    const hasTargetConflict = node.data.rules.some(
+        (currentRule) =>
+            currentRule.id !== rule.id && currentRule.target === rule.target
+    )
 
     useEffect(() => {
         if (rule.expression.trim().length === 0) {
@@ -103,6 +108,23 @@ export function NodeRule({
         shouldValidateRef.current = true
         void form.validateField('expression', 'change')
     }, [form, rule.expression])
+
+    useEffect(() => {
+        if (!hasTargetConflict && !shouldValidateRef.current) {
+            return
+        }
+
+        shouldValidateRef.current = true
+
+        if (hasTargetConflict) {
+            form.setFieldMeta('target', (prev) => ({
+                ...prev,
+                isTouched: true,
+            }))
+        }
+
+        void form.validateField('target', 'change')
+    }, [form, hasTargetConflict])
 
     useEffect(() => {
         if (
@@ -121,20 +143,28 @@ export function NodeRule({
         const targetChanged = previousTargetRef.current !== targetValue
         previousTargetRef.current = targetValue
 
-        if (!targetChanged || !isValid) {
+        if (!targetChanged || !targetSchema.safeParse(targetValue).success) {
             return
         }
 
+        const hasConflict = node.data.rules.some(
+            (currentRule) =>
+                currentRule.id !== rule.id &&
+                currentRule.target === formValues.target
+        )
+
         updateCallback(rule.id, {
             ...formValues,
-            isValid: isRegulatoryRuleExpressionValid(
-                formValues.expression,
-                variableSuggestions
-            ),
+            isValid:
+                !hasConflict &&
+                isRegulatoryRuleExpressionValid(
+                    formValues.expression,
+                    variableSuggestions
+                ),
         })
     }, [
         formValues,
-        isValid,
+        node.data.rules,
         rule.id,
         targetValue,
         updateCallback,
@@ -150,18 +180,27 @@ export function NodeRule({
             return
         }
 
+        const hasConflict = node.data.rules.some(
+            (currentRule) =>
+                currentRule.id !== rule.id &&
+                currentRule.target === formValues.target
+        )
+
         updateCallback(rule.id, {
             ...formValues,
-            isValid: isRegulatoryRuleExpressionValid(
-                formValues.expression,
-                variableSuggestions
-            ),
+            isValid:
+                !hasConflict &&
+                isRegulatoryRuleExpressionValid(
+                    formValues.expression,
+                    variableSuggestions
+                ),
         })
     }, [
         expressionValue,
         formValues,
         isTouched,
         isValid,
+        node.data.rules,
         rule.id,
         updateCallback,
         variableSuggestions,

@@ -32,6 +32,37 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
         (sourceNode?.data.activityLevels ?? 0)
 
     useEffect(() => {
+        const maxTargetLevel = sourceNode?.data.activityLevels
+        const nextLevels =
+            edge.data?.levels.map((level) => {
+                const hasConflict =
+                    edge.data?.levels.some(
+                        (currentLevel) =>
+                            currentLevel.id !== level.id &&
+                            currentLevel.target === level.target
+                    ) ?? false
+                const isWithinSourceRange =
+                    maxTargetLevel === undefined || level.target <= maxTargetLevel
+                const isValid = !hasConflict && isWithinSourceRange
+
+                return level.isValid === isValid ? level : { ...level, isValid }
+            }) ?? []
+
+        const levelsChanged =
+            edge.data?.levels.some((level, index) => level !== nextLevels[index]) ??
+            false
+
+        if (!levelsChanged) {
+            return
+        }
+
+        updateEdgeData(edge.id, {
+            ...edge.data,
+            levels: nextLevels,
+        })
+    }, [edge.data, edge.id, sourceNode?.data.activityLevels, updateEdgeData])
+
+    useEffect(() => {
         const levelsLength = edge.data?.levels.length ?? 0
 
         if (levelsLength > previousLevelsLengthRef.current) {
@@ -89,6 +120,7 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
                 id: nanoid(),
                 target: findNextTarget(),
                 type: InteractionType.Activation,
+                isValid: true,
             },
         ]
 
