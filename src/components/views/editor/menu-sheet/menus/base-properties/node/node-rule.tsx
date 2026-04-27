@@ -144,8 +144,26 @@ export function NodeRule({
                             name="expression"
                             children={(field) => (
                                 <field.RuleEditorField
-                                    label="Expression"
-                                    placeholder="Insert regulatory expression"
+                                    label="Logical expression"
+                                    placeholder="Regulatory logical expression"
+                                    tooltip={
+                                        <div className="flex flex-col">
+                                            <strong>
+                                                Insert node regulatory
+                                                expression
+                                            </strong>
+                                            <span>
+                                                For syntax refer to:{' '}
+                                                <a
+                                                    className="hover:underline"
+                                                    target="_blank"
+                                                    href="https://colomoto.github.io"
+                                                >
+                                                    https://colomoto.github.io
+                                                </a>
+                                            </span>
+                                        </div>
+                                    }
                                     variableSuggestions={variableSuggestions}
                                     variableActivityLevels={
                                         variableActivityLevels

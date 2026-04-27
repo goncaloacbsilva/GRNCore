@@ -30,9 +30,6 @@ export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
     monacoInstance.languages.register({ id: RULE_LANGUAGE_ID })
 
     monacoInstance.languages.setLanguageConfiguration(RULE_LANGUAGE_ID, {
-        comments: {
-            lineComment: '#',
-        },
         brackets: [['(', ')']],
         autoClosingPairs: [{ open: '(', close: ')' }],
         surroundingPairs: [{ open: '(', close: ')' }],
@@ -41,7 +38,6 @@ export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
     monacoInstance.languages.setMonarchTokensProvider(RULE_LANGUAGE_ID, {
         tokenizer: {
             root: [
-                [/#.*$/, 'comment'],
                 [/[a-zA-Z_][a-zA-Z0-9_]*/, 'identifier'],
                 [/[0-9]/, 'number'],
                 [/[:]/, 'delimiter'],
@@ -143,7 +139,6 @@ export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
         base: 'vs',
         inherit: true,
         rules: [
-            { token: 'comment', foreground: '5f8f61', fontStyle: 'italic' },
             { token: 'number', foreground: 'c27d2c' },
             { token: 'operator', foreground: '2f81ed' },
             { token: 'delimiter.parenthesis', foreground: '8f6feb' },

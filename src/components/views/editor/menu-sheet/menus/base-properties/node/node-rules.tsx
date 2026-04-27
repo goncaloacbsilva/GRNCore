@@ -146,7 +146,7 @@ function AddNodeRuleButton({
                 disabled={disabled}
             >
                 <Plus />
-                Add rule
+                Add logical expression
             </Button>
         </span>
     )
