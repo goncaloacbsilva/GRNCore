@@ -65,4 +65,8 @@ export function useHotkeysSetup() {
     useHotkeys('mod+e', () => setConnectMode(!connectModeEnabled), {
         preventDefault: true,
     })
+
+    useHotkeys('esc', () => setConnectMode(false), {
+        preventDefault: true,
+    })
 }

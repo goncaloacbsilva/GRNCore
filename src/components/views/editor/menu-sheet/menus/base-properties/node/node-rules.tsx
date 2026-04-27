@@ -184,7 +184,10 @@ function AddNodeRuleButton({
         <Tooltip>
             {disabled ? <TooltipTrigger asChild>{btn}</TooltipTrigger> : btn}
             <TooltipContent side="bottom">
-                <p>Node rules are limited by the node activity levels</p>
+                <p>
+                    Node logical expressions are limited by the node activity
+                    levels
+                </p>
             </TooltipContent>
         </Tooltip>
     )
