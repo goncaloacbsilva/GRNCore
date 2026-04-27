@@ -1,4 +1,8 @@
 import { useAppForm } from '@/components/forms'
+import {
+    isRegulatoryRuleExpressionValid,
+    validateRegulatoryRuleExpression,
+} from '@/lib/regulatory-rules'
 import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import { Item, ItemContent, ItemFooter } from '@/components/ui/item'
@@ -47,6 +51,10 @@ export function NodeRule({
                 const schemaErrors = formApi.parseValuesWithSchema(
                     RegulatoryNodeRuleSchema
                 )
+                const expressionError = validateRegulatoryRuleExpression(
+                    value.expression,
+                    variableSuggestions
+                )
                 const conflict = node.data.rules.some(
                     (currentRule) =>
                         currentRule.id !== rule.id &&
@@ -62,6 +70,12 @@ export function NodeRule({
                                 {
                                     message: 'Target level value conflict',
                                 },
+                            ],
+                        }),
+                        ...(expressionError && {
+                            expression: [
+                                ...(schemaErrors?.fields?.expression ?? []),
+                                { message: expressionError },
                             ],
                         }),
                     },
@@ -80,6 +94,15 @@ export function NodeRule({
     const isTouched = useStore(form.store, (state) => state.isTouched)
     const previousTargetRef = useRef(targetValue)
     const previousExpressionRef = useRef(expressionValue)
+
+    useEffect(() => {
+        if (rule.expression.trim().length === 0) {
+            return
+        }
+
+        shouldValidateRef.current = true
+        void form.validateField('expression', 'change')
+    }, [form, rule.expression])
 
     useEffect(() => {
         if (
@@ -102,8 +125,21 @@ export function NodeRule({
             return
         }
 
-        updateCallback(rule.id, formValues)
-    }, [formValues, isValid, rule.id, targetValue, updateCallback])
+        updateCallback(rule.id, {
+            ...formValues,
+            isValid: isRegulatoryRuleExpressionValid(
+                formValues.expression,
+                variableSuggestions
+            ),
+        })
+    }, [
+        formValues,
+        isValid,
+        rule.id,
+        targetValue,
+        updateCallback,
+        variableSuggestions,
+    ])
 
     useEffect(() => {
         const expressionChanged =
@@ -114,7 +150,13 @@ export function NodeRule({
             return
         }
 
-        updateCallback(rule.id, formValues)
+        updateCallback(rule.id, {
+            ...formValues,
+            isValid: isRegulatoryRuleExpressionValid(
+                formValues.expression,
+                variableSuggestions
+            ),
+        })
     }, [
         expressionValue,
         formValues,
@@ -122,6 +164,7 @@ export function NodeRule({
         isValid,
         rule.id,
         updateCallback,
+        variableSuggestions,
     ])
 
     return (

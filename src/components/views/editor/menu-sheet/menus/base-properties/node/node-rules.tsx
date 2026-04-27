@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { isRegulatoryRuleExpressionValid } from '@/lib/regulatory-rules'
 import {
     Tooltip,
     TooltipContent,
@@ -33,6 +34,33 @@ export function NodeRules({
     const previousRulesLengthRef = useRef(nodeData.rules.length)
 
     const disableAddRule = nodeData.rules.length + 1 > nodeData.activityLevels
+
+    useEffect(() => {
+        const nextRules = nodeData.rules.map((rule) => {
+            const isValid = isRegulatoryRuleExpressionValid(
+                rule.expression,
+                variableSuggestions
+            )
+
+            return rule.isValid === isValid ? rule : { ...rule, isValid }
+        })
+
+        const rulesChanged = nextRules.some(
+            (rule, index) => rule !== nodeData.rules[index]
+        )
+
+        if (!rulesChanged) {
+            return
+        }
+
+        updateNode(node.id, (currentNode) => ({
+            ...currentNode,
+            data: {
+                ...currentNode.data,
+                rules: nextRules,
+            },
+        }))
+    }, [node.id, nodeData.rules, updateNode, variableSuggestions])
 
     useEffect(() => {
         const rulesLength = nodeData.rules.length
@@ -84,6 +112,7 @@ export function NodeRules({
             id: nanoid(),
             target: findNextTarget(),
             expression: '',
+            isValid: false,
         }
         const nextRules: RegulatoryNodeRule[] = [...nodeData.rules, newRule]
 
