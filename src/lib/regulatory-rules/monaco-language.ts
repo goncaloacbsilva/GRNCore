@@ -2,13 +2,23 @@ import type * as monaco from 'monaco-editor'
 
 export const RULE_LANGUAGE_ID = 'regulatory-rule'
 export const RULE_THEME_ID = 'regulatory-rule-theme'
+const VARIABLE_NAME_PATTERN =
+    String.raw`[A-Za-z_][A-Za-z0-9_]*(?:\s+[A-Za-z0-9_]+)*`
+const SETUP_STATE_KEY = Symbol.for('grn-core.regulatory-rule-language-setup')
 
-let isRuleLanguageRegistered = false
 interface RegulatoryRuleSuggestionContext {
     variables: string[]
     variableActivityLevels: Record<string, number>
 }
 
+interface RegulatoryRuleLanguageSetupState {
+    isRegistered: boolean
+}
+
+const setupState =
+    ((globalThis as Record<symbol, RegulatoryRuleLanguageSetupState | undefined>)[
+        SETUP_STATE_KEY
+    ] ??= { isRegistered: false })
 const suggestionsByModelUri = new Map<string, RegulatoryRuleSuggestionContext>()
 
 export function setRegulatoryRuleSuggestions(
@@ -23,7 +33,7 @@ export function clearRegulatoryRuleSuggestions(modelUri: string) {
 }
 
 export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
-    if (isRuleLanguageRegistered) {
+    if (setupState.isRegistered) {
         return
     }
 
@@ -38,7 +48,7 @@ export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
     monacoInstance.languages.setMonarchTokensProvider(RULE_LANGUAGE_ID, {
         tokenizer: {
             root: [
-                [/[a-zA-Z_][a-zA-Z0-9_]*/, 'identifier'],
+                [/[a-zA-Z_][a-zA-Z0-9_]*(?:\s+[a-zA-Z0-9_]+)*/, 'identifier'],
                 [/[0-9]/, 'number'],
                 [/[:]/, 'delimiter'],
                 [/[()]/, 'delimiter.parenthesis'],
@@ -67,13 +77,12 @@ export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
                 endColumn: wordUntilPosition.endColumn,
             }
             const completedConditionMatch =
-                /(?:^|[\s(&|!]+)[A-Za-z_][A-Za-z0-9_]*\s*:\s*[0-9]+\s*$/.exec(
-                    linePrefix
-                )
-            const assignmentMatch =
-                /(?:^|[\s(&|!]+)([A-Za-z_][A-Za-z0-9_]*)\s*:\s*$/.exec(
-                    linePrefix
-                )
+                new RegExp(
+                    `(?:^|[\\s(&|!]+)${VARIABLE_NAME_PATTERN}\\s*:\\s*[0-9]+\\s*$`
+                ).exec(linePrefix)
+            const assignmentMatch = new RegExp(
+                `(?:^|[\\s(&|!]+)(${VARIABLE_NAME_PATTERN})\\s*:\\s*$`
+            ).exec(linePrefix)
 
             if (completedConditionMatch) {
                 return {
@@ -125,7 +134,9 @@ export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
             }
 
             return {
-                suggestions: suggestionContext.variables.map((suggestion) => ({
+                suggestions: Array.from(
+                    new Set(suggestionContext.variables)
+                ).map((suggestion) => ({
                     label: suggestion,
                     kind: monacoInstance.languages.CompletionItemKind.Variable,
                     insertText: suggestion,
@@ -160,5 +171,5 @@ export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
         },
     })
 
-    isRuleLanguageRegistered = true
+    setupState.isRegistered = true
 }

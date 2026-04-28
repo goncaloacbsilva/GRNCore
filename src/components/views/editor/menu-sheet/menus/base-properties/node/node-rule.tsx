@@ -12,6 +12,7 @@ import {
     type RegulatoryNodeProperties,
     type RegulatoryNodeRule,
 } from '@/lib/schema'
+import { useEditorStore } from '@/store'
 import { useStore } from '@tanstack/react-form'
 import { type Node } from '@xyflow/react'
 import { XIcon } from 'lucide-react'
@@ -24,6 +25,7 @@ interface NodeRuleProps {
     ruleKey: number
     rule: RegulatoryNodeRule
     node: Node<RegulatoryNodeProperties>
+    incomingNodes: Node<RegulatoryNodeProperties>[]
     variableSuggestions: string[]
     variableActivityLevels: Record<string, number>
     updateCallback: (ruleId: string, rule: RegulatoryNodeRule) => void
@@ -34,12 +36,18 @@ export function NodeRule({
     ruleKey,
     rule,
     node,
+    incomingNodes,
     variableSuggestions,
     variableActivityLevels,
     updateCallback,
     removeCallback,
 }: NodeRuleProps) {
     const shouldValidateRef = useRef(false)
+    const isRuleFocusedRef = useRef(false)
+    const ruleContainerRef = useRef<HTMLDivElement | null>(null)
+    const setSnapshotPaused = useEditorStore(
+        (state) => state.setSnapshotPaused
+    )
 
     const form = useAppForm({
         defaultValues: rule,
@@ -54,7 +62,7 @@ export function NodeRule({
                 )
                 const expressionError = validateRegulatoryRuleExpression(
                     value.expression,
-                    variableSuggestions
+                    incomingNodes
                 )
                 const conflict = node.data.rules.some(
                     (currentRule) =>
@@ -86,18 +94,81 @@ export function NodeRule({
     })
 
     const targetValue = useStore(form.store, (state) => state.values.target)
-    const expressionValue = useStore(
-        form.store,
-        (state) => state.values.expression
-    )
     const formValues = useStore(form.store, (state) => state.values)
-    const isValid = useStore(form.store, (state) => state.isValid)
-    const isTouched = useStore(form.store, (state) => state.isTouched)
     const previousTargetRef = useRef(targetValue)
-    const previousExpressionRef = useRef(expressionValue)
+    const latestFormValuesRef = useRef(formValues)
+    const latestNodeRulesRef = useRef(node.data.rules)
+    const latestIncomingNodesRef = useRef(incomingNodes)
+    const latestRuleRef = useRef(rule)
+    const latestUpdateCallbackRef = useRef(updateCallback)
     const hasTargetConflict = node.data.rules.some(
         (currentRule) =>
             currentRule.id !== rule.id && currentRule.target === rule.target
+    )
+
+    latestFormValuesRef.current = formValues
+    latestNodeRulesRef.current = node.data.rules
+    latestIncomingNodesRef.current = incomingNodes
+    latestRuleRef.current = rule
+    latestUpdateCallbackRef.current = updateCallback
+
+    const persistRuleValues = () => {
+        const values = latestFormValuesRef.current
+        const currentRule = latestRuleRef.current
+
+        if (
+            values.target === currentRule.target &&
+            values.expression === currentRule.expression
+        ) {
+            return
+        }
+
+        const targetParseResult = targetSchema.safeParse(values.target)
+        const target = targetParseResult.success
+            ? targetParseResult.data
+            : currentRule.target
+        const hasConflict = latestNodeRulesRef.current.some(
+            (nodeRule) =>
+                nodeRule.id !== currentRule.id && nodeRule.target === target
+        )
+        const isExpressionValid = isRegulatoryRuleExpressionValid(
+            values.expression,
+            latestIncomingNodesRef.current
+        )
+
+        latestUpdateCallbackRef.current(currentRule.id, {
+            ...values,
+            target,
+            isValid:
+                targetParseResult.success && !hasConflict && isExpressionValid,
+        })
+    }
+
+    useEffect(() => {
+        if (isRuleFocusedRef.current) {
+            return
+        }
+
+        if (
+            formValues.target === rule.target &&
+            formValues.expression === rule.expression
+        ) {
+            return
+        }
+
+        previousTargetRef.current = rule.target
+        form.reset(rule)
+    }, [form, formValues.expression, formValues.target, rule])
+
+    useEffect(
+        () => () => {
+            persistRuleValues()
+            setSnapshotPaused(false)
+        },
+        // This cleanup intentionally uses refs so unmount commits the latest
+        // in-progress editor value without resetting on every render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        []
     )
 
     useEffect(() => {
@@ -159,56 +230,81 @@ export function NodeRule({
                 !hasConflict &&
                 isRegulatoryRuleExpressionValid(
                     formValues.expression,
-                    variableSuggestions
+                    incomingNodes
                 ),
         })
     }, [
         formValues,
+        incomingNodes,
         node.data.rules,
         rule.id,
         targetValue,
         updateCallback,
-        variableSuggestions,
     ])
 
     useEffect(() => {
-        const expressionChanged =
-            previousExpressionRef.current !== expressionValue
-        previousExpressionRef.current = expressionValue
+        const { expression, target } = formValues
 
-        if (!expressionChanged || !isTouched || !isValid) {
+        if (target !== rule.target) {
             return
         }
 
+        const targetParseResult = targetSchema.safeParse(target)
         const hasConflict = node.data.rules.some(
             (currentRule) =>
                 currentRule.id !== rule.id &&
-                currentRule.target === formValues.target
+                currentRule.target === target
         )
+        const isExpressionValid = isRegulatoryRuleExpressionValid(
+            expression,
+            incomingNodes
+        )
+        const isValid =
+            targetParseResult.success && !hasConflict && isExpressionValid
+
+        if (rule.isValid === isValid) {
+            return
+        }
 
         updateCallback(rule.id, {
             ...formValues,
-            isValid:
-                !hasConflict &&
-                isRegulatoryRuleExpressionValid(
-                    formValues.expression,
-                    variableSuggestions
-                ),
+            isValid,
         })
     }, [
-        expressionValue,
         formValues,
-        isTouched,
-        isValid,
+        incomingNodes,
         node.data.rules,
-        rule.id,
+        rule,
         updateCallback,
-        variableSuggestions,
     ])
+
+    const handleFocusCapture = () => {
+        isRuleFocusedRef.current = true
+        setSnapshotPaused(true)
+    }
+
+    const handleBlurCapture = (event: React.FocusEvent<HTMLDivElement>) => {
+        if (
+            event.relatedTarget instanceof Node &&
+            ruleContainerRef.current?.contains(event.relatedTarget)
+        ) {
+            return
+        }
+
+        isRuleFocusedRef.current = false
+        setSnapshotPaused(false)
+    }
 
     return (
         <Fragment key={ruleKey}>
-            <Item variant="default" size="sm" className="group">
+            <Item
+                ref={ruleContainerRef}
+                variant="default"
+                size="sm"
+                className="group"
+                onFocusCapture={handleFocusCapture}
+                onBlurCapture={handleBlurCapture}
+            >
                 <ItemContent className="flex flex-col items-center gap-2">
                     <FieldGroup className="flex flex-col items-center gap-4">
                         <form.AppField
@@ -250,6 +346,7 @@ export function NodeRule({
                                     variableActivityLevels={
                                         variableActivityLevels
                                     }
+                                    onBlur={persistRuleValues}
                                 />
                             )}
                         />

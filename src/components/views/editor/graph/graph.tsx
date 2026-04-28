@@ -78,112 +78,110 @@ export function Graph({ model }: GraphProps) {
     ])
 
     useEffect(() => {
-        setNodes((currentNodes) => {
-            const incomingNodeNamesByTargetId = new Map<string, string[]>()
+        const incomingNodesByTargetId = new Map<typeof nodes[number]['id'], typeof nodes>()
 
-            edges.forEach((edge) => {
-                const sourceNodeName = currentNodes.find(
-                    (node) => node.id === edge.source
-                )?.data.name
+        edges.forEach((edge) => {
+            const sourceNode = nodes.find((node) => node.id === edge.source)
 
-                if (!sourceNodeName) {
-                    return
-                }
+            if (!sourceNode) {
+                return
+            }
 
-                const incomingNodeNames =
-                    incomingNodeNamesByTargetId.get(edge.target) ?? []
-                incomingNodeNames.push(sourceNodeName)
-                incomingNodeNamesByTargetId.set(edge.target, incomingNodeNames)
-            })
+            const incomingNodes = incomingNodesByTargetId.get(edge.target) ?? []
+            incomingNodes.push(sourceNode)
+            incomingNodesByTargetId.set(edge.target, incomingNodes)
+        })
 
-            let hasChanges = false
-            const nextNodes = currentNodes.map((node) => {
-                if (node.data.rules.length === 0) {
-                    return node
-                }
+        let hasChanges = false
+        const nextNodes = nodes.map((node) => {
+            if (node.data.rules.length === 0) {
+                return node
+            }
 
-                const incomingNodeNames =
-                    incomingNodeNamesByTargetId.get(node.id) ?? []
-                const nextRules = node.data.rules.map((rule) => {
-                    const isValid = isRegulatoryRuleExpressionValid(
-                        rule.expression,
-                        incomingNodeNames
-                    )
-
-                    return rule.isValid === isValid
-                        ? rule
-                        : { ...rule, isValid }
-                })
-
-                const rulesChanged = nextRules.some(
-                    (rule, index) => rule !== node.data.rules[index]
+            const incomingNodes = incomingNodesByTargetId.get(node.id) ?? []
+            const nextRules = node.data.rules.map((rule) => {
+                const isValid = isRegulatoryRuleExpressionValid(
+                    rule.expression,
+                    incomingNodes
                 )
 
-                if (!rulesChanged) {
-                    return node
-                }
-
-                hasChanges = true
-                return {
-                    ...node,
-                    data: {
-                        ...node.data,
-                        rules: nextRules,
-                    },
-                }
+                return rule.isValid === isValid ? rule : { ...rule, isValid }
             })
 
-            return hasChanges ? nextNodes : currentNodes
+            const rulesChanged = nextRules.some(
+                (rule, index) => rule !== node.data.rules[index]
+            )
+
+            if (!rulesChanged) {
+                return node
+            }
+
+            hasChanges = true
+            return {
+                ...node,
+                data: {
+                    ...node.data,
+                    rules: nextRules,
+                },
+            }
         })
-    }, [edges, setNodes])
+
+        if (!hasChanges) {
+            return
+        }
+
+        setNodes(nextNodes)
+    }, [edges, nodes, setNodes])
 
     useEffect(() => {
-        setEdges((currentEdges) => {
-            let hasChanges = false
-            const nextEdges = currentEdges.map((edge) => {
-                const sourceActivityLevels = nodes.find(
-                    (node) => node.id === edge.source
-                )?.data.activityLevels
-                const nextLevels =
-                    edge.data?.levels.map((level) => {
-                        const hasConflict =
-                            edge.data?.levels.some(
-                                (currentLevel) =>
-                                    currentLevel.id !== level.id &&
-                                    currentLevel.target === level.target
-                            ) ?? false
-                        const isWithinSourceRange =
-                            sourceActivityLevels === undefined ||
-                            level.target <= sourceActivityLevels
-                        const isValid = !hasConflict && isWithinSourceRange
+        let hasChanges = false
+        const nextEdges = edges.map((edge) => {
+            const sourceActivityLevels = nodes.find(
+                (node) => node.id === edge.source
+            )?.data.activityLevels
+            const nextLevels =
+                edge.data?.levels.map((level) => {
+                    const hasConflict =
+                        edge.data?.levels.some(
+                            (currentLevel) =>
+                                currentLevel.id !== level.id &&
+                                currentLevel.target === level.target
+                        ) ?? false
+                    const isWithinSourceRange =
+                        sourceActivityLevels === undefined ||
+                        level.target <= sourceActivityLevels
+                    const isValid = !hasConflict && isWithinSourceRange
 
-                        return level.isValid === isValid
-                            ? level
-                            : { ...level, isValid }
-                    }) ?? []
+                    return level.isValid === isValid
+                        ? level
+                        : { ...level, isValid }
+                }) ?? []
 
-                const levelsChanged =
-                    edge.data?.levels.some(
-                        (level, index) => level !== nextLevels[index]
-                    ) ?? false
+            const levelsChanged =
+                edge.data?.levels.some(
+                    (level, index) => level !== nextLevels[index]
+                ) ?? false
 
-                if (!levelsChanged) {
-                    return edge
-                }
+            if (!levelsChanged) {
+                return edge
+            }
 
-                hasChanges = true
-                return {
-                    ...edge,
-                    data: {
-                        ...edge.data,
-                        levels: nextLevels,
-                    },
-                }
-            })
-
-            return hasChanges ? nextEdges : currentEdges
+            hasChanges = true
+            return {
+                ...edge,
+                data: {
+                    ...edge.data,
+                    levels: nextLevels,
+                },
+            }
         })
-    }, [nodes, setEdges])
+
+        if (!hasChanges) {
+            return
+        }
+
+        setEdges(nextEdges)
+    }, [edges, nodes, setEdges])
 
     const {
         onNodesChange,

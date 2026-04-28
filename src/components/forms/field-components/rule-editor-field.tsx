@@ -33,6 +33,7 @@ interface RuleEditorFieldProps {
     placeholder: string
     variableSuggestions?: string[]
     variableActivityLevels?: Record<string, number>
+    onBlur?: () => void
 }
 
 export function RuleEditorField({
@@ -42,6 +43,7 @@ export function RuleEditorField({
     tooltip,
     variableSuggestions = [],
     variableActivityLevels = {},
+    onBlur,
 }: RuleEditorFieldProps) {
     const field = useFieldContext<string>()
     const editorId = useId().replace(/:/g, '-')
@@ -107,7 +109,10 @@ export function RuleEditorField({
                                     },
                                     '!suggestWidgetVisible'
                                 )
-                                editor.onDidBlurEditorText(field.handleBlur)
+                                editor.onDidBlurEditorText(() => {
+                                    field.handleBlur()
+                                    onBlur?.()
+                                })
                             }}
                             options={{
                                 automaticLayout: true,

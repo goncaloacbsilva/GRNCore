@@ -44,15 +44,48 @@ const sanitizeSnapshot = (
     nodes: Node<RegulatoryNodeProperties>[],
     edges: Edge<EditableRegulatoryEdge>[]
 ): InternalGRNModel => ({
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    nodes: nodes.map(({ selected: _, ...node }) => node),
+    nodes: nodes.map((node) => {
+        const nodeSnapshot = {
+            ...node,
+            data: {
+                ...node.data,
+                rules: node.data.rules.map((rule) => ({
+                    ...rule,
+                    isValid: false,
+                })),
+            },
+        }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    edges: edges.map(({ selected: _, ...edge }) => edge),
+        delete nodeSnapshot.selected
+
+        return nodeSnapshot
+    }),
+
+    edges: edges.map((edge) => {
+        const edgeSnapshot = {
+            ...edge,
+            data: edge.data
+                ? {
+                      ...edge.data,
+                      levels: edge.data.levels.map((level) => ({
+                          ...level,
+                          isValid: false,
+                      })),
+                  }
+                : edge.data,
+        }
+
+        delete edgeSnapshot.selected
+
+        return edgeSnapshot
+    }),
 })
 
 const isDataChange = (path: readonly (string | number)[]) =>
     (path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'data'
+
+const isSelectionChange = (path: readonly (string | number)[]) =>
+    (path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'selected'
 
 export const useChangesTracking = create<HistoryState>()(
     travel(
@@ -81,8 +114,10 @@ export const useChangesTracking = create<HistoryState>()(
                     const isSameSnapshot = snapshotChanges.length === 0
 
                     if (isSameSnapshot) {
-                        const selectionChanged =
-                            diff(currentSnapshot, nextSnapshot).length > 0
+                        const selectionChanged = diff(
+                            currentSnapshot,
+                            nextSnapshot
+                        ).some((change) => isSelectionChange(change.path))
 
                         if (selectionChanged) {
                             set({

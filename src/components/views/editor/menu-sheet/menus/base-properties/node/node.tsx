@@ -9,7 +9,7 @@ import {
 } from '@/lib/schema'
 import { useStore as useFormStore } from '@tanstack/react-form'
 import { useStore, useReactFlow, type Edge, type Node } from '@xyflow/react'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import * as z from 'zod'
 import { shallow } from 'zustand/shallow'
 import { NodeRules } from './node-rules'
@@ -113,22 +113,33 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         ...nodeData,
         ...formValues,
     }
-    const variableSuggestions = Array.from(
-        new Set(
-            incomingEdges
-                .map((edge) => getNode(edge.source)?.data.name)
-                .filter((name): name is string => Boolean(name))
-        )
-    )
-    const variableActivityLevels = Object.fromEntries(
-        incomingEdges.flatMap((edge) => {
-            const sourceNode = getNode(edge.source)
-            const sourceName = sourceNode?.data.name
+    const incomingNodes = useMemo(
+        () =>
+            incomingEdges.flatMap((edge) => {
+                const sourceNode = getNode(edge.source)
 
-            return sourceName
-                ? [[sourceName, sourceNode.data.activityLevels]]
-                : []
-        })
+                return sourceNode ? [sourceNode] : []
+            }),
+        [getNode, incomingEdges]
+    )
+    const variableSuggestions = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    incomingNodes.map((incomingNode) => incomingNode.data.name)
+                )
+            ),
+        [incomingNodes]
+    )
+    const variableActivityLevels = useMemo(
+        () =>
+            Object.fromEntries(
+                incomingNodes.map((incomingNode) => [
+                    incomingNode.data.name,
+                    incomingNode.data.activityLevels,
+                ])
+            ),
+        [incomingNodes]
     )
 
     useEffect(() => {
@@ -205,6 +216,7 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
             {!currentIsInputNode && (
                 <NodeRules
                     node={{ ...node, data: currentNodeData }}
+                    incomingNodes={incomingNodes}
                     variableSuggestions={variableSuggestions}
                     variableActivityLevels={variableActivityLevels}
                 />

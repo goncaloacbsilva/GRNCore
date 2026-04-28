@@ -1,16 +1,11 @@
-import * as ohm from 'ohm-js'
-import regulatoryRuleGrammarSource from './regulatory-rule.ohm?raw'
-
-const regulatoryRuleGrammar = ohm.grammar(regulatoryRuleGrammarSource)
-const VARIABLE_PATTERN = /[A-Za-z_][A-Za-z0-9_]*/g
-
-function getReferencedVariables(expression: string) {
-    return Array.from(new Set(expression.match(VARIABLE_PATTERN) ?? []))
-}
+import type { RegulatoryNodeProperties } from '@/lib/schema'
+import type { Node } from '@xyflow/react'
+import { regulatoryRuleGrammar } from './grammar'
+import { getExpressionVars } from './semantics'
 
 export function validateRegulatoryRuleExpression(
     expression: string,
-    incomingNodes: string[]
+    incomingNodes: Node<RegulatoryNodeProperties>[]
 ) {
     const trimmedExpression = expression.trim()
 
@@ -27,8 +22,15 @@ export function validateRegulatoryRuleExpression(
         return matchResult.message
     }
 
-    const allowedNodes = new Set(incomingNodes)
-    const unknownVariables = getReferencedVariables(trimmedExpression).filter(
+    const expressionVars = getExpressionVars(matchResult)
+    const incomingNodeActivityLevels = new Map(
+        incomingNodes.map((node) => [node.data.name, node.data.activityLevels])
+    )
+    const allowedNodes = new Set(incomingNodeActivityLevels.keys())
+    const referencedVariables = Array.from(
+        new Set(expressionVars.map((expressionVar) => expressionVar.name))
+    )
+    const unknownVariables = referencedVariables.filter(
         (variable) => !allowedNodes.has(variable)
     )
 
@@ -38,12 +40,32 @@ export function validateRegulatoryRuleExpression(
             : `Unknown incoming nodes: ${unknownVariables.join(', ')}`
     }
 
+    const outOfRangeAssignments = expressionVars.filter(({ name, value }) => {
+        if (value === undefined) {
+            return false
+        }
+
+        const activityLevels = incomingNodeActivityLevels.get(name)
+
+        return activityLevels !== undefined && value > activityLevels
+    })
+
+    if (outOfRangeAssignments.length > 0) {
+        return outOfRangeAssignments.length === 1
+            ? `Assigned value ${outOfRangeAssignments[0].value} must be lower than or equal to the activity levels for incoming node ${outOfRangeAssignments[0].name}`
+            : `Assigned values exceed activity levels for incoming nodes: ${outOfRangeAssignments
+                  .map(({ name }) => name)
+                  .join(', ')}`
+    }
+
     return null
 }
 
 export function isRegulatoryRuleExpressionValid(
     expression: string,
-    incomingNodes: string[]
+    incomingNodes: Node<RegulatoryNodeProperties>[]
 ) {
-    return validateRegulatoryRuleExpression(expression, incomingNodes) === null
+    return (
+        validateRegulatoryRuleExpression(expression, incomingNodes) === null
+    )
 }

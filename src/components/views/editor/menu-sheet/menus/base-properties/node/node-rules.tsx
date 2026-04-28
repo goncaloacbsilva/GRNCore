@@ -19,12 +19,14 @@ import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty'
 
 interface NodeRulesProps {
     node: Node<RegulatoryNodeProperties>
+    incomingNodes: Node<RegulatoryNodeProperties>[]
     variableSuggestions: string[]
     variableActivityLevels: Record<string, number>
 }
 
 export function NodeRules({
     node,
+    incomingNodes,
     variableSuggestions,
     variableActivityLevels,
 }: NodeRulesProps) {
@@ -46,7 +48,7 @@ export function NodeRules({
                 !hasTargetConflict &&
                 isRegulatoryRuleExpressionValid(
                     rule.expression,
-                    variableSuggestions
+                    incomingNodes
                 )
 
             return rule.isValid === isValid ? rule : { ...rule, isValid }
@@ -67,7 +69,12 @@ export function NodeRules({
                 rules: nextRules,
             },
         }))
-    }, [node.id, nodeData.rules, updateNode, variableSuggestions])
+    }, [
+        node.id,
+        nodeData.rules,
+        incomingNodes,
+        updateNode,
+    ])
 
     useEffect(() => {
         const rulesLength = nodeData.rules.length
@@ -82,26 +89,31 @@ export function NodeRules({
         previousRulesLengthRef.current = rulesLength
     }, [nodeData.rules.length])
 
-    const updateNodeRules = (rules: RegulatoryNodeRule[]) => {
+    const updateNodeRules = (
+        updateRules: (rules: RegulatoryNodeRule[]) => RegulatoryNodeRule[]
+    ) => {
         updateNode(node.id, (currentNode) => ({
             ...currentNode,
             data: {
                 ...currentNode.data,
-                rules,
+                rules: updateRules(
+                    RegulatoryNodePropertiesSchema.parse(currentNode.data)
+                        .rules
+                ),
             },
         }))
     }
 
     const updateNodeRule = (ruleId: string, rule: RegulatoryNodeRule) => {
-        updateNodeRules(
-            nodeData.rules.map((currentRule) =>
+        updateNodeRules((rules) =>
+            rules.map((currentRule) =>
                 currentRule.id === ruleId ? rule : currentRule
             )
         )
     }
 
     const removeNodeRule = (ruleId: string) => {
-        updateNodeRules(nodeData.rules.filter((rule) => rule.id !== ruleId))
+        updateNodeRules((rules) => rules.filter((rule) => rule.id !== ruleId))
     }
 
     const findNextTarget = () => {
@@ -121,9 +133,7 @@ export function NodeRules({
             expression: '',
             isValid: false,
         }
-        const nextRules: RegulatoryNodeRule[] = [...nodeData.rules, newRule]
-
-        updateNodeRules(nextRules)
+        updateNodeRules((rules) => [...rules, newRule])
     }
 
     return (
@@ -139,10 +149,11 @@ export function NodeRules({
                 {nodeData.rules.length > 0 ? (
                     nodeData.rules.map((rule, index) => (
                         <NodeRule
-                            key={`${rule.id}:${rule.target}:${rule.expression}:${rule.isValid}`}
+                            key={rule.id}
                             ruleKey={index}
                             rule={rule}
                             node={{ ...node, data: nodeData }}
+                            incomingNodes={incomingNodes}
                             variableSuggestions={variableSuggestions}
                             variableActivityLevels={variableActivityLevels}
                             updateCallback={updateNodeRule}
