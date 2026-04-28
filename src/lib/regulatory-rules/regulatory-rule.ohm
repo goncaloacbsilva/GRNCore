@@ -19,11 +19,9 @@ RegulatoryRule {
   OrOp = "||" | "|"
   Not = "!"
 
-  Var = var
+  Var = ident
   Val = digit
 
-  var = ident (space+ identPart)*
   ident = (letter | "_") identRest*
   identRest = letter | digit | "_"
-  identPart = (letter | digit | "_")+
 }
