@@ -17,35 +17,33 @@ export function ZoomControls() {
     const { zoom } = useViewport()
 
     return (
-        <div className="absolute bottom-5 left-5">
-            <div className="flex flex-col gap-2">
-                <Button
-                    disabled={zoom == maxZoom}
-                    onClick={() =>
-                        void zoomIn({
-                            duration: 300,
-                            interpolate: 'smooth',
-                        })
-                    }
-                    variant="outline"
-                    size="icon"
-                >
-                    <ZoomInIcon />
-                </Button>
-                <Button
-                    disabled={zoom == minZoom}
-                    onClick={() =>
-                        void zoomOut({
-                            duration: 300,
-                            interpolate: 'smooth',
-                        })
-                    }
-                    variant="outline"
-                    size="icon"
-                >
-                    <ZoomOutIcon />
-                </Button>
-            </div>
+        <div className="flex flex-col gap-2">
+            <Button
+                disabled={zoom == maxZoom}
+                onClick={() =>
+                    void zoomIn({
+                        duration: 300,
+                        interpolate: 'smooth',
+                    })
+                }
+                variant="outline"
+                size="icon"
+            >
+                <ZoomInIcon />
+            </Button>
+            <Button
+                disabled={zoom == minZoom}
+                onClick={() =>
+                    void zoomOut({
+                        duration: 300,
+                        interpolate: 'smooth',
+                    })
+                }
+                variant="outline"
+                size="icon"
+            >
+                <ZoomOutIcon />
+            </Button>
         </div>
     )
 }

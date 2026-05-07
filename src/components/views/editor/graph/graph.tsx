@@ -10,7 +10,7 @@ import {
     useEdgesState,
     useNodesState,
 } from '@xyflow/react'
-import { Toolbar, ZoomControls } from '../overlay'
+import { Annotations, Toolbar, ZoomControls } from '../overlay'
 
 import '@xyflow/react/dist/style.css'
 import './graph.css'
@@ -34,8 +34,9 @@ import {
     useGraphInteractions,
 } from './utils'
 import { useHotkeysSetup } from '@/hooks'
-import { useEffect } from 'react'
+import { type CSSProperties, useEffect } from 'react'
 import { useChangesTracking, useEditorStore } from '@/store'
+import { twJoin } from 'tailwind-merge'
 
 interface GraphProps {
     model: InternalGRNModel
@@ -59,6 +60,15 @@ export function Graph({ model }: GraphProps) {
     const dragging = useEditorStore((state) => state.isDragging)
     const isApplyingHistory = useEditorStore((state) => state.isApplyingHistory)
     const isSnapshotPaused = useEditorStore((state) => state.isSnapshotPaused)
+    const isConnectModeEnabled = useEditorStore(
+        (state) => state.connectModeEnabled
+    )
+    const isMenuSheetOpen =
+        nodes.some((node) => node.selected) ||
+        edges.some((edge) => edge.selected)
+    const bottomOverlayStyle = {
+        '--editor-menu-sheet-width': isMenuSheetOpen ? '20rem' : '0px',
+    } as CSSProperties
 
     useEffect(() => {
         if (isApplyingHistory || isSnapshotPaused) {
@@ -78,7 +88,10 @@ export function Graph({ model }: GraphProps) {
     ])
 
     useEffect(() => {
-        const incomingNodesByTargetId = new Map<typeof nodes[number]['id'], typeof nodes>()
+        const incomingNodesByTargetId = new Map<
+            (typeof nodes)[number]['id'],
+            typeof nodes
+        >()
 
         edges.forEach((edge) => {
             const sourceNode = nodes.find((node) => node.id === edge.source)
@@ -261,7 +274,22 @@ export function Graph({ model }: GraphProps) {
                 pannable
             />
             <Panel position="bottom-left">
-                <ZoomControls />
+                <div
+                    className="pointer-events-none absolute bottom-5 left-5 flex w-[calc(100vw-2.5rem-var(--editor-menu-sheet-width))] items-end justify-center transition-[width] duration-300"
+                    style={bottomOverlayStyle}
+                >
+                    <div className="pointer-events-auto absolute bottom-0 left-0">
+                        <ZoomControls />
+                    </div>
+                    <div
+                        className={twJoin(
+                            'pointer-events-auto',
+                            isConnectModeEnabled && 'hidden'
+                        )}
+                    >
+                        <Annotations />
+                    </div>
+                </div>
             </Panel>
             <Panel position="top-left">
                 <Toolbar />

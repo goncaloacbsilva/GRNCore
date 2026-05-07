@@ -58,12 +58,6 @@ export function MenuSheet() {
                                     <TabsTrigger value="style">
                                         Style
                                     </TabsTrigger>
-
-                                    {selectedElements == 1 && (
-                                        <TabsTrigger value="annotations">
-                                            Annotations
-                                        </TabsTrigger>
-                                    )}
                                 </TabsList>
                             </div>
                         </div>
