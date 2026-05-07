@@ -185,7 +185,7 @@ export function Editor({
         <Collapsible
             open={isOpen}
             onOpenChange={setIsOpen}
-            className="bg-background flex h-10 w-120 min-h-0 flex-col overflow-hidden rounded-lg border shadow transition-[height] duration-200 ease-out data-[state=open]:h-full"
+            className="bg-background pointer-events-auto flex h-10 w-120 min-h-0 flex-col overflow-hidden rounded-lg border shadow transition-[height] duration-200 ease-out data-[state=open]:h-full"
         >
             <LexicalExtensionComposer
                 extension={AppExtension}

@@ -283,7 +283,7 @@ export function Graph({ model }: GraphProps) {
                     </div>
                     <div
                         className={twJoin(
-                            'pointer-events-auto',
+                            'pointer-events-none',
                             isConnectModeEnabled && 'hidden'
                         )}
                     >
