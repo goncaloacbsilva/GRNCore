@@ -7,6 +7,7 @@ import { create } from 'zustand'
 import { combine } from 'zustand/middleware'
 
 interface EditorState {
+    annotationsPanelOpen: boolean
     addNodeDialogVisible: boolean
     connectModeEnabled: boolean
     connectModeInteraction: InteractionType
@@ -22,6 +23,7 @@ interface EditorState {
     setDragging: (value: boolean) => void
     setApplyingHistory: (value: boolean) => void
     setSnapshotPaused: (value: boolean) => void
+    setAnnotationsPanelOpen: (open: boolean) => void
 
     pushSelectedNodeId: (node: string) => void
     popSelectedNodeId: (node: string) => void
@@ -44,6 +46,7 @@ export const useEditorStore = create<EditorState>()(
             isDragging: false,
             isApplyingHistory: false,
             isSnapshotPaused: false,
+            annotationsPanelOpen: false,
         },
         (set, get) => ({
             setAddNodeDialogVisible: (visible) =>
@@ -99,6 +102,9 @@ export const useEditorStore = create<EditorState>()(
                 if (model) {
                     pasteModel(model, instance, basePosition)
                 }
+            },
+            setAnnotationsPanelOpen: (open) => {
+                set(() => ({ annotationsPanelOpen: open }))
             },
         })
     )

@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/tooltip'
 import { Editor } from './tiptap-editor'
 import { ReferencesEditor } from './links-editor'
+import { useEditorStore } from '@/store'
+import { twJoin } from 'tailwind-merge'
 
 export function Annotations() {
     const { selectedNodes, selectedEdges } = useStore(
@@ -35,7 +37,9 @@ export function Annotations() {
         shallow
     )
 
-    const [isOpen, setIsOpen] = useState(true)
+    const isOpen = useEditorStore((state) => state.annotationsPanelOpen)
+    const setIsOpen = useEditorStore((state) => state.setAnnotationsPanelOpen)
+
     const [isEditing, setIsEditing] = useState(false)
 
     const selectedElements = selectedNodes.length + selectedEdges.length
@@ -57,7 +61,10 @@ export function Annotations() {
             <Collapsible
                 open={isOpen}
                 onOpenChange={setIsOpen}
-                className="bg-background pointer-events-auto flex h-10 w-200 min-h-0 flex-col overflow-hidden rounded-lg border transition-[height] duration-200 ease-out data-[state=open]:h-full"
+                className={twJoin(
+                    'bg-background pointer-events-auto flex h-10 min-h-0 flex-col overflow-hidden rounded-lg border transition-all duration-200 ease-out data-[state=open]:h-full',
+                    selectedElements === 0 ? 'w-160' : 'w-200'
+                )}
             >
                 <TooltipProvider>
                     <div className="flex h-10 shrink-0 items-center justify-between gap-2 overflow-auto border-b p-1">
