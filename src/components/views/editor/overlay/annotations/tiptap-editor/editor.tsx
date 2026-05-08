@@ -2,7 +2,6 @@ import { CodeHighlightNode, CodeNode } from '@lexical/code'
 import {
     AutoFocusExtension,
     DecoratorTextExtension,
-    SelectionAlwaysOnDisplayExtension,
 } from '@lexical/extension'
 import { ClickableLinkExtension, LinkExtension } from '@lexical/link'
 import { CheckListExtension, ListExtension } from '@lexical/list'
@@ -52,7 +51,6 @@ export function Editor({
                 dependencies: [
                     RichTextExtension,
                     AutoFocusExtension,
-                    SelectionAlwaysOnDisplayExtension,
                     configExtension(LinkExtension, {
                         validateUrl,
                         attributes: {

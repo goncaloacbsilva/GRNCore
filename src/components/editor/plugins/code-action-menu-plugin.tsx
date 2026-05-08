@@ -99,22 +99,25 @@ function CodeActionMenuContainer({
     return editor.registerMutationListener(
       CodeNode,
       (mutations) => {
-        editor.getEditorState().read(() => {
-          for (const [key, type] of mutations) {
-            switch (type) {
-              case "created":
-                codeSetRef.current.add(key);
-                break;
+        editor.getEditorState().read(
+          () => {
+            for (const [key, type] of mutations) {
+              switch (type) {
+                case "created":
+                  codeSetRef.current.add(key);
+                  break;
 
-              case "destroyed":
-                codeSetRef.current.delete(key);
-                break;
+                case "destroyed":
+                  codeSetRef.current.delete(key);
+                  break;
 
-              default:
-                break;
+                default:
+                  break;
+              }
             }
-          }
-        });
+          },
+          { editor },
+        );
         setShouldListenMouseMove(codeSetRef.current.size > 0);
       },
       { skipInitialization: false },

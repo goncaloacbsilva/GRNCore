@@ -120,7 +120,10 @@ export function Annotations() {
                     {hasSingleSelectedElement ? (
                         <div className="flex h-full min-h-0 min-w-0">
                             <div className="min-h-0 min-w-0 flex-[1.4]">
-                                <Editor isEditing={isEditing} />
+                                <Editor
+                                    onSerializedChange={console.log}
+                                    isEditing={isEditing}
+                                />
                             </div>
                             <div className="min-h-0 w-px shrink-0 bg-border" />
                             <div className="min-h-0 min-w-0 flex-1">

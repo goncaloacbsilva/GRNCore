@@ -3,6 +3,7 @@ import { type JSX, useCallback, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -31,6 +32,9 @@ export function useEditorModal(): [
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Editor modal dialog.
+            </DialogDescription>
           </DialogHeader>
           {content}
         </DialogContent>

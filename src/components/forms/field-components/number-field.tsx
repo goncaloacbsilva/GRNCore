@@ -29,11 +29,13 @@ export function NumberField({
     const field = useFieldContext<number>()
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+    const labelId = `${field.name}-label`
 
     return (
         <Field data-invalid={isInvalid}>
             <div className="flex flex-row justify-between gap-3">
                 <FieldLabel
+                    id={labelId}
                     className="w-fit whitespace-nowrap"
                     htmlFor={field.name}
                 >
@@ -49,6 +51,7 @@ export function NumberField({
                     onChange={(value: number) =>
                         field.setValue(value ?? min ?? 0)
                     }
+                    aria-labelledby={labelId}
                     invalid={isInvalid}
                     placeholder={placeholder}
                     maxValue={max}
