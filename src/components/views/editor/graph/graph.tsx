@@ -58,6 +58,10 @@ export function Graph({ model }: GraphProps) {
 
     const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
     const dragging = useEditorStore((state) => state.isDragging)
+    const modelAnnotations = useEditorStore((state) => state.modelAnnotations)
+    const setModelAnnotations = useEditorStore(
+        (state) => state.setModelAnnotations
+    )
     const isApplyingHistory = useEditorStore((state) => state.isApplyingHistory)
     const isSnapshotPaused = useEditorStore((state) => state.isSnapshotPaused)
     const isConnectModeEnabled = useEditorStore(
@@ -71,16 +75,21 @@ export function Graph({ model }: GraphProps) {
     } as CSSProperties
 
     useEffect(() => {
+        setModelAnnotations(model.annotations ?? null)
+    }, [model.annotations, setModelAnnotations])
+
+    useEffect(() => {
         if (isApplyingHistory || isSnapshotPaused) {
             return
         }
 
         if (!dragging) {
-            takeSnapshot(nodes, edges)
+            takeSnapshot(nodes, edges, modelAnnotations)
         }
     }, [
         nodes,
         edges,
+        modelAnnotations,
         dragging,
         isApplyingHistory,
         isSnapshotPaused,

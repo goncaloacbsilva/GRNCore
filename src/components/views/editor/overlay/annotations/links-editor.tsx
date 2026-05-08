@@ -5,12 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { EmptyDescription } from '@/components/ui/empty'
 
-interface Reference {
-    id: string
-    title: string
-    url: string
-}
-
 function normalizeUrl(url: string) {
     const trimmedUrl = url.trim()
 
@@ -21,8 +15,15 @@ function normalizeUrl(url: string) {
     return `https://${trimmedUrl}`
 }
 
-export function ReferencesEditor({ isEditing }: { isEditing: boolean }) {
-    const [references, setReferences] = useState<Reference[]>([])
+export function ReferencesEditor({
+    isEditing,
+    references,
+    onReferencesChange,
+}: {
+    isEditing: boolean
+    references: string[]
+    onReferencesChange: (references: string[]) => void
+}) {
     const [url, setUrl] = useState('')
 
     const normalizedUrl = normalizeUrl(url)
@@ -33,22 +34,13 @@ export function ReferencesEditor({ isEditing }: { isEditing: boolean }) {
             return
         }
 
-        setReferences((currentReferences) => [
-            ...currentReferences,
-            {
-                id: crypto.randomUUID(),
-                title: normalizedUrl,
-                url: normalizedUrl,
-            },
-        ])
+        onReferencesChange([...references, normalizedUrl])
         setUrl('')
     }
 
-    const removeReference = (referenceId: string) => {
-        setReferences((currentReferences) =>
-            currentReferences.filter(
-                (reference) => reference.id !== referenceId
-            )
+    const removeReference = (referenceIndex: number) => {
+        onReferencesChange(
+            references.filter((_, index) => index !== referenceIndex)
         )
     }
 
@@ -59,25 +51,25 @@ export function ReferencesEditor({ isEditing }: { isEditing: boolean }) {
                     <div className="flex h-full min-h-0 min-w-0 flex-col gap-3 p-3 text-sm">
                         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
                             <div className="grid min-w-0 gap-1.5">
-                                {references.map((reference) => (
+                                {references.map((reference, index) => (
                                     <div
-                                        key={reference.id}
+                                        key={`${reference}-${index}`}
                                         className="flex min-h-8 min-w-0 items-center gap-2 rounded-md border bg-background px-2 py-1 shadow-xs"
                                     >
                                         <a
-                                            href={reference.url}
+                                            href={reference}
                                             target="_blank"
                                             rel="noreferrer"
                                             className="min-w-0 flex-1 truncate text-sm hover:underline"
                                         >
-                                            {reference.title}
+                                            {reference}
                                         </a>
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon-xs"
                                             onClick={() =>
-                                                removeReference(reference.id)
+                                                removeReference(index)
                                             }
                                             aria-label="Remove reference"
                                         >
@@ -133,16 +125,16 @@ export function ReferencesEditor({ isEditing }: { isEditing: boolean }) {
                                 </div>
                             ) : (
                                 <div className="grid min-w-0 gap-1">
-                                    {references.map((reference) => (
+                                    {references.map((reference, index) => (
                                         <a
-                                            key={reference.id}
-                                            href={reference.url}
+                                            key={`${reference}-${index}`}
+                                            href={reference}
                                             target="_blank"
                                             rel="noreferrer"
                                             className="flex min-h-8 min-w-0 items-center gap-2 rounded-md border px-2 py-1 hover:bg-accent"
                                         >
                                             <span className="min-w-0 flex-1 truncate">
-                                                {reference.title}
+                                                {reference}
                                             </span>
                                             <ExternalLinkIcon className="size-3 shrink-0" />
                                         </a>

@@ -1,11 +1,14 @@
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
-import {
-    AutoFocusExtension,
-    DecoratorTextExtension,
-} from '@lexical/extension'
+import { AutoFocusExtension, DecoratorTextExtension } from '@lexical/extension'
 import { ClickableLinkExtension, LinkExtension } from '@lexical/link'
 import { CheckListExtension, ListExtension } from '@lexical/list'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer'
+import {
+    createEmptyHistoryState,
+    HistoryPlugin,
+    type HistoryState,
+} from '@lexical/react/LexicalHistoryPlugin'
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { RichTextExtension } from '@lexical/rich-text'
 import {
@@ -14,7 +17,7 @@ import {
     configExtension,
     defineExtension,
 } from 'lexical'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { AutoLinkExtension } from '@/components/editor/extensions/auto-link-extension'
 import { SpecialTextNode } from '@/components/editor/nodes/special-text-node'
@@ -32,6 +35,28 @@ type EditorProps = {
     editorSerializedState?: SerializedEditorState
     onChange?: (editorState: EditorState) => void
     onSerializedChange?: (editorSerializedState: SerializedEditorState) => void
+}
+
+function AnnotationHistoryPlugin({ isEditing }: { isEditing: boolean }) {
+    const [editor] = useLexicalComposerContext()
+    const historyState = useMemo<HistoryState>(() => {
+        return createEmptyHistoryState()
+    }, [])
+
+    useEffect(() => {
+        if (!isEditing) {
+            return
+        }
+
+        historyState.current = {
+            editor,
+            editorState: editor.getEditorState(),
+        }
+        historyState.undoStack = []
+        historyState.redoStack = []
+    }, [editor, historyState, isEditing])
+
+    return <HistoryPlugin externalHistoryState={historyState} />
 }
 
 export function Editor({
@@ -69,22 +94,22 @@ export function Editor({
                 name: '@shadcn-editor',
                 namespace: 'Playground',
                 nodes: [SpecialTextNode, CodeNode, CodeHighlightNode],
-                $initialEditorState(editor) {
-                    if (editorSerializedState) {
-                        editor.parseEditorState(editorSerializedState)
-                    } else if (editorState) {
-                        editor.setEditorState(editorState)
-                    }
-                },
+                $initialEditorState: editorSerializedState
+                    ? JSON.stringify(editorSerializedState)
+                    : editorState,
                 theme: annotationEditorTheme,
             }),
         [editorState, editorSerializedState]
     )
 
     return (
-        <LexicalExtensionComposer extension={AppExtension} contentEditable={null}>
+        <LexicalExtensionComposer
+            extension={AppExtension}
+            contentEditable={null}
+        >
             <TooltipProvider>
                 <EditableModePlugin isEditing={isEditing} />
+                <AnnotationHistoryPlugin isEditing={isEditing} />
                 <div className="relative flex h-full min-h-0 flex-col">
                     <ToolbarPlugin>
                         {({ blockType }) => (

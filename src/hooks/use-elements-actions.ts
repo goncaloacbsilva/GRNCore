@@ -29,6 +29,7 @@ export function useElementsActions() {
             }))
         )
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
+    const modelAnnotations = useEditorStore((state) => state.modelAnnotations)
     const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
     const { triggerNodeChanges, triggerEdgeChanges } = useStore(
         useShallow((state) => ({
@@ -52,7 +53,11 @@ export function useElementsActions() {
     }
 
     const runAsSingleHistoryStep = (fn: () => void) => {
-        takeSnapshot(reactFlowInstance.getNodes(), reactFlowInstance.getEdges())
+        takeSnapshot(
+            reactFlowInstance.getNodes(),
+            reactFlowInstance.getEdges(),
+            modelAnnotations
+        )
         setSnapshotPaused(true)
         fn()
 

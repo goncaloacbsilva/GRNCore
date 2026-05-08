@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
+import { AnnotationsSchema } from './annotations'
 
 export const InteractionType = {
     Activation: 'activation',
@@ -41,6 +42,7 @@ export const RegulatoryEdgeLevelWithDefaultsSchema =
 
 export const RegulatoryEdgeProperties = z.object({
     levels: z.array(RegulatoryEdgeLevelWithDefaultsSchema),
+    annotations: AnnotationsSchema,
 })
 
 export type InteractionType =
