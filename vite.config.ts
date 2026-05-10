@@ -27,6 +27,10 @@ export default defineConfig({
     },
     define: {
         __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+        // @lexical/code-prism's production ESM bundle references a free
+        // Prism global; rewrite it to the global object property that
+        // prismjs initializes.
+        Prism: 'globalThis.Prism',
     },
     build: {
         chunkSizeWarningLimit: 800,
