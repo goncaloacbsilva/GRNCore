@@ -24,7 +24,7 @@ export function useAnnotationTarget() {
         }),
         shallow
     )
-    const { updateNodeData, updateEdgeData } = useReactFlow<
+    const { updateNodeData, updateEdgeData, getNode } = useReactFlow<
         Node<RegulatoryNodeProperties>,
         Edge<EditableRegulatoryEdge>
     >()
@@ -39,6 +39,9 @@ export function useAnnotationTarget() {
     const selectedEdge = selectedEdges[0]
 
     if (selectedEdge && selectedElements === 1) {
+        const src = getNode(selectedEdge.source)
+        const trgt = getNode(selectedEdge.target)
+
         return {
             annotations: selectedEdge.data?.annotations as
                 | PersistedAnnotations
@@ -46,7 +49,7 @@ export function useAnnotationTarget() {
             hasSingleSelectedElement,
             key: selectedEdge.id,
             selectedElements,
-            title: 'Edge Annotations',
+            title: `Edge Annotations (${src?.data.name} → ${trgt?.data.name})`,
             updateAnnotations: (newAnnotations: AnnotationDraft) => {
                 updateEdgeData(selectedEdge.id, {
                     annotations: newAnnotations,
@@ -64,7 +67,7 @@ export function useAnnotationTarget() {
             hasSingleSelectedElement,
             key: selectedNode.id,
             selectedElements,
-            title: `${selectedNode.data.name} Annotations`,
+            title: `Node Annotations (${selectedNode.data.name})`,
             updateAnnotations: (newAnnotations: AnnotationDraft) => {
                 console.log(JSON.stringify(newAnnotations))
                 updateNodeData(selectedNode.id, {
