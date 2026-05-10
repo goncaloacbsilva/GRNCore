@@ -1,12 +1,15 @@
 import { getSelected, pasteModel } from '@/lib/graph'
 import { InteractionType, type InternalGRNModel } from '@/lib/schema'
 import type { ReactFlowInstance, XYPosition } from '@xyflow/react'
+import type { SerializedEditorState } from 'lexical'
 
 import { toast } from 'sonner'
 import { create } from 'zustand'
 import { combine } from 'zustand/middleware'
 
 interface EditorState {
+    modelAnnotations: SerializedEditorState | null
+    annotationsPanelOpen: boolean
     addNodeDialogVisible: boolean
     connectModeEnabled: boolean
     connectModeInteraction: InteractionType
@@ -22,6 +25,8 @@ interface EditorState {
     setDragging: (value: boolean) => void
     setApplyingHistory: (value: boolean) => void
     setSnapshotPaused: (value: boolean) => void
+    setAnnotationsPanelOpen: (open: boolean) => void
+    setModelAnnotations: (annotations: SerializedEditorState | null) => void
 
     pushSelectedNodeId: (node: string) => void
     popSelectedNodeId: (node: string) => void
@@ -44,6 +49,8 @@ export const useEditorStore = create<EditorState>()(
             isDragging: false,
             isApplyingHistory: false,
             isSnapshotPaused: false,
+            annotationsPanelOpen: false,
+            modelAnnotations: null as SerializedEditorState | null,
         },
         (set, get) => ({
             setAddNodeDialogVisible: (visible) =>
@@ -99,6 +106,12 @@ export const useEditorStore = create<EditorState>()(
                 if (model) {
                     pasteModel(model, instance, basePosition)
                 }
+            },
+            setAnnotationsPanelOpen: (open) => {
+                set(() => ({ annotationsPanelOpen: open }))
+            },
+            setModelAnnotations: (annotations) => {
+                set(() => ({ modelAnnotations: annotations }))
             },
         })
     )

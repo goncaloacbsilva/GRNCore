@@ -14,10 +14,9 @@ interface RegulatoryRuleLanguageSetupState {
     isRegistered: boolean
 }
 
-const setupState =
-    ((globalThis as Record<symbol, RegulatoryRuleLanguageSetupState | undefined>)[
-        SETUP_STATE_KEY
-    ] ??= { isRegistered: false })
+const setupState = ((
+    globalThis as Record<symbol, RegulatoryRuleLanguageSetupState | undefined>
+)[SETUP_STATE_KEY] ??= { isRegistered: false })
 const suggestionsByModelUri = new Map<string, RegulatoryRuleSuggestionContext>()
 
 export function setRegulatoryRuleSuggestions(
@@ -75,10 +74,9 @@ export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
                 startColumn: wordUntilPosition.startColumn,
                 endColumn: wordUntilPosition.endColumn,
             }
-            const completedConditionMatch =
-                new RegExp(
-                    `(?:^|[\\s(&|!]+)${VARIABLE_NAME_PATTERN}\\s*:\\s*[0-9]+\\s*$`
-                ).exec(linePrefix)
+            const completedConditionMatch = new RegExp(
+                `(?:^|[\\s(&|!]+)${VARIABLE_NAME_PATTERN}\\s*:\\s*[0-9]+\\s*$`
+            ).exec(linePrefix)
             const completedVariableMatch = new RegExp(
                 `(?:^|[\\s(&|!]+)(${VARIABLE_NAME_PATTERN})\\s*$`
             ).exec(linePrefix)

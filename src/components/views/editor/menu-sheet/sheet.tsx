@@ -1,5 +1,11 @@
 import { useStore, type Edge, type Node } from '@xyflow/react'
-import { Sheet, SheetContent, SheetHeader } from '@/components/ui/sheet'
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet'
 import { shallow } from 'zustand/shallow'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { EdgeBasePropertiesMenu, NodeBasePropertiesMenu } from './menus'
@@ -39,6 +45,13 @@ export function MenuSheet() {
                     value={selectedElements > 1 ? 'style' : undefined}
                 >
                     <SheetHeader>
+                        <SheetTitle className="sr-only">
+                            Element properties
+                        </SheetTitle>
+                        <SheetDescription className="sr-only">
+                            Inspect and edit the properties of the selected
+                            graph element.
+                        </SheetDescription>
                         <div className="flex flex-col gap-2">
                             {selectedElements > 1 && (
                                 <Alert>
@@ -58,12 +71,6 @@ export function MenuSheet() {
                                     <TabsTrigger value="style">
                                         Style
                                     </TabsTrigger>
-
-                                    {selectedElements == 1 && (
-                                        <TabsTrigger value="annotations">
-                                            Annotations
-                                        </TabsTrigger>
-                                    )}
                                 </TabsList>
                             </div>
                         </div>

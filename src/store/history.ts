@@ -4,10 +4,12 @@ import type {
     RegulatoryNodeProperties,
 } from '@/lib/schema'
 import type { Node, Edge, ReactFlowInstance } from '@xyflow/react'
+import type { SerializedEditorState } from 'lexical'
 import diff from 'microdiff'
 import { create } from 'zustand'
 import { travel } from 'zustand-travel'
 import { combine } from 'zustand/middleware'
+import { useEditorStore } from './editor'
 
 interface HistoryState {
     snapshot: InternalGRNModel
@@ -15,7 +17,8 @@ interface HistoryState {
 
     takeSnapshot: (
         nodes: Node<RegulatoryNodeProperties>[],
-        edges: Edge<EditableRegulatoryEdge>[]
+        edges: Edge<EditableRegulatoryEdge>[],
+        annotations: SerializedEditorState | null
     ) => void
 
     undo: (
@@ -34,17 +37,19 @@ interface HistoryState {
 
 const buildSnapshot = (
     nodes: Node<RegulatoryNodeProperties>[],
-    edges: Edge<EditableRegulatoryEdge>[]
+    edges: Edge<EditableRegulatoryEdge>[],
+    annotations: SerializedEditorState | null
 ): InternalGRNModel => ({
+    annotations: annotations ? structuredClone(annotations) : undefined,
     nodes: structuredClone(nodes),
     edges: structuredClone(edges),
 })
 
 const sanitizeSnapshot = (
-    nodes: Node<RegulatoryNodeProperties>[],
-    edges: Edge<EditableRegulatoryEdge>[]
+    snapshot: Partial<InternalGRNModel>
 ): InternalGRNModel => ({
-    nodes: nodes.map((node) => {
+    annotations: snapshot.annotations,
+    nodes: (snapshot.nodes ?? []).map((node) => {
         const nodeSnapshot = {
             ...node,
             data: {
@@ -61,7 +66,7 @@ const sanitizeSnapshot = (
         return nodeSnapshot
     }),
 
-    edges: edges.map((edge) => {
+    edges: (snapshot.edges ?? []).map((edge) => {
         const edgeSnapshot = {
             ...edge,
             data: edge.data
@@ -82,10 +87,26 @@ const sanitizeSnapshot = (
 })
 
 const isDataChange = (path: readonly (string | number)[]) =>
-    (path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'data'
+    path[0] === 'annotations' ||
+    ((path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'data')
 
 const isSelectionChange = (path: readonly (string | number)[]) =>
     (path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'selected'
+
+const isAnnotationChange = (path: readonly (string | number)[]) =>
+    path[0] === 'annotations' ||
+    ((path[0] === 'nodes' || path[0] === 'edges') &&
+        path[2] === 'data' &&
+        path[3] === 'annotations')
+
+const hasAnnotationChanges = (
+    previousSnapshot: InternalGRNModel,
+    nextSnapshot: InternalGRNModel
+) =>
+    diff(
+        sanitizeSnapshot(previousSnapshot),
+        sanitizeSnapshot(nextSnapshot)
+    ).some((change) => isAnnotationChange(change.path))
 
 export const useChangesTracking = create<HistoryState>()(
     travel(
@@ -97,19 +118,21 @@ export const useChangesTracking = create<HistoryState>()(
             (set, get) => ({
                 takeSnapshot: (
                     nodes: Node<RegulatoryNodeProperties>[],
-                    edges: Edge<EditableRegulatoryEdge>[]
+                    edges: Edge<EditableRegulatoryEdge>[],
+                    annotations: SerializedEditorState | null
                 ) => {
                     const controls = useChangesTracking.getControls()
                     const currentSnapshot = get().snapshot
                     const pendingSelectionSnapshot =
                         get().pendingSelectionSnapshot
-                    const nextSnapshot = buildSnapshot(nodes, edges)
+                    const nextSnapshot = buildSnapshot(
+                        nodes,
+                        edges,
+                        annotations
+                    )
                     const snapshotChanges = diff(
-                        sanitizeSnapshot(
-                            currentSnapshot.nodes ?? [],
-                            currentSnapshot.edges ?? []
-                        ),
-                        sanitizeSnapshot(nextSnapshot.nodes, nextSnapshot.edges)
+                        sanitizeSnapshot(currentSnapshot),
+                        sanitizeSnapshot(nextSnapshot)
                     )
                     const isSameSnapshot = snapshotChanges.length === 0
 
@@ -164,10 +187,24 @@ export const useChangesTracking = create<HistoryState>()(
                     >
                 ) => {
                     const controls = useChangesTracking.getControls()
+                    const previousSnapshot = get().snapshot
                     controls.back()
 
-                    instance.setNodes(get().snapshot.nodes)
-                    instance.setEdges(get().snapshot.edges)
+                    const snapshot = get().snapshot
+                    const shouldExpandAnnotations = hasAnnotationChanges(
+                        previousSnapshot,
+                        snapshot
+                    )
+                    instance.setNodes(snapshot.nodes)
+                    instance.setEdges(snapshot.edges)
+                    const editorStore = useEditorStore.getState()
+                    editorStore.setModelAnnotations(
+                        snapshot.annotations ?? null
+                    )
+
+                    if (shouldExpandAnnotations) {
+                        editorStore.setAnnotationsPanelOpen(true)
+                    }
                 },
                 redo: (
                     instance: ReactFlowInstance<
@@ -176,10 +213,24 @@ export const useChangesTracking = create<HistoryState>()(
                     >
                 ) => {
                     const controls = useChangesTracking.getControls()
+                    const previousSnapshot = get().snapshot
                     controls.forward()
 
-                    instance.setNodes(get().snapshot.nodes)
-                    instance.setEdges(get().snapshot.edges)
+                    const snapshot = get().snapshot
+                    const shouldExpandAnnotations = hasAnnotationChanges(
+                        previousSnapshot,
+                        snapshot
+                    )
+                    instance.setNodes(snapshot.nodes)
+                    instance.setEdges(snapshot.edges)
+                    const editorStore = useEditorStore.getState()
+                    editorStore.setModelAnnotations(
+                        snapshot.annotations ?? null
+                    )
+
+                    if (shouldExpandAnnotations) {
+                        editorStore.setAnnotationsPanelOpen(true)
+                    }
                 },
             })
         ),

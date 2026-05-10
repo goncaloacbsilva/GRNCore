@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid'
 import * as z from 'zod'
+import { AnnotationsSchema } from './annotations'
 
 export const RegulatoryNodeRuleSchema = z.object({
     id: z.string(),
@@ -35,6 +36,8 @@ export const RegulatoryNodePropertiesSchema = z.object({
 
     // Logical rules
     rules: z.array(RegulatoryNodeRuleDraftSchema).default([]),
+
+    annotations: AnnotationsSchema,
 })
 
 export type RegulatoryNodeProperties = z.infer<
