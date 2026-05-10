@@ -61,7 +61,7 @@ function CodeActionMenuContainer({
 
         if ($isCodeNode(maybeCodeNode)) {
           codeNode = maybeCodeNode;
-          _lang = codeNode.getLanguage() || "";
+          _lang = codeNode.getLanguage() ?? "";
         }
       });
 
@@ -151,7 +151,7 @@ function getMouseInfo(event: MouseEvent): {
       "code.PlaygroundEditorTheme__code",
     );
     const isOutside = !(
-      codeDOMNode ||
+      codeDOMNode ??
       target.closest<HTMLElement>("div.code-action-menu-container")
     );
 

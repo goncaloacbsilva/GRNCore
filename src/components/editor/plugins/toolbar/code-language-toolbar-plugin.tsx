@@ -15,7 +15,7 @@ import {
   type BaseSelection,
 } from "lexical";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
+import { useToolbarContext } from "@/components/editor/context/toolbar-context-value";
 import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
 import {
   Select,
@@ -57,9 +57,7 @@ export function CodeLanguageToolbarPlugin() {
               return parent !== null && $isRootOrShadowRoot(parent);
             });
 
-      if (element === null) {
-        element = anchorNode.getTopLevelElementOrThrow();
-      }
+      element ??= anchorNode.getTopLevelElementOrThrow();
 
       const elementKey = element.getKey();
       const elementDOM = activeEditor.getElementByKey(elementKey);
@@ -68,10 +66,9 @@ export function CodeLanguageToolbarPlugin() {
         setSelectedElementKey(elementKey);
 
         if (!$isListNode(element) && $isCodeNode(element)) {
-          const language =
-            element.getLanguage() as keyof typeof CODE_LANGUAGE_MAP;
+          const language = element.getLanguage()!;
           setCodeLanguage(
-            language ? CODE_LANGUAGE_MAP[language] || language : "",
+            language ? CODE_LANGUAGE_MAP[language] ?? language : "",
           );
           return;
         }

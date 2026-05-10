@@ -29,7 +29,7 @@ import { EditorBody } from './editor-body'
 import { annotationEditorTheme } from './editor-theme'
 import { EditableModePlugin } from './initial-view-mode-plugin'
 
-type EditorProps = {
+interface EditorProps {
     isEditing: boolean
     editorState?: EditorState
     editorSerializedState?: SerializedEditorState
@@ -39,7 +39,7 @@ type EditorProps = {
 
 function AnnotationHistoryPlugin({ isEditing }: { isEditing: boolean }) {
     const [editor] = useLexicalComposerContext()
-    const historyState = useMemo<HistoryState>(() => {
+    const historyStateRef = useMemo<HistoryState>(() => {
         return createEmptyHistoryState()
     }, [])
 
@@ -48,15 +48,15 @@ function AnnotationHistoryPlugin({ isEditing }: { isEditing: boolean }) {
             return
         }
 
-        historyState.current = {
+        historyStateRef.current = {
             editor,
             editorState: editor.getEditorState(),
         }
-        historyState.undoStack = []
-        historyState.redoStack = []
-    }, [editor, historyState, isEditing])
+        historyStateRef.undoStack = []
+        historyStateRef.redoStack = []
+    }, [editor, historyStateRef, isEditing])
 
-    return <HistoryPlugin externalHistoryState={historyState} />
+    return <HistoryPlugin externalHistoryState={historyStateRef} />
 }
 
 export function Editor({

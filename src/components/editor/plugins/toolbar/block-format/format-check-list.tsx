@@ -6,7 +6,7 @@ import {
   $isRangeSelection,
 } from "lexical";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
+import { useToolbarContext } from "@/components/editor/context/toolbar-context-value";
 import { blockTypeToBlockName } from "@/components/editor/plugins/toolbar/block-format/block-format-data";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 

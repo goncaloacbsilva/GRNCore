@@ -56,7 +56,9 @@ export function CopyButton({ editor, getCodeDOMNode }: Props) {
   return (
     <button
       className="text-foreground/50 flex shrink-0 cursor-pointer items-center rounded border border-transparent bg-none p-1 uppercase"
-      onClick={handleClick}
+      onClick={() => {
+        void handleClick();
+      }}
       aria-label="copy"
     >
       {isCopyCompleted ? (

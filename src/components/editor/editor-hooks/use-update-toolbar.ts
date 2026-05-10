@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 
 import {
     $getSelection,
@@ -7,14 +7,12 @@ import {
     SELECTION_CHANGE_COMMAND,
 } from 'lexical'
 
-import { useToolbarContext } from '@/components/editor/context/toolbar-context'
+import { useToolbarContext } from '@/components/editor/context/toolbar-context-value'
 
 export function useUpdateToolbarHandler(
     callback: (selection: BaseSelection) => void
 ) {
     const { activeEditor } = useToolbarContext()
-    const callbackRef = useRef(callback)
-    callbackRef.current = callback
 
     useEffect(() => {
         return activeEditor.registerCommand(
@@ -24,7 +22,7 @@ export function useUpdateToolbarHandler(
                     () => {
                         const selection = $getSelection()
                         if (selection) {
-                            callbackRef.current(selection)
+                            callback(selection)
                         }
                     },
                     { editor: activeEditor }
@@ -33,17 +31,17 @@ export function useUpdateToolbarHandler(
             },
             COMMAND_PRIORITY_CRITICAL
         )
-    }, [activeEditor])
+    }, [activeEditor, callback])
 
     useEffect(() => {
         activeEditor.getEditorState().read(
             () => {
                 const selection = $getSelection()
                 if (selection) {
-                    callbackRef.current(selection)
+                    callback(selection)
                 }
             },
             { editor: activeEditor }
         )
-    }, [activeEditor])
+    }, [activeEditor, callback])
 }

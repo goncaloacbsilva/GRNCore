@@ -102,8 +102,8 @@ function TextFormatFloatingToolbar({
             }
         }
     }
-    function mouseUpListener(_e: MouseEvent) {
-        if (popupCharStylesEditorRef?.current) {
+    function mouseUpListener() {
+        if (popupCharStylesEditorRef.current) {
             if (
                 popupCharStylesEditorRef.current.style.pointerEvents !== 'auto'
             ) {
@@ -113,7 +113,7 @@ function TextFormatFloatingToolbar({
     }
 
     useEffect(() => {
-        if (popupCharStylesEditorRef?.current) {
+        if (popupCharStylesEditorRef.current) {
             document.addEventListener('mousemove', mouseMoveListener)
             document.addEventListener('mouseup', mouseUpListener)
 
@@ -139,8 +139,7 @@ function TextFormatFloatingToolbar({
             selection !== null &&
             nativeSelection !== null &&
             !nativeSelection.isCollapsed &&
-            rootElement !== null &&
-            rootElement.contains(nativeSelection.anchorNode)
+            rootElement?.contains(nativeSelection.anchorNode)
         ) {
             const rangeRect = getDOMRangeRect(nativeSelection, rootElement)
 
@@ -379,8 +378,7 @@ function useFloatingTextFormatToolbar(
                 if (
                     nativeSelection !== null &&
                     (!$isRangeSelection(selection) ||
-                        rootElement === null ||
-                        !rootElement.contains(nativeSelection.anchorNode))
+                        !rootElement?.contains(nativeSelection.anchorNode))
                 ) {
                     setIsText(false)
                     return

@@ -9,7 +9,7 @@ import {
 
 import { SubscriptIcon, SuperscriptIcon } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
+import { useToolbarContext } from "@/components/editor/context/toolbar-context-value";
 import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
@@ -18,11 +18,9 @@ export function SubSuperToolbarPlugin() {
   const [isSubscript, setIsSubscript] = useState(false);
   const [isSuperscript, setIsSuperscript] = useState(false);
 
-  const $updateToolbar = (selection: BaseSelection) => {
+    const $updateToolbar = (selection: BaseSelection) => {
     if ($isRangeSelection(selection) || $isTableSelection(selection)) {
-      // @ts-ignore
       setIsSubscript(selection.hasFormat("subscript"));
-      // @ts-ignore
       setIsSuperscript(selection.hasFormat("superscript"));
     }
   };

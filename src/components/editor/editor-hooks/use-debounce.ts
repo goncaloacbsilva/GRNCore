@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 
 import { debounce } from "lodash";
 
@@ -7,20 +7,8 @@ export function useDebounce<T extends (...args: never[]) => void>(
   ms: number,
   maxWait?: number,
 ) {
-  const funcRef = useRef<T | null>(null);
-  funcRef.current = fn;
-
   return useMemo(
-    () =>
-      debounce(
-        (...args: Parameters<T>) => {
-          if (funcRef.current) {
-            funcRef.current(...args);
-          }
-        },
-        ms,
-        { maxWait },
-      ),
-    [ms, maxWait],
+    () => debounce((...args: Parameters<T>) => fn(...args), ms, { maxWait }),
+    [fn, ms, maxWait],
   );
 }

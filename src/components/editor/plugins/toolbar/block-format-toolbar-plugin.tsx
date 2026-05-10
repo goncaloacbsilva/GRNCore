@@ -9,7 +9,7 @@ import {
 
 import { ChevronDownIcon } from "lucide-react";
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context";
+import { useToolbarContext } from "@/components/editor/context/toolbar-context-value";
 import { useUpdateToolbarHandler } from "@/components/editor/editor-hooks/use-update-toolbar";
 import { blockTypeToBlockName } from "@/components/editor/plugins/toolbar/block-format/block-format-data";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,7 @@ export function BlockFormatDropDown({
               return parent !== null && $isRootOrShadowRoot(parent);
             });
 
-      if (element === null) {
-        element = anchorNode.getTopLevelElementOrThrow();
-      }
+      element ??= anchorNode.getTopLevelElementOrThrow();
 
       const elementKey = element.getKey();
       const elementDOM = activeEditor.getElementByKey(elementKey);
@@ -59,7 +57,7 @@ export function BlockFormatDropDown({
             ? element.getTag()
             : element.getType();
           if (type in blockTypeToBlockName) {
-            setBlockType(type as keyof typeof blockTypeToBlockName);
+            setBlockType(type);
           }
         }
       }

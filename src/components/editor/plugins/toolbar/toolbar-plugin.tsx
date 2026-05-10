@@ -18,7 +18,9 @@ export function ToolbarPlugin({
 
   const [modal, showModal] = useEditorModal();
 
-  const $updateToolbar = () => {};
+  const $updateToolbar = () => {
+    /* empty */
+  };
 
   useEffect(() => {
     return activeEditor.registerCommand(

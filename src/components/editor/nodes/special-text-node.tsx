@@ -41,7 +41,7 @@ export class SpecialTextNode extends TextNode {
   }
 }
 
-export function $createSpecialTextNode(text: string = ""): SpecialTextNode {
+export function $createSpecialTextNode(text = ""): SpecialTextNode {
   return $applyNodeReplacement(new SpecialTextNode(text));
 }
 

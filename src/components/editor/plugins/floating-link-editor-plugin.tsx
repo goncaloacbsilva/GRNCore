@@ -108,7 +108,7 @@ function FloatingLinkEditor({
                 )
             }
             setLastSelection(selection)
-        } else if (!activeElement || activeElement.className !== 'link-input') {
+        } else if (activeElement?.className !== 'link-input') {
             if (rootElement !== null) {
                 setFloatingElemPositionForLinkEditor(
                     null,
@@ -203,7 +203,7 @@ function FloatingLinkEditor({
             inputRef.current.focus()
             setIsLink(true)
         }
-    }, [isLinkEditMode, isLink])
+    }, [isLinkEditMode, isLink, setIsLink])
 
     const monitorInputInteraction = (
         event: React.KeyboardEvent<HTMLInputElement>
@@ -354,10 +354,9 @@ function useFloatingLinkEditorToolbar(
                             $isAutoLinkNode
                         )
                         return (
-                            (focusLinkNode && !focusLinkNode.is(linkNode)) ||
-                            (linkNode && !linkNode.is(focusLinkNode)) ||
-                            (focusAutoLinkNode &&
-                                !focusAutoLinkNode.is(autoLinkNode)) ||
+                            (focusLinkNode?.is(linkNode) === false) ||
+                            (linkNode?.is(focusLinkNode) === false) ||
+                            (focusAutoLinkNode?.is(autoLinkNode) === false) ||
                             (autoLinkNode &&
                                 (!autoLinkNode.is(focusAutoLinkNode) ||
                                     autoLinkNode.getIsUnlinked()))
