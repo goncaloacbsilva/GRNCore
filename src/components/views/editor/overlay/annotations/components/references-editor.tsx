@@ -8,11 +8,109 @@ import { EmptyDescription } from '@/components/ui/empty'
 function normalizeUrl(url: string) {
     const trimmedUrl = url.trim()
 
-    if (trimmedUrl === '' || /^[a-z][a-z0-9+.-]*:/i.test(trimmedUrl)) {
+    if (trimmedUrl === '' || isUrl(trimmedUrl)) {
         return trimmedUrl
     }
 
     return `https://${trimmedUrl}`
+}
+
+function isUrl(value: string) {
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(value.trim())
+}
+
+function parseKeyValueReference(reference: string) {
+    if (isUrl(reference)) {
+        return null
+    }
+
+    const separatorIndex = reference.indexOf(':')
+
+    if (separatorIndex <= 0) {
+        return null
+    }
+
+    const key = reference.slice(0, separatorIndex).trim()
+    const value = reference.slice(separatorIndex + 1).trim()
+
+    if (key === '' || value === '') {
+        return null
+    }
+
+    return { key, value }
+}
+
+function normalizeReferenceInput(input: string) {
+    const trimmedInput = input.trim()
+
+    if (trimmedInput === '') {
+        return ''
+    }
+
+    const keyValueReference = parseKeyValueReference(trimmedInput)
+
+    if (keyValueReference) {
+        return `${keyValueReference.key}: ${keyValueReference.value}`
+    }
+
+    return normalizeUrl(trimmedInput)
+}
+
+function ReferenceValue({
+    reference,
+    showExternalIcon = false,
+}: {
+    reference: string
+    showExternalIcon?: boolean
+}) {
+    const keyValueReference = parseKeyValueReference(reference)
+
+    if (keyValueReference) {
+        const valueIsUrl = isUrl(keyValueReference.value)
+
+        return (
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+                <span className="max-w-24 shrink-0 truncate rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-xs font-medium text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-300">
+                    {keyValueReference.key}
+                </span>
+                {valueIsUrl ? (
+                    <a
+                        href={keyValueReference.value}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="min-w-0 flex-1 truncate text-sm hover:underline"
+                    >
+                        {keyValueReference.value}
+                    </a>
+                ) : (
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                        {keyValueReference.value}
+                    </span>
+                )}
+                {showExternalIcon && valueIsUrl ? (
+                    <ExternalLinkIcon className="size-3 shrink-0" />
+                ) : null}
+            </div>
+        )
+    }
+
+    if (isUrl(reference)) {
+        return (
+            <a
+                href={reference}
+                target="_blank"
+                rel="noreferrer"
+                className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm hover:underline"
+            >
+                <span className="min-w-0 flex-1 truncate">{reference}</span>
+                {showExternalIcon ? (
+                    <ExternalLinkIcon className="size-3 shrink-0" />
+                ) : null}
+            </a>
+        )
+    }
+
+    return <span className="min-w-0 flex-1 truncate text-sm">{reference}</span>
 }
 
 export function ReferencesEditor({
@@ -24,18 +122,18 @@ export function ReferencesEditor({
     references: string[]
     onReferencesChange: (references: string[]) => void
 }) {
-    const [url, setUrl] = useState('')
+    const [referenceInput, setReferenceInput] = useState('')
 
-    const normalizedUrl = normalizeUrl(url)
-    const canAddReference = normalizedUrl !== ''
+    const normalizedReference = normalizeReferenceInput(referenceInput)
+    const canAddReference = normalizedReference !== ''
 
     const addReference = () => {
         if (!canAddReference) {
             return
         }
 
-        onReferencesChange([...references, normalizedUrl])
-        setUrl('')
+        onReferencesChange([...references, normalizedReference])
+        setReferenceInput('')
     }
 
     const removeReference = (referenceIndex: number) => {
@@ -56,14 +154,7 @@ export function ReferencesEditor({
                                         key={`${reference}-${index}`}
                                         className="flex min-h-8 min-w-0 items-center gap-2 rounded-md border bg-background px-2 py-1 shadow-xs"
                                     >
-                                        <a
-                                            href={reference}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="min-w-0 flex-1 truncate text-sm hover:underline"
-                                        >
-                                            {reference}
-                                        </a>
+                                        <ReferenceValue reference={reference} />
                                         <Button
                                             type="button"
                                             variant="ghost"
@@ -83,11 +174,11 @@ export function ReferencesEditor({
                         <div className="shrink-0">
                             <div className="flex overflow-hidden rounded-md border bg-background shadow-xs focus-within:ring-[3px] focus-within:ring-ring/50">
                                 <Input
-                                    value={url}
+                                    value={referenceInput}
                                     onChange={(event) =>
-                                        setUrl(event.target.value)
+                                        setReferenceInput(event.target.value)
                                     }
-                                    placeholder="Add reference URL"
+                                    placeholder="Add URL or key:value pair"
                                     className="h-8 rounded-none border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
                                     onKeyDown={(event) => {
                                         if (event.key === 'Enter') {
@@ -126,18 +217,15 @@ export function ReferencesEditor({
                             ) : (
                                 <div className="grid min-w-0 gap-1">
                                     {references.map((reference, index) => (
-                                        <a
+                                        <div
                                             key={`${reference}-${index}`}
-                                            href={reference}
-                                            target="_blank"
-                                            rel="noreferrer"
                                             className="flex min-h-8 min-w-0 items-center gap-2 rounded-md border px-2 py-1 hover:bg-accent"
                                         >
-                                            <span className="min-w-0 flex-1 truncate">
-                                                {reference}
-                                            </span>
-                                            <ExternalLinkIcon className="size-3 shrink-0" />
-                                        </a>
+                                            <ReferenceValue
+                                                reference={reference}
+                                                showExternalIcon
+                                            />
+                                        </div>
                                     ))}
                                 </div>
                             )}

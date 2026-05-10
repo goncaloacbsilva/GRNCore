@@ -75,7 +75,9 @@ export function AnnotationCard({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                {isEditing ? 'Save changes' : 'Edit details'}
+                                {isEditing
+                                    ? 'Save changes'
+                                    : 'Edit annotations'}
                             </TooltipContent>
                         </Tooltip>
                     ) : null}
