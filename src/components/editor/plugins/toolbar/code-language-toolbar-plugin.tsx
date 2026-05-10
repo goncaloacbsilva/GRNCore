@@ -1,11 +1,6 @@
 import { useCallback, useState } from 'react'
 
-import { $isCodeNode } from '@lexical/code'
-import {
-    CODE_LANGUAGE_FRIENDLY_NAME_MAP,
-    CODE_LANGUAGE_MAP,
-    //   getLanguageFriendlyName,
-} from '@lexical/code-prism'
+import { $isCodeNode } from '@lexical/code-core'
 import { $isListNode } from '@lexical/list'
 import { $findMatchingParent } from '@lexical/utils'
 import {
@@ -24,6 +19,37 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+
+const CODE_LANGUAGE_FRIENDLY_NAME_MAP: Record<string, string> = {
+    c: 'C',
+    clike: 'C-like',
+    cpp: 'C++',
+    css: 'CSS',
+    html: 'HTML',
+    java: 'Java',
+    js: 'JavaScript',
+    markdown: 'Markdown',
+    objc: 'Objective-C',
+    plain: 'Plain Text',
+    powershell: 'PowerShell',
+    py: 'Python',
+    rust: 'Rust',
+    sql: 'SQL',
+    swift: 'Swift',
+    typescript: 'TypeScript',
+    xml: 'XML',
+}
+
+const CODE_LANGUAGE_MAP: Record<string, string> = {
+    cpp: 'cpp',
+    java: 'java',
+    javascript: 'js',
+    md: 'markdown',
+    plaintext: 'plain',
+    python: 'py',
+    text: 'plain',
+    ts: 'typescript',
+}
 
 function getCodeLanguageOptions(): [string, string][] {
     const options: [string, string][] = []

@@ -1,4 +1,4 @@
-import { CodeHighlightNode, CodeNode } from '@lexical/code'
+import { CodeHighlightNode, CodeNode } from '@lexical/code-core'
 import { AutoFocusExtension, DecoratorTextExtension } from '@lexical/extension'
 import { ClickableLinkExtension, LinkExtension } from '@lexical/link'
 import { CheckListExtension, ListExtension } from '@lexical/list'

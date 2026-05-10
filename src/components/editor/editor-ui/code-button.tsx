@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { $isCodeNode } from '@lexical/code'
+import { $isCodeNode } from '@lexical/code-core'
 import {
     $getNearestNodeFromDOMNode,
     $getSelection,

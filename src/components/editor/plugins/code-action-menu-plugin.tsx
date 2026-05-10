@@ -2,7 +2,7 @@ import { type JSX, useEffect, useRef, useState } from 'react'
 
 import { createPortal } from 'react-dom'
 
-import { $isCodeNode, CodeNode } from '@lexical/code'
+import { $isCodeNode, CodeNode } from '@lexical/code-core'
 import { getCodeLanguageOptions } from '@lexical/code-shiki'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getNearestNodeFromDOMNode, isHTMLElement } from 'lexical'
