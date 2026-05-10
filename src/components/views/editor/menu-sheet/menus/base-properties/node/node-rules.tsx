@@ -46,10 +46,7 @@ export function NodeRules({
             )
             const isValid =
                 !hasTargetConflict &&
-                isRegulatoryRuleExpressionValid(
-                    rule.expression,
-                    incomingNodes
-                )
+                isRegulatoryRuleExpressionValid(rule.expression, incomingNodes)
 
             return rule.isValid === isValid ? rule : { ...rule, isValid }
         })
@@ -69,12 +66,7 @@ export function NodeRules({
                 rules: nextRules,
             },
         }))
-    }, [
-        node.id,
-        nodeData.rules,
-        incomingNodes,
-        updateNode,
-    ])
+    }, [node.id, nodeData.rules, incomingNodes, updateNode])
 
     useEffect(() => {
         const rulesLength = nodeData.rules.length
@@ -97,8 +89,7 @@ export function NodeRules({
             data: {
                 ...currentNode.data,
                 rules: updateRules(
-                    RegulatoryNodePropertiesSchema.parse(currentNode.data)
-                        .rules
+                    RegulatoryNodePropertiesSchema.parse(currentNode.data).rules
                 ),
             },
         }))

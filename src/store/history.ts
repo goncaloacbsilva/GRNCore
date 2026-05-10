@@ -103,9 +103,10 @@ const hasAnnotationChanges = (
     previousSnapshot: InternalGRNModel,
     nextSnapshot: InternalGRNModel
 ) =>
-    diff(sanitizeSnapshot(previousSnapshot), sanitizeSnapshot(nextSnapshot)).some(
-        (change) => isAnnotationChange(change.path)
-    )
+    diff(
+        sanitizeSnapshot(previousSnapshot),
+        sanitizeSnapshot(nextSnapshot)
+    ).some((change) => isAnnotationChange(change.path))
 
 export const useChangesTracking = create<HistoryState>()(
     travel(
@@ -197,7 +198,9 @@ export const useChangesTracking = create<HistoryState>()(
                     instance.setNodes(snapshot.nodes)
                     instance.setEdges(snapshot.edges)
                     const editorStore = useEditorStore.getState()
-                    editorStore.setModelAnnotations(snapshot.annotations ?? null)
+                    editorStore.setModelAnnotations(
+                        snapshot.annotations ?? null
+                    )
 
                     if (shouldExpandAnnotations) {
                         editorStore.setAnnotationsPanelOpen(true)
@@ -221,7 +224,9 @@ export const useChangesTracking = create<HistoryState>()(
                     instance.setNodes(snapshot.nodes)
                     instance.setEdges(snapshot.edges)
                     const editorStore = useEditorStore.getState()
-                    editorStore.setModelAnnotations(snapshot.annotations ?? null)
+                    editorStore.setModelAnnotations(
+                        snapshot.annotations ?? null
+                    )
 
                     if (shouldExpandAnnotations) {
                         editorStore.setAnnotationsPanelOpen(true)

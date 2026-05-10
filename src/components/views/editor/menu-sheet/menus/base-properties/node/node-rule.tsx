@@ -45,9 +45,7 @@ export function NodeRule({
     const shouldValidateRef = useRef(false)
     const isRuleFocusedRef = useRef(false)
     const ruleContainerRef = useRef<HTMLDivElement | null>(null)
-    const setSnapshotPaused = useEditorStore(
-        (state) => state.setSnapshotPaused
-    )
+    const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
 
     const form = useAppForm({
         defaultValues: rule,
@@ -252,8 +250,7 @@ export function NodeRule({
         const targetParseResult = targetSchema.safeParse(target)
         const hasConflict = node.data.rules.some(
             (currentRule) =>
-                currentRule.id !== rule.id &&
-                currentRule.target === target
+                currentRule.id !== rule.id && currentRule.target === target
         )
         const isExpressionValid = isRegulatoryRuleExpressionValid(
             expression,
@@ -270,13 +267,7 @@ export function NodeRule({
             ...formValues,
             isValid,
         })
-    }, [
-        formValues,
-        incomingNodes,
-        node.data.rules,
-        rule,
-        updateCallback,
-    ])
+    }, [formValues, incomingNodes, node.data.rules, rule, updateCallback])
 
     const handleFocusCapture = () => {
         isRuleFocusedRef.current = true

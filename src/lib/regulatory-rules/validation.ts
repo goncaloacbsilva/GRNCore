@@ -65,7 +65,5 @@ export function isRegulatoryRuleExpressionValid(
     expression: string,
     incomingNodes: Node<RegulatoryNodeProperties>[]
 ) {
-    return (
-        validateRegulatoryRuleExpression(expression, incomingNodes) === null
-    )
+    return validateRegulatoryRuleExpression(expression, incomingNodes) === null
 }

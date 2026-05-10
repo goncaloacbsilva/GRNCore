@@ -354,9 +354,9 @@ function useFloatingLinkEditorToolbar(
                             $isAutoLinkNode
                         )
                         return (
-                            (focusLinkNode?.is(linkNode) === false) ||
-                            (linkNode?.is(focusLinkNode) === false) ||
-                            (focusAutoLinkNode?.is(autoLinkNode) === false) ||
+                            focusLinkNode?.is(linkNode) === false ||
+                            linkNode?.is(focusLinkNode) === false ||
+                            focusAutoLinkNode?.is(autoLinkNode) === false ||
                             (autoLinkNode &&
                                 (!autoLinkNode.is(focusAutoLinkNode) ||
                                     autoLinkNode.getIsUnlinked()))
