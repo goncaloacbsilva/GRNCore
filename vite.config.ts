@@ -49,11 +49,43 @@ export default defineConfig({
                         : packagePath[0]
 
                     if (!packageName) return 'vendor'
+
                     if (
                         packageName === 'react' ||
                         packageName === 'react-dom'
                     ) {
                         return 'vendor-react'
+                    }
+                    if (
+                        packageName === 'lexical' ||
+                        packageName === '@lexical/code' ||
+                        packageName === '@lexical/code-prism' ||
+                        packageName === '@lexical/code-shiki' ||
+                        packageName === '@lexical/extension' ||
+                        packageName === '@lexical/link' ||
+                        packageName === '@lexical/list' ||
+                        packageName === '@lexical/react' ||
+                        packageName === '@lexical/rich-text' ||
+                        packageName === '@lexical/selection' ||
+                        packageName === '@lexical/table' ||
+                        packageName === '@lexical/utils'
+                    ) {
+                        return 'vendor-lexical'
+                    }
+                    if (
+                        packageName === 'monaco-editor' ||
+                        packageName === '@monaco-editor/react'
+                    ) {
+                        return 'vendor-monaco'
+                    }
+                    if (packageName === '@xyflow/react') {
+                        return 'vendor-xyflow'
+                    }
+                    if (packageName === 'react-day-picker') {
+                        return 'vendor-datepicker'
+                    }
+                    if (packageName.startsWith('@tanstack')) {
+                        return 'vendor-tanstack'
                     }
                     if (
                         packageName.startsWith('@radix-ui') ||
@@ -65,7 +97,7 @@ export default defineConfig({
                         return `vendor-${packageName.replace(/[^a-zA-Z0-9_-]/g, '-')}`
                     }
 
-                    return 'vendor'
+                    return `vendor-${packageName.replace(/[^a-zA-Z0-9_-]/g, '-')}`
                 },
             },
         },
