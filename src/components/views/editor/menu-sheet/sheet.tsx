@@ -109,7 +109,7 @@ export function MenuSheet() {
                 defaultOpen
                 className={`bg-background flex max-h-10 min-h-0 w-80 flex-col overflow-hidden rounded-lg border transition-all duration-200 ease-out data-[state=open]:max-h-[calc(100vh-13.5rem)] ${
                     isSheetVisible
-                        ? 'pointer-events-auto translate-x-0 opacity-100'
+                        ? 'pointer-events-auto opacity-100'
                         : 'pointer-events-none translate-x-4 opacity-0'
                 }`}
             >
