@@ -9,3 +9,12 @@ div.customHandle {
     border: none;
     opacity: 0;
 }
+
+.connect-mode-node {
+    border-color: #e2e8f098 !important;
+}
+
+.connect-mode-node:hover,
+.connect-mode-node--active-target {
+    border-color: #3b83f6d9 !important;
+}

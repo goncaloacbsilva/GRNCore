@@ -100,7 +100,9 @@ const RegulatoryNode = ({
             <div
                 style={{
                     backgroundColor: visibleBackgroundColor,
-                    borderColor: visibleBorderColor,
+                    borderColor: connectModeActive
+                        ? undefined
+                        : visibleBorderColor,
                     color: connectModeActive
                         ? DEFAULT_NODE_FOREGROUND_COLOR
                         : undefined,
@@ -108,7 +110,10 @@ const RegulatoryNode = ({
                 className={twJoin(
                     'relative h-full px-2 py-2 flex flex-col items-center justify-center border-2 rounded-sm text-sm',
                     connectModeActive &&
-                        'group border-[#e2e8f098]! hover:border-[#3b83f6d9]! transition-all',
+                        'group connect-mode-node transition-all',
+                    connectModeActive &&
+                        (connectionFromThisNode || connectionToThisNode) &&
+                        'connect-mode-node--active-target',
                     !connectModeActive &&
                         borderColor === DEFAULT_NODE_BORDER_COLOR &&
                         'border-[#E2E8F0]',
