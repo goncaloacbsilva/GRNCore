@@ -1,4 +1,5 @@
 import { useEditorStore } from '@/store'
+import { twJoin } from 'tailwind-merge'
 import { AnnotationCard, AnnotationContent } from './components'
 import { useAnnotationEditing, useAnnotationTarget } from './hooks'
 
@@ -6,6 +7,9 @@ export function Annotations() {
     const annotationTarget = useAnnotationTarget()
     const isOpen = useEditorStore((state) => state.annotationsPanelOpen)
     const setIsOpen = useEditorStore((state) => state.setAnnotationsPanelOpen)
+    const isConnectModeEnabled = useEditorStore(
+        (state) => state.connectModeEnabled
+    )
     const editingState = useAnnotationEditing({
         annotationKey: annotationTarget.key,
         annotations: annotationTarget.annotations,
@@ -19,7 +23,11 @@ export function Annotations() {
     return (
         <div
             data-annotation-editor="true"
-            className="pointer-events-none flex h-60 items-end"
+            className={twJoin(
+                'pointer-events-none flex h-70 items-end',
+                !annotationTarget.isModelTarget && '-translate-x-20',
+                isConnectModeEnabled && 'hidden'
+            )}
         >
             <AnnotationCard
                 isEditing={editingState.isEditing}

@@ -47,6 +47,7 @@ export function useAnnotationTarget() {
                 | PersistedAnnotations
                 | undefined,
             hasSingleSelectedElement,
+            isModelTarget: false,
             key: selectedEdge.id,
             selectedElements,
             title: `Edge Annotations (${src?.data.name} → ${trgt?.data.name})`,
@@ -55,7 +56,7 @@ export function useAnnotationTarget() {
                     annotations: newAnnotations,
                 })
             },
-            widthClassName: 'w-200',
+            widthClassName: 'w-170',
         }
     }
 
@@ -65,6 +66,7 @@ export function useAnnotationTarget() {
                 | PersistedAnnotations
                 | undefined,
             hasSingleSelectedElement,
+            isModelTarget: false,
             key: selectedNode.id,
             selectedElements,
             title: `Node Annotations (${selectedNode.data.name})`,
@@ -74,7 +76,7 @@ export function useAnnotationTarget() {
                     annotations: newAnnotations,
                 })
             },
-            widthClassName: 'w-200',
+            widthClassName: 'w-170',
         }
     }
 
@@ -84,6 +86,7 @@ export function useAnnotationTarget() {
             references: EMPTY_REFERENCES,
         },
         hasSingleSelectedElement,
+        isModelTarget: true,
         key: 'model',
         selectedElements,
         title: 'Model Annotations',

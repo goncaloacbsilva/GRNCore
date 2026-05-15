@@ -3,7 +3,6 @@ import { isRegulatoryRuleExpressionValid } from '@/lib/regulatory-rules'
 import {
     type Edge,
     Background,
-    MiniMap,
     Panel,
     ReactFlow,
     SelectionMode,
@@ -22,7 +21,6 @@ import {
     DEFAULT_EDGE_TYPE,
     EDGE_TYPES,
     FIT_VIEW_OPTIONS,
-    MINIMAP_NODE_COLOR,
     NODE_TYPES,
     PAN_ON_DRAG,
     PAN_ON_SCROLL,
@@ -34,9 +32,8 @@ import {
     useGraphInteractions,
 } from './utils'
 import { useHotkeysSetup } from '@/hooks'
-import { type CSSProperties, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useChangesTracking, useEditorStore } from '@/store'
-import { twJoin } from 'tailwind-merge'
 
 interface GraphProps {
     model: InternalGRNModel
@@ -64,16 +61,6 @@ export function Graph({ model }: GraphProps) {
     )
     const isApplyingHistory = useEditorStore((state) => state.isApplyingHistory)
     const isSnapshotPaused = useEditorStore((state) => state.isSnapshotPaused)
-    const isConnectModeEnabled = useEditorStore(
-        (state) => state.connectModeEnabled
-    )
-    const isMenuSheetOpen =
-        nodes.some((node) => node.selected) ||
-        edges.some((edge) => edge.selected)
-    const bottomOverlayStyle = {
-        '--editor-menu-sheet-width': isMenuSheetOpen ? '20rem' : '0px',
-    } as CSSProperties
-
     useEffect(() => {
         setModelAnnotations(model.annotations ?? null)
     }, [model.annotations, setModelAnnotations])
@@ -273,7 +260,7 @@ export function Graph({ model }: GraphProps) {
                 color={BACKGROUND_COLOR}
                 size={BACKGROUND_DOTS_RADIUS}
             />
-            <MiniMap
+            {/* <MiniMap
                 style={{
                     borderRadius: 'var(--radius-md)',
                     overflow: 'clip',
@@ -281,23 +268,13 @@ export function Graph({ model }: GraphProps) {
                 nodeColor={MINIMAP_NODE_COLOR}
                 zoomable
                 pannable
-            />
+            /> */}
             <Panel position="bottom-left">
-                <div
-                    className="pointer-events-none absolute bottom-5 left-5 flex w-[calc(100vw-2.5rem-var(--editor-menu-sheet-width))] items-end justify-center transition-[width] duration-300"
-                    style={bottomOverlayStyle}
-                >
+                <div className="pointer-events-none absolute bottom-2 left-2 flex w-[calc(100vw-2.5rem)] items-end justify-center">
                     <div className="pointer-events-auto absolute bottom-0 left-0">
                         <ZoomControls />
                     </div>
-                    <div
-                        className={twJoin(
-                            'pointer-events-none',
-                            isConnectModeEnabled && 'hidden'
-                        )}
-                    >
-                        <Annotations />
-                    </div>
+                    <Annotations />
                 </div>
             </Panel>
             <Panel position="top-left">

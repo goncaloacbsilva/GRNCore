@@ -6,7 +6,7 @@ import { InteractionSwitch } from './components/interaction-switch'
 
 export function Toolbar() {
     return (
-        <div className="absolute top-5 left-5 flex flex-row items-center gap-8">
+        <div className="absolute top-2 left-2 flex flex-row items-center gap-8">
             <Menubar>
                 <FileMenu />
                 <EditMenu />

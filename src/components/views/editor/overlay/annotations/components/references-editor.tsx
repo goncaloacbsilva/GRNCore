@@ -178,7 +178,7 @@ export function ReferencesEditor({
                                     onChange={(event) =>
                                         setReferenceInput(event.target.value)
                                     }
-                                    placeholder="Add URL or key:value pair"
+                                    placeholder="Add URL or key:value"
                                     className="h-8 rounded-none border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
                                     onKeyDown={(event) => {
                                         if (event.key === 'Enter') {

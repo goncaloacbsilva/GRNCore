@@ -164,7 +164,7 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     return (
         <TabsContent
             value="base"
-            className="px-4 pb-4 flex h-full min-h-0 flex-col gap-5"
+            className="px-4 pb-4 flex min-h-0 flex-col gap-5"
         >
             <FieldGroup className="gap-5">
                 <form.AppField

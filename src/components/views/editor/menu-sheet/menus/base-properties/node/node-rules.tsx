@@ -15,7 +15,6 @@ import { Plus } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { useEffect, useRef } from 'react'
 import { NodeRule } from './node-rule'
-import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty'
 
 interface NodeRulesProps {
     node: Node<RegulatoryNodeProperties>
@@ -128,17 +127,17 @@ export function NodeRules({
     }
 
     return (
-        <div className="flex h-full min-h-0 flex-col gap-4">
+        <div className="flex min-h-0 flex-col gap-4">
             <AddNodeRuleButton
                 onClick={addNodeRule}
                 disabled={disableAddRule}
             />
-            <div
-                ref={scrollContainerRef}
-                className="min-h-0 flex-1 overflow-y-auto rounded-md border"
-            >
-                {nodeData.rules.length > 0 ? (
-                    nodeData.rules.map((rule, index) => (
+            {nodeData.rules.length > 0 && (
+                <div
+                    ref={scrollContainerRef}
+                    className="max-h-96 min-h-0 overflow-y-auto rounded-md border"
+                >
+                    {nodeData.rules.map((rule, index) => (
                         <NodeRule
                             key={rule.id}
                             ruleKey={index}
@@ -150,19 +149,9 @@ export function NodeRules({
                             updateCallback={updateNodeRule}
                             removeCallback={removeNodeRule}
                         />
-                    ))
-                ) : (
-                    <Empty>
-                        <EmptyHeader className="w-54">
-                            <EmptyDescription className="text-xs">
-                                No rules have been added <br />
-                                Target level will be equal to{' '}
-                                {nodeData.activityLevels}
-                            </EmptyDescription>
-                        </EmptyHeader>
-                    </Empty>
-                )}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     )
 }

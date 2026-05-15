@@ -135,7 +135,7 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
     return (
         <TabsContent
             value="base"
-            className="px-4 pb-4 flex h-full min-h-0 flex-col gap-4"
+            className="px-4 pb-4 flex min-h-0 flex-col gap-4"
         >
             <AddEdgeLevelButton
                 onClick={addEdgeLevel}
@@ -143,7 +143,7 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
             />
             <div
                 ref={scrollContainerRef}
-                className="min-h-0 flex-1 overflow-y-auto rounded-md border"
+                className="max-h-96 min-h-0 overflow-y-auto rounded-md border"
             >
                 {edge.data?.levels.map((level, index) => (
                     <EdgeLevel
