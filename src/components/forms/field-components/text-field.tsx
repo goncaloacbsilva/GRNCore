@@ -33,7 +33,7 @@ export function TextField({
 }: TextFieldProps) {
     const field = useFieldContext<string>()
     const customOnBlur = inputProps?.onBlur
-    const { onBlur: _onBlur, ...restInputProps } = inputProps ?? {}
+    const { ...restInputProps } = inputProps ?? {}
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
 
@@ -47,7 +47,9 @@ export function TextField({
                         : 'flex-row justify-between'
                 )}
             >
-                {showLabel && <FieldLabel htmlFor={field.name}>{label}</FieldLabel>}
+                {showLabel && (
+                    <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+                )}
                 <Input
                     className={twJoin(
                         'focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]',
