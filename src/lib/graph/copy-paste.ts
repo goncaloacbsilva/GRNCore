@@ -38,6 +38,7 @@ export function getSelected(
     ) as Edge<EditableRegulatoryEdge>[]
 
     return {
+        title: 'Selection',
         nodes,
         edges,
     }

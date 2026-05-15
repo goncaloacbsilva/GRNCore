@@ -2,6 +2,7 @@ import type { InternalGRNModel } from '@/lib/schema'
 import type { SerializedEditorState } from 'lexical'
 
 export const P53_NODES_ONLY_MODEL: InternalGRNModel = {
+    title: 'p53-Mdm2 network model',
     annotations: {
         root: {
             children: [
