@@ -62,7 +62,7 @@ export function ModelHeader() {
                                             label="Model title"
                                             showLabel={false}
                                             placeholder="Model title"
-                                            inputClassName="h-8 min-w-52 px-2 text-sm font-medium text-foreground"
+                                            inputClassName="h-8 min-w-52 px-2 text-sm text-foreground"
                                             inputProps={{
                                                 autoFocus: true,
                                                 onBlur: finishTitleEdit,
@@ -85,7 +85,7 @@ export function ModelHeader() {
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <BreadcrumbPage
-                                        className="cursor-pointer flex flex-col align-top hover:bg-muted p-2 rounded-sm"
+                                        className="cursor-pointer flex flex-col align-top hover:bg-muted p-2 rounded-sm font-semibold"
                                         onClick={() => setIsEditingTitle(true)}
                                     >
                                         {modelTitle}
