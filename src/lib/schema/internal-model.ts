@@ -11,6 +11,7 @@ export interface EditableRegulatoryEdge
         Record<string, unknown> {}
 
 export interface InternalGRNModel {
+    title: string
     annotations?: SerializedEditorState
     nodes: Node<RegulatoryNodeProperties>[]
     edges: Edge<EditableRegulatoryEdge>[]

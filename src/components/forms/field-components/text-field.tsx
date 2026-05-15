@@ -7,12 +7,19 @@ import {
     FieldLabel,
 } from '@/components/ui/field'
 import { twJoin } from 'tailwind-merge'
+import type { ComponentProps } from 'react'
 
 interface TextFieldProps {
     label: string
     placeholder: string
     description?: string
     orientation?: 'horizontal' | 'vertical'
+    showLabel?: boolean
+    inputClassName?: string
+    inputProps?: Omit<
+        ComponentProps<typeof Input>,
+        'id' | 'name' | 'value' | 'onChange' | 'aria-invalid'
+    >
 }
 
 export function TextField({
@@ -20,8 +27,13 @@ export function TextField({
     placeholder,
     description,
     orientation,
+    showLabel = true,
+    inputClassName,
+    inputProps,
 }: TextFieldProps) {
     const field = useFieldContext<string>()
+    const customOnBlur = inputProps?.onBlur
+    const { ...restInputProps } = inputProps ?? {}
 
     const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
 
@@ -35,20 +47,27 @@ export function TextField({
                         : 'flex-row justify-between'
                 )}
             >
-                <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+                {showLabel && (
+                    <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+                )}
                 <Input
                     className={twJoin(
                         'focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]',
-                        orientation != 'vertical' && 'w-44'
+                        orientation != 'vertical' && 'w-44',
+                        inputClassName
                     )}
                     id={field.name}
                     name={field.name}
                     value={field.state.value}
-                    onBlur={field.handleBlur}
+                    onBlur={(event) => {
+                        field.handleBlur()
+                        customOnBlur?.(event)
+                    }}
                     onChange={(e) => field.handleChange(e.target.value)}
                     aria-invalid={isInvalid}
                     placeholder={placeholder}
                     autoComplete="off"
+                    {...restInputProps}
                 />
             </div>
             {description && <FieldDescription>{description}</FieldDescription>}

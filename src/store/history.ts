@@ -40,6 +40,7 @@ const buildSnapshot = (
     edges: Edge<EditableRegulatoryEdge>[],
     annotations: SerializedEditorState | null
 ): InternalGRNModel => ({
+    title: useEditorStore.getState().modelTitle,
     annotations: annotations ? structuredClone(annotations) : undefined,
     nodes: structuredClone(nodes),
     edges: structuredClone(edges),
@@ -48,6 +49,7 @@ const buildSnapshot = (
 const sanitizeSnapshot = (
     snapshot: Partial<InternalGRNModel>
 ): InternalGRNModel => ({
+    title: snapshot.title ?? 'Untitled model',
     annotations: snapshot.annotations,
     nodes: (snapshot.nodes ?? []).map((node) => {
         const nodeSnapshot = {

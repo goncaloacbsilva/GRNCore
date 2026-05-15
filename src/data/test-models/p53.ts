@@ -1,6 +1,7 @@
 import type { InternalGRNModel } from '@/lib/schema'
 
 export const P53_MODEL: InternalGRNModel = {
+    title: 'p53 model',
     nodes: [
         {
             id: 'node-1',

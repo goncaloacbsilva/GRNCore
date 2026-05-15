@@ -8,6 +8,7 @@ import { create } from 'zustand'
 import { combine } from 'zustand/middleware'
 
 interface EditorState {
+    modelTitle: string
     modelAnnotations: SerializedEditorState | null
     annotationsPanelOpen: boolean
     addNodeDialogVisible: boolean
@@ -27,6 +28,7 @@ interface EditorState {
     setSnapshotPaused: (value: boolean) => void
     setAnnotationsPanelOpen: (open: boolean) => void
     setModelAnnotations: (annotations: SerializedEditorState | null) => void
+    setModelTitle: (title: string) => void
 
     pushSelectedNodeId: (node: string) => void
     popSelectedNodeId: (node: string) => void
@@ -41,6 +43,7 @@ interface EditorState {
 export const useEditorStore = create<EditorState>()(
     combine(
         {
+            modelTitle: 'Untitled model',
             addNodeDialogVisible: false,
             connectModeEnabled: false,
             connectModeInteraction: 'activation' as InteractionType,
@@ -112,6 +115,9 @@ export const useEditorStore = create<EditorState>()(
             },
             setModelAnnotations: (annotations) => {
                 set(() => ({ modelAnnotations: annotations }))
+            },
+            setModelTitle: (title) => {
+                set(() => ({ modelTitle: title }))
             },
         })
     )
