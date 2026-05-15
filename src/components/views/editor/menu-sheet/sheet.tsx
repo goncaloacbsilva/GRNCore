@@ -6,7 +6,11 @@ import {
 } from '@/components/ui/collapsible'
 import { shallow } from 'zustand/shallow'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { EdgeBasePropertiesMenu, NodeBasePropertiesMenu } from './menus'
+import {
+    EdgeBasePropertiesMenu,
+    NodeBasePropertiesMenu,
+    StyleMenu,
+} from './menus'
 import type {
     EditableRegulatoryEdge,
     RegulatoryNodeProperties,
@@ -142,24 +146,34 @@ export function MenuSheet() {
                             <div className="flex flex-row items-center">
                                 <TabsList className="w-full">
                                     {renderedSelectedElements == 1 && (
-                                        <TabsTrigger value="base">
-                                            Base Properties
-                                        </TabsTrigger>
+                                        <>
+                                            <TabsTrigger value="base">
+                                                Base Properties
+                                            </TabsTrigger>
+                                            {renderedSelection.nodes.length >
+                                                0 && (
+                                                <TabsTrigger value="style">
+                                                    Style
+                                                </TabsTrigger>
+                                            )}
+                                        </>
                                     )}
-
-                                    <TabsTrigger value="style">
-                                        Style
-                                    </TabsTrigger>
                                 </TabsList>
                             </div>
                         </div>
 
                         {/* Menus */}
                         {renderedSelection.nodes.length > 0 && (
-                            <NodeBasePropertiesMenu
-                                key={renderedSelection.nodes[0].id}
-                                node={renderedSelection.nodes[0]}
-                            />
+                            <>
+                                <NodeBasePropertiesMenu
+                                    key={renderedSelection.nodes[0].id}
+                                    node={renderedSelection.nodes[0]}
+                                />
+                                <StyleMenu
+                                    key={renderedSelection.nodes[0].id}
+                                    node={renderedSelection.nodes[0]}
+                                />
+                            </>
                         )}
                         {renderedSelection.edges.length > 0 && (
                             <EdgeBasePropertiesMenu

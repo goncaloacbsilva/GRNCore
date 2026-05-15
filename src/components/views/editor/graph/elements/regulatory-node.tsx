@@ -6,6 +6,7 @@ import {
     type NodeProps,
     type Node,
     useConnection,
+    useInternalNode,
 } from '@xyflow/react'
 import type { RegulatoryNodeProperties } from '@/lib/schema'
 import { DEFAULT_NODE_HEIGHT } from '../config'
@@ -19,6 +20,13 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+    DEFAULT_NODE_BACKGROUND_COLOR,
+    DEFAULT_NODE_BORDER_COLOR,
+    DEFAULT_NODE_FOREGROUND_COLOR,
+    getRegulatoryNodeBackgroundColor,
+    getRegulatoryNodeBorderColor,
+} from '../node-style'
 
 const RegulatoryNode = ({
     id,
@@ -26,6 +34,7 @@ const RegulatoryNode = ({
     selected,
 }: NodeProps<Node<RegulatoryNodeProperties>>) => {
     const connection = useConnection()
+    const internalNode = useInternalNode<Node<RegulatoryNodeProperties>>(id)
     const contentMinWidth = getNodeContentMinWidth(data.name)
     const {
         connectModeActive,
@@ -51,6 +60,21 @@ const RegulatoryNode = ({
     )
     const isToolbarHost = selectedNodeIdsArray[0] === id
     const hasInvalidRules = data.rules.some((rule) => !rule.isValid)
+    const backgroundColor = getRegulatoryNodeBackgroundColor(
+        internalNode?.internals.userNode.style
+    )
+    const borderColor = getRegulatoryNodeBorderColor(
+        internalNode?.internals.userNode.style
+    )
+    const visibleBackgroundColor = connectModeActive
+        ? DEFAULT_NODE_BACKGROUND_COLOR
+        : backgroundColor
+    const visibleBorderColor =
+        connectionFromThisNode || connectionToThisNode
+            ? '#3b83f6d9'
+            : connectModeActive
+              ? '#e2e8f098'
+              : borderColor
 
     // Track selected node ids
     useEffect(() => {
@@ -74,13 +98,20 @@ const RegulatoryNode = ({
                 }
             />
             <div
+                style={{
+                    backgroundColor: visibleBackgroundColor,
+                    borderColor: visibleBorderColor,
+                    color: connectModeActive
+                        ? DEFAULT_NODE_FOREGROUND_COLOR
+                        : undefined,
+                }}
                 className={twJoin(
-                    'relative h-full px-2 py-2 flex flex-col items-center justify-center bg-white border-2 rounded-sm text-sm',
-                    connectModeActive
-                        ? 'group border-[#e2e8f098] hover:border-[#3b83f6d9] transition-all'
-                        : 'border-[#E2E8F0]',
-                    (connectionFromThisNode || connectionToThisNode) &&
-                        'border-[#3b83f6d9]!',
+                    'relative h-full px-2 py-2 flex flex-col items-center justify-center border-2 rounded-sm text-sm',
+                    connectModeActive &&
+                        'group border-[#e2e8f098]! hover:border-[#3b83f6d9]! transition-all',
+                    !connectModeActive &&
+                        borderColor === DEFAULT_NODE_BORDER_COLOR &&
+                        'border-[#E2E8F0]',
                     data.isInputNode && 'border-dashed'
                 )}
             >
