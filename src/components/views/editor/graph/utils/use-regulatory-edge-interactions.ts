@@ -20,6 +20,7 @@ interface SelectionRect {
 
 interface UseRegulatoryEdgeSelectionArgs {
     controlPoints: ControlPoint[]
+    hasSelectedNodes: boolean
     id: string
     selected: boolean
     setEdges: SetEdges
@@ -30,6 +31,7 @@ interface UseRegulatoryEdgeSelectionArgs {
 
 export function useRegulatoryEdgeSelection({
     controlPoints,
+    hasSelectedNodes,
     id,
     selected,
     setEdges,
@@ -38,7 +40,12 @@ export function useRegulatoryEdgeSelection({
     userSelectionRect,
 }: UseRegulatoryEdgeSelectionArgs) {
     useEffect(() => {
-        if (!userSelectionActive || !userSelectionRect || selected) {
+        if (
+            !userSelectionActive ||
+            !userSelectionRect ||
+            selected ||
+            hasSelectedNodes
+        ) {
             return
         }
 
@@ -72,6 +79,7 @@ export function useRegulatoryEdgeSelection({
         )
     }, [
         controlPoints,
+        hasSelectedNodes,
         id,
         selected,
         setEdges,

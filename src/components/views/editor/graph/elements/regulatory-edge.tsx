@@ -48,6 +48,7 @@ export function RegulatoryEdge({
         userSelectionActive,
         userSelectionRect,
         transform,
+        hasSelectedNodes,
     } = useStore(
         (state) => ({
             edges: state.edges,
@@ -55,6 +56,7 @@ export function RegulatoryEdge({
             userSelectionActive: state.userSelectionActive,
             userSelectionRect: state.userSelectionRect,
             transform: state.transform,
+            hasSelectedNodes: state.nodes.some((node) => node.selected),
         }),
         shallow
     )
@@ -117,16 +119,6 @@ export function RegulatoryEdge({
     const startHandlePosition = sourcePoint
     const endHandlePosition = targetTipPoint
 
-    useRegulatoryEdgeSelection({
-        controlPoints,
-        id,
-        selected: isSelected,
-        setEdges,
-        transform,
-        userSelectionActive,
-        userSelectionRect,
-    })
-
     const path = getEditablePath({
         points: allPoints,
         algorithm,
@@ -154,6 +146,16 @@ export function RegulatoryEdge({
             sourceNode,
             targetNode,
         })
+    useRegulatoryEdgeSelection({
+        controlPoints: editableControlPoints,
+        hasSelectedNodes,
+        id,
+        selected: isSelected,
+        setEdges,
+        transform,
+        userSelectionActive,
+        userSelectionRect,
+    })
     const anchors = [
         { id: startHandleId, position: startHandlePosition },
         { id: endHandleId, position: endHandlePosition },

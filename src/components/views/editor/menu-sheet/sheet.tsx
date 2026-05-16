@@ -163,7 +163,7 @@ export function MenuSheet() {
                         </div>
 
                         {/* Menus */}
-                        {renderedSelection.nodes.length > 0 && (
+                        {renderedSelection.nodes.length == 1 && (
                             <>
                                 <NodeBasePropertiesMenu
                                     key={renderedSelection.nodes[0].id}
@@ -175,7 +175,7 @@ export function MenuSheet() {
                                 />
                             </>
                         )}
-                        {renderedSelection.edges.length > 0 && (
+                        {renderedSelection.edges.length == 1 && (
                             <EdgeBasePropertiesMenu
                                 key={renderedSelection.edges[0].id}
                                 edge={renderedSelection.edges[0]}

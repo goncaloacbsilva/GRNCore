@@ -2,6 +2,7 @@ import type { EditableRegulatoryEdge, InternalGRNModel } from '@/lib/schema'
 import { isRegulatoryRuleExpressionValid } from '@/lib/regulatory-rules'
 import {
     type Edge,
+    type EdgeChange,
     Background,
     Panel,
     ReactFlow,
@@ -32,12 +33,17 @@ import {
     useGraphInteractions,
 } from './utils'
 import { useHotkeysSetup } from '@/hooks'
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useChangesTracking, useEditorStore } from '@/store'
 
 interface GraphProps {
     model: InternalGRNModel
 }
+
+const shouldKeepEdgeChange = (
+    hasSelectedNodes: boolean,
+    change: EdgeChange<Edge<EditableRegulatoryEdge>>
+) => !hasSelectedNodes || change.type !== 'select' || !change.selected
 
 export function Graph({ model }: GraphProps) {
     const platformClass =
@@ -49,7 +55,7 @@ export function Graph({ model }: GraphProps) {
     const [nodes, setNodes] = useNodesState(
         normalizeRegulatoryNodes(model.nodes)
     )
-    const [edges, setEdges, onEdgesChange] = useEdgesState<
+    const [edges, setEdges] = useEdgesState<
         Edge<EditableRegulatoryEdge>
     >(model.edges)
 
@@ -220,10 +226,22 @@ export function Graph({ model }: GraphProps) {
         onConnectStart,
         onConnect,
         onConnectEnd,
+        onEdgesChange: applyGraphEdgeChanges,
     } = useGraphInteractions({
         setNodes,
         setEdges,
     })
+    const onEdgesChange = useCallback(
+        (changes: EdgeChange<Edge<EditableRegulatoryEdge>>[]) => {
+            const hasSelectedNodes = nodes.some((node) => node.selected)
+            const filteredChanges = changes.filter((change) =>
+                shouldKeepEdgeChange(hasSelectedNodes, change)
+            )
+
+            applyGraphEdgeChanges(filteredChanges)
+        },
+        [applyGraphEdgeChanges, nodes]
+    )
 
     const {
         handleNodeDragStart,
