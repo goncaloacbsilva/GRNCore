@@ -33,7 +33,7 @@ import {
     useGraphInteractions,
 } from './utils'
 import { useHotkeysSetup } from '@/hooks'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useChangesTracking, useEditorStore } from '@/store'
 
 interface GraphProps {
@@ -68,7 +68,14 @@ export function Graph({ model }: GraphProps) {
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
     const isApplyingHistory = useEditorStore((state) => state.isApplyingHistory)
     const isSnapshotPaused = useEditorStore((state) => state.isSnapshotPaused)
+    const hasInitializedHistoryRef = useRef(false)
+
     useEffect(() => {
+        if (hasInitializedHistoryRef.current) {
+            return
+        }
+
+        hasInitializedHistoryRef.current = true
         const normalizedNodes = normalizeRegulatoryNodes(model.nodes)
         setSnapshotPaused(true)
         setNodes(normalizedNodes)
@@ -82,9 +89,6 @@ export function Graph({ model }: GraphProps) {
             })
         })
     }, [
-        model.nodes,
-        model.edges,
-        model.annotations,
         resetHistory,
         setEdges,
         setModelAnnotations,

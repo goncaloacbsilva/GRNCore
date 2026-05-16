@@ -1,5 +1,15 @@
-import { useReactFlow, useStore, type XYPosition } from '@xyflow/react'
-import { useEditorStore } from '@/store'
+import {
+    useReactFlow,
+    useStore,
+    type Edge,
+    type Node,
+    type XYPosition,
+} from '@xyflow/react'
+import type {
+    EditableRegulatoryEdge,
+    RegulatoryNodeProperties,
+} from '@/lib/schema'
+import { useChangesTracking, useEditorStore } from '@/store'
 import { type ControlPointHandleProps } from './types'
 
 export function ControlPointHandle({
@@ -16,8 +26,13 @@ export function ControlPointHandle({
     allowCreate = true,
 }: ControlPointHandleProps) {
     const domNode = useStore((state) => state.domNode)
-    const { screenToFlowPosition } = useReactFlow()
+    const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<
+        Node<RegulatoryNodeProperties>,
+        Edge<EditableRegulatoryEdge>
+    >()
     const setDragging = useEditorStore((state) => state.setDragging)
+    const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
+    const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
 
     const updatePoint = (next: XYPosition) => {
         setControlPoints((points) => {
@@ -124,7 +139,10 @@ export function ControlPointHandle({
                 if (event.button === 2) {
                     return
                 }
+                const pointerTarget = event.currentTarget
+                pointerTarget.setPointerCapture(event.pointerId)
                 selectEdge()
+                setSnapshotPaused(true)
                 event.preventDefault()
                 event.stopPropagation()
                 event.nativeEvent.stopImmediatePropagation()
@@ -149,33 +167,37 @@ export function ControlPointHandle({
                 }
 
                 const onPointerEnd = (endEvent: Event) => {
-                    if (!(endEvent instanceof PointerEvent)) {
-                        return
-                    }
-                    endEvent.preventDefault()
+                    const pointerEvent =
+                        endEvent instanceof PointerEvent ? endEvent : null
+                    pointerEvent?.preventDefault()
                     setDragging(false)
-
-                    if (!active) {
-                        endEvent.preventDefault()
-                    }
 
                     target.removeEventListener('pointermove', onPointerMove)
                     target.removeEventListener('pointerup', onPointerEnd)
-                    target.removeEventListener('pointerleave', onPointerEnd)
                     target.removeEventListener('pointercancel', onPointerEnd)
+                    target.removeEventListener('blur', onPointerEnd)
 
-                    updatePoint(
-                        screenToFlowPosition({
-                            x: endEvent.clientX,
-                            y: endEvent.clientY,
+                    if (pointerEvent) {
+                        updatePoint(
+                            screenToFlowPosition({
+                                x: pointerEvent.clientX,
+                                y: pointerEvent.clientY,
+                            })
+                        )
+                    }
+
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            setSnapshotPaused(false)
+                            takeSnapshot(getNodes(), getEdges())
                         })
-                    )
+                    })
                 }
 
                 target.addEventListener('pointermove', onPointerMove)
                 target.addEventListener('pointerup', onPointerEnd)
-                target.addEventListener('pointerleave', onPointerEnd)
                 target.addEventListener('pointercancel', onPointerEnd)
+                target.addEventListener('blur', onPointerEnd)
             }}
             onKeyDown={(event) => {
                 switch (event.key) {

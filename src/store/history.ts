@@ -11,7 +11,6 @@ import { combine } from 'zustand/middleware'
 
 interface HistoryState {
     snapshot: InternalGRNModel
-    pendingSelectionSnapshot: InternalGRNModel | null
     baselineVersion: number
     getBaselinePosition: () => number
 
@@ -119,18 +118,11 @@ const sanitizeSnapshot = (
     }),
 })
 
-const isDataChange = (path: readonly (string | number)[]) =>
-    (path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'data'
-
-const isSelectionChange = (path: readonly (string | number)[]) =>
-    (path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'selected'
-
 export const useChangesTracking = create<HistoryState>()(
     travel(
         combine(
             {
                 snapshot: {} as InternalGRNModel,
-                pendingSelectionSnapshot: null as InternalGRNModel | null,
                 baselineVersion: 0,
             },
             (set, get) => ({
@@ -141,8 +133,6 @@ export const useChangesTracking = create<HistoryState>()(
                 ) => {
                     const controls = useChangesTracking.getControls()
                     const currentSnapshot = get().snapshot
-                    const pendingSelectionSnapshot =
-                        get().pendingSelectionSnapshot
                     const nextSnapshot = buildSnapshot(nodes, edges)
                     const nextStoredSnapshot =
                         stripTransientFields(nextSnapshot)
@@ -153,44 +143,11 @@ export const useChangesTracking = create<HistoryState>()(
                     const isSameSnapshot = snapshotChanges.length === 0
 
                     if (isSameSnapshot) {
-                        const selectionChanged = diff(
-                            currentSnapshot,
-                            nextStoredSnapshot
-                        ).some((change) => isSelectionChange(change.path))
-
-                        if (selectionChanged) {
-                            set({
-                                pendingSelectionSnapshot: nextStoredSnapshot,
-                            })
-                        }
-
                         return
                     }
 
-                    const hasDataChanges = snapshotChanges.some((change) =>
-                        isDataChange(change.path)
-                    )
-
-                    if (hasDataChanges && pendingSelectionSnapshot) {
-                        set({
-                            snapshot: pendingSelectionSnapshot,
-                        })
-
-                        archiveIfAvailable(controls)
-                    }
-
-                    set({
-                        snapshot: nextStoredSnapshot,
-                        pendingSelectionSnapshot: null,
-                    })
-
+                    set({ snapshot: nextStoredSnapshot })
                     archiveIfAvailable(controls)
-
-                    if (!hasDataChanges && pendingSelectionSnapshot) {
-                        set({
-                            pendingSelectionSnapshot: null,
-                        })
-                    }
                 },
                 resetHistory: (
                     nodes: Node<RegulatoryNodeProperties>[],
@@ -201,7 +158,6 @@ export const useChangesTracking = create<HistoryState>()(
 
                     set({
                         snapshot: nextSnapshot,
-                        pendingSelectionSnapshot: null,
                     })
 
                     archiveIfAvailable(controls)
@@ -223,7 +179,6 @@ export const useChangesTracking = create<HistoryState>()(
                         return
                     }
 
-                    set({ pendingSelectionSnapshot: null })
                     controls.back()
                     if (controls.position < baselinePosition && 'go' in controls) {
                         controls.go(baselinePosition)
@@ -240,7 +195,6 @@ export const useChangesTracking = create<HistoryState>()(
                     >
                 ) => {
                     const controls = useChangesTracking.getControls()
-                    set({ pendingSelectionSnapshot: null })
                     controls.forward()
 
                     const snapshot = get().snapshot

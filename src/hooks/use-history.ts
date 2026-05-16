@@ -4,6 +4,7 @@ import type {
 } from '@/lib/schema'
 import { useChangesTracking, useEditorStore } from '@/store'
 import { useReactFlow, type Node, type Edge } from '@xyflow/react'
+import { useRef } from 'react'
 
 export function useHistory() {
     const instance = useReactFlow<
@@ -18,6 +19,23 @@ export function useHistory() {
     useChangesTracking((state) => state.baselineVersion)
     const setApplyingHistory = useEditorStore((state) => state.setApplyingHistory)
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
+    const releaseTimeoutRef = useRef<number | null>(null)
+    const releaseHistoryGuards = () => {
+        if (releaseTimeoutRef.current !== null) {
+            window.clearTimeout(releaseTimeoutRef.current)
+            releaseTimeoutRef.current = null
+        }
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                releaseTimeoutRef.current = window.setTimeout(() => {
+                    setApplyingHistory(false)
+                    setSnapshotPaused(false)
+                    releaseTimeoutRef.current = null
+                }, 250)
+            })
+        })
+    }
 
     return {
         undo: () => {
@@ -30,12 +48,7 @@ export function useHistory() {
             setApplyingHistory(true)
             setSnapshotPaused(true)
             undo(instance)
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    setApplyingHistory(false)
-                    setSnapshotPaused(false)
-                })
-            })
+            releaseHistoryGuards()
         },
         redo: () => {
             const controls = useChangesTracking.getControls()
@@ -46,12 +59,7 @@ export function useHistory() {
             setApplyingHistory(true)
             setSnapshotPaused(true)
             redo(instance)
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    setApplyingHistory(false)
-                    setSnapshotPaused(false)
-                })
-            })
+            releaseHistoryGuards()
         },
     }
 }
