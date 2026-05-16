@@ -144,8 +144,8 @@ export function MenuSheet() {
                                 </Alert>
                             )}
                             <div className="flex flex-row items-center">
-                                <TabsList className="w-full">
-                                    {renderedSelectedElements == 1 && (
+                                {renderedSelectedElements == 1 && (
+                                    <TabsList className="w-full">
                                         <>
                                             <TabsTrigger value="base">
                                                 Base Properties
@@ -157,8 +157,8 @@ export function MenuSheet() {
                                                 </TabsTrigger>
                                             )}
                                         </>
-                                    )}
-                                </TabsList>
+                                    </TabsList>
+                                )}
                             </div>
                         </div>
 
@@ -166,11 +166,11 @@ export function MenuSheet() {
                         {renderedSelection.nodes.length == 1 && (
                             <>
                                 <NodeBasePropertiesMenu
-                                    key={renderedSelection.nodes[0].id}
+                                    key={`${renderedSelection.nodes[0].id}-base`}
                                     node={renderedSelection.nodes[0]}
                                 />
                                 <StyleMenu
-                                    key={renderedSelection.nodes[0].id}
+                                    key={`${renderedSelection.nodes[0].id}-style`}
                                     node={renderedSelection.nodes[0]}
                                 />
                             </>
