@@ -54,16 +54,37 @@ export function Graph({ model }: GraphProps) {
     >(model.edges)
 
     const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
+    const resetHistory = useChangesTracking((state) => state.resetHistory)
     const dragging = useEditorStore((state) => state.isDragging)
-    const modelAnnotations = useEditorStore((state) => state.modelAnnotations)
     const setModelAnnotations = useEditorStore(
         (state) => state.setModelAnnotations
     )
+    const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
     const isApplyingHistory = useEditorStore((state) => state.isApplyingHistory)
     const isSnapshotPaused = useEditorStore((state) => state.isSnapshotPaused)
     useEffect(() => {
+        const normalizedNodes = normalizeRegulatoryNodes(model.nodes)
+        setSnapshotPaused(true)
+        setNodes(normalizedNodes)
+        setEdges(model.edges)
         setModelAnnotations(model.annotations ?? null)
-    }, [model.annotations, setModelAnnotations])
+        resetHistory(normalizedNodes, model.edges)
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                setSnapshotPaused(false)
+            })
+        })
+    }, [
+        model.nodes,
+        model.edges,
+        model.annotations,
+        resetHistory,
+        setEdges,
+        setModelAnnotations,
+        setNodes,
+        setSnapshotPaused,
+    ])
 
     useEffect(() => {
         if (isApplyingHistory || isSnapshotPaused) {
@@ -71,12 +92,11 @@ export function Graph({ model }: GraphProps) {
         }
 
         if (!dragging) {
-            takeSnapshot(nodes, edges, modelAnnotations)
+            takeSnapshot(nodes, edges)
         }
     }, [
         nodes,
         edges,
-        modelAnnotations,
         dragging,
         isApplyingHistory,
         isSnapshotPaused,

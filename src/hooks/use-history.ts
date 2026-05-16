@@ -12,31 +12,44 @@ export function useHistory() {
     >()
     const undo = useChangesTracking((state) => state.undo)
     const redo = useChangesTracking((state) => state.redo)
-    const setApplyingHistory = useEditorStore(
-        (state) => state.setApplyingHistory
+    const getBaselinePosition = useChangesTracking(
+        (state) => state.getBaselinePosition
     )
+    useChangesTracking((state) => state.baselineVersion)
+    const setApplyingHistory = useEditorStore((state) => state.setApplyingHistory)
+    const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
 
     return {
         undo: () => {
             const controls = useChangesTracking.getControls()
-            if (controls.position <= 1) {
+            const baselinePosition = getBaselinePosition()
+            if (controls.position <= baselinePosition) {
                 return
             }
 
             setApplyingHistory(true)
+            setSnapshotPaused(true)
             undo(instance)
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     setApplyingHistory(false)
+                    setSnapshotPaused(false)
                 })
             })
         },
         redo: () => {
+            const controls = useChangesTracking.getControls()
+            if (!controls.canForward()) {
+                return
+            }
+
             setApplyingHistory(true)
+            setSnapshotPaused(true)
             redo(instance)
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     setApplyingHistory(false)
+                    setSnapshotPaused(false)
                 })
             })
         },

@@ -4,21 +4,24 @@ import type {
     RegulatoryNodeProperties,
 } from '@/lib/schema'
 import type { Node, Edge, ReactFlowInstance } from '@xyflow/react'
-import type { SerializedEditorState } from 'lexical'
 import diff from 'microdiff'
 import { create } from 'zustand'
 import { travel } from 'zustand-travel'
 import { combine } from 'zustand/middleware'
-import { useEditorStore } from './editor'
 
 interface HistoryState {
     snapshot: InternalGRNModel
     pendingSelectionSnapshot: InternalGRNModel | null
+    baselineVersion: number
+    getBaselinePosition: () => number
 
     takeSnapshot: (
         nodes: Node<RegulatoryNodeProperties>[],
-        edges: Edge<EditableRegulatoryEdge>[],
-        annotations: SerializedEditorState | null
+        edges: Edge<EditableRegulatoryEdge>[]
+    ) => void
+    resetHistory: (
+        nodes: Node<RegulatoryNodeProperties>[],
+        edges: Edge<EditableRegulatoryEdge>[]
     ) => void
 
     undo: (
@@ -35,22 +38,45 @@ interface HistoryState {
     ) => void
 }
 
+let historyBaselinePosition = 0
+const EMPTY_HISTORY_META = { title: '', annotations: undefined } as const
+
+const archiveIfAvailable = (controls: ReturnType<typeof useChangesTracking.getControls>) => {
+    if ('archive' in controls) {
+        controls.archive()
+    }
+}
+
 const buildSnapshot = (
     nodes: Node<RegulatoryNodeProperties>[],
-    edges: Edge<EditableRegulatoryEdge>[],
-    annotations: SerializedEditorState | null
+    edges: Edge<EditableRegulatoryEdge>[]
 ): InternalGRNModel => ({
-    title: useEditorStore.getState().modelTitle,
-    annotations: annotations ? structuredClone(annotations) : undefined,
+    ...EMPTY_HISTORY_META,
     nodes: structuredClone(nodes),
     edges: structuredClone(edges),
+})
+
+const stripTransientFields = (
+    snapshot: InternalGRNModel
+): InternalGRNModel => ({
+    ...snapshot,
+    nodes: snapshot.nodes.map((node) => {
+        const nextNode = { ...node }
+        delete nextNode.dragging
+        delete nextNode.resizing
+        delete nextNode.measured
+        delete nextNode.width
+        delete nextNode.height
+        return nextNode
+    }),
+    edges: snapshot.edges,
 })
 
 const sanitizeSnapshot = (
     snapshot: Partial<InternalGRNModel>
 ): InternalGRNModel => ({
-    title: snapshot.title ?? 'Untitled model',
-    annotations: snapshot.annotations,
+    // Title/annotations are intentionally excluded from graph history.
+    ...EMPTY_HISTORY_META,
     nodes: (snapshot.nodes ?? []).map((node) => {
         const nodeSnapshot = {
             ...node,
@@ -64,6 +90,11 @@ const sanitizeSnapshot = (
         }
 
         delete nodeSnapshot.selected
+        delete nodeSnapshot.dragging
+        delete nodeSnapshot.resizing
+        delete nodeSnapshot.measured
+        delete nodeSnapshot.width
+        delete nodeSnapshot.height
 
         return nodeSnapshot
     }),
@@ -89,26 +120,10 @@ const sanitizeSnapshot = (
 })
 
 const isDataChange = (path: readonly (string | number)[]) =>
-    path[0] === 'annotations' ||
-    ((path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'data')
+    (path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'data'
 
 const isSelectionChange = (path: readonly (string | number)[]) =>
     (path[0] === 'nodes' || path[0] === 'edges') && path[2] === 'selected'
-
-const isAnnotationChange = (path: readonly (string | number)[]) =>
-    path[0] === 'annotations' ||
-    ((path[0] === 'nodes' || path[0] === 'edges') &&
-        path[2] === 'data' &&
-        path[3] === 'annotations')
-
-const hasAnnotationChanges = (
-    previousSnapshot: InternalGRNModel,
-    nextSnapshot: InternalGRNModel
-) =>
-    diff(
-        sanitizeSnapshot(previousSnapshot),
-        sanitizeSnapshot(nextSnapshot)
-    ).some((change) => isAnnotationChange(change.path))
 
 export const useChangesTracking = create<HistoryState>()(
     travel(
@@ -116,37 +131,36 @@ export const useChangesTracking = create<HistoryState>()(
             {
                 snapshot: {} as InternalGRNModel,
                 pendingSelectionSnapshot: null as InternalGRNModel | null,
+                baselineVersion: 0,
             },
             (set, get) => ({
+                getBaselinePosition: () => historyBaselinePosition,
                 takeSnapshot: (
                     nodes: Node<RegulatoryNodeProperties>[],
-                    edges: Edge<EditableRegulatoryEdge>[],
-                    annotations: SerializedEditorState | null
+                    edges: Edge<EditableRegulatoryEdge>[]
                 ) => {
                     const controls = useChangesTracking.getControls()
                     const currentSnapshot = get().snapshot
                     const pendingSelectionSnapshot =
                         get().pendingSelectionSnapshot
-                    const nextSnapshot = buildSnapshot(
-                        nodes,
-                        edges,
-                        annotations
-                    )
+                    const nextSnapshot = buildSnapshot(nodes, edges)
+                    const nextStoredSnapshot =
+                        stripTransientFields(nextSnapshot)
                     const snapshotChanges = diff(
                         sanitizeSnapshot(currentSnapshot),
-                        sanitizeSnapshot(nextSnapshot)
+                        sanitizeSnapshot(nextStoredSnapshot)
                     )
                     const isSameSnapshot = snapshotChanges.length === 0
 
                     if (isSameSnapshot) {
                         const selectionChanged = diff(
                             currentSnapshot,
-                            nextSnapshot
+                            nextStoredSnapshot
                         ).some((change) => isSelectionChange(change.path))
 
                         if (selectionChanged) {
                             set({
-                                pendingSelectionSnapshot: nextSnapshot,
+                                pendingSelectionSnapshot: nextStoredSnapshot,
                             })
                         }
 
@@ -162,25 +176,40 @@ export const useChangesTracking = create<HistoryState>()(
                             snapshot: pendingSelectionSnapshot,
                         })
 
-                        if ('archive' in controls) {
-                            controls.archive()
-                        }
+                        archiveIfAvailable(controls)
                     }
 
                     set({
-                        snapshot: nextSnapshot,
+                        snapshot: nextStoredSnapshot,
                         pendingSelectionSnapshot: null,
                     })
 
-                    if ('archive' in controls) {
-                        controls.archive()
-                    }
+                    archiveIfAvailable(controls)
 
                     if (!hasDataChanges && pendingSelectionSnapshot) {
                         set({
                             pendingSelectionSnapshot: null,
                         })
                     }
+                },
+                resetHistory: (
+                    nodes: Node<RegulatoryNodeProperties>[],
+                    edges: Edge<EditableRegulatoryEdge>[]
+                ) => {
+                    const controls = useChangesTracking.getControls()
+                    const nextSnapshot = stripTransientFields(buildSnapshot(nodes, edges))
+
+                    set({
+                        snapshot: nextSnapshot,
+                        pendingSelectionSnapshot: null,
+                    })
+
+                    archiveIfAvailable(controls)
+
+                    historyBaselinePosition = controls.position
+                    set({
+                        baselineVersion: get().baselineVersion + 1,
+                    })
                 },
                 undo: (
                     instance: ReactFlowInstance<
@@ -189,24 +218,20 @@ export const useChangesTracking = create<HistoryState>()(
                     >
                 ) => {
                     const controls = useChangesTracking.getControls()
-                    const previousSnapshot = get().snapshot
+                    const baselinePosition = historyBaselinePosition
+                    if (controls.position <= baselinePosition) {
+                        return
+                    }
+
+                    set({ pendingSelectionSnapshot: null })
                     controls.back()
+                    if (controls.position < baselinePosition && 'go' in controls) {
+                        controls.go(baselinePosition)
+                    }
 
                     const snapshot = get().snapshot
-                    const shouldExpandAnnotations = hasAnnotationChanges(
-                        previousSnapshot,
-                        snapshot
-                    )
                     instance.setNodes(snapshot.nodes)
                     instance.setEdges(snapshot.edges)
-                    const editorStore = useEditorStore.getState()
-                    editorStore.setModelAnnotations(
-                        snapshot.annotations ?? null
-                    )
-
-                    if (shouldExpandAnnotations) {
-                        editorStore.setAnnotationsPanelOpen(true)
-                    }
                 },
                 redo: (
                     instance: ReactFlowInstance<
@@ -215,24 +240,12 @@ export const useChangesTracking = create<HistoryState>()(
                     >
                 ) => {
                     const controls = useChangesTracking.getControls()
-                    const previousSnapshot = get().snapshot
+                    set({ pendingSelectionSnapshot: null })
                     controls.forward()
 
                     const snapshot = get().snapshot
-                    const shouldExpandAnnotations = hasAnnotationChanges(
-                        previousSnapshot,
-                        snapshot
-                    )
                     instance.setNodes(snapshot.nodes)
                     instance.setEdges(snapshot.edges)
-                    const editorStore = useEditorStore.getState()
-                    editorStore.setModelAnnotations(
-                        snapshot.annotations ?? null
-                    )
-
-                    if (shouldExpandAnnotations) {
-                        editorStore.setAnnotationsPanelOpen(true)
-                    }
                 },
             })
         ),
