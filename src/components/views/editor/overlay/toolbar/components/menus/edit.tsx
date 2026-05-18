@@ -16,12 +16,17 @@ export function EditMenu() {
     const getBaselinePosition = useChangesTracking(
         (state) => state.getBaselinePosition
     )
+    const getHistoryPosition = useChangesTracking(
+        (state) => state.getHistoryPosition
+    )
+    const canHistoryForward = useChangesTracking(
+        (state) => state.canHistoryForward
+    )
     useChangesTracking((state) => state.baselineVersion)
-    const controls = useChangesTracking.getControls()
     const { undo, redo } = useHistory()
     const baselinePosition = getBaselinePosition()
-    const canUndo = snapshot ? controls.position > baselinePosition : false
-    const canRedo = snapshot ? controls.canForward() : false
+    const canUndo = snapshot ? getHistoryPosition() > baselinePosition : false
+    const canRedo = snapshot ? canHistoryForward() : false
 
     return (
         <MenubarMenu>

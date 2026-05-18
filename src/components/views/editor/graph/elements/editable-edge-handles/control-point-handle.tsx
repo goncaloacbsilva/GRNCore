@@ -32,7 +32,8 @@ export function ControlPointHandle({
     >()
     const setDragging = useEditorStore((state) => state.setDragging)
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
-    const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
+    const beginGroup = useChangesTracking((state) => state.beginGroup)
+    const endGroup = useChangesTracking((state) => state.endGroup)
 
     const updatePoint = (next: XYPosition) => {
         setControlPoints((points) => {
@@ -142,6 +143,7 @@ export function ControlPointHandle({
                 const pointerTarget = event.currentTarget
                 pointerTarget.setPointerCapture(event.pointerId)
                 selectEdge()
+                beginGroup('control-point-drag', getNodes(), getEdges())
                 setSnapshotPaused(true)
                 event.preventDefault()
                 event.stopPropagation()
@@ -188,8 +190,8 @@ export function ControlPointHandle({
 
                     requestAnimationFrame(() => {
                         requestAnimationFrame(() => {
+                            endGroup(getNodes(), getEdges())
                             setSnapshotPaused(false)
-                            takeSnapshot(getNodes(), getEdges())
                         })
                     })
                 }

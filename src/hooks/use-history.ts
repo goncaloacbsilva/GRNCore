@@ -16,6 +16,12 @@ export function useHistory() {
     const getBaselinePosition = useChangesTracking(
         (state) => state.getBaselinePosition
     )
+    const getHistoryPosition = useChangesTracking(
+        (state) => state.getHistoryPosition
+    )
+    const canHistoryForward = useChangesTracking(
+        (state) => state.canHistoryForward
+    )
     useChangesTracking((state) => state.baselineVersion)
     const setApplyingHistory = useEditorStore((state) => state.setApplyingHistory)
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
@@ -39,9 +45,8 @@ export function useHistory() {
 
     return {
         undo: () => {
-            const controls = useChangesTracking.getControls()
             const baselinePosition = getBaselinePosition()
-            if (controls.position <= baselinePosition) {
+            if (getHistoryPosition() <= baselinePosition) {
                 return
             }
 
@@ -51,8 +56,7 @@ export function useHistory() {
             releaseHistoryGuards()
         },
         redo: () => {
-            const controls = useChangesTracking.getControls()
-            if (!controls.canForward()) {
+            if (!canHistoryForward()) {
                 return
             }
 
