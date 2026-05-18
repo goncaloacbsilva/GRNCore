@@ -13,10 +13,20 @@ import { useChangesTracking } from '@/store'
 export function EditMenu() {
     const { copyAction, pasteAction, cutAction } = useElementsActions()
     const snapshot = useChangesTracking((state) => state.snapshot)
-    const controls = useChangesTracking.getControls()
+    const getBaselinePosition = useChangesTracking(
+        (state) => state.getBaselinePosition
+    )
+    const getHistoryPosition = useChangesTracking(
+        (state) => state.getHistoryPosition
+    )
+    const canHistoryForward = useChangesTracking(
+        (state) => state.canHistoryForward
+    )
+    useChangesTracking((state) => state.baselineVersion)
     const { undo, redo } = useHistory()
-    const canUndo = snapshot ? controls.position > 1 : false
-    const canRedo = snapshot ? controls.canForward() : false
+    const baselinePosition = getBaselinePosition()
+    const canUndo = snapshot ? getHistoryPosition() > baselinePosition : false
+    const canRedo = snapshot ? canHistoryForward() : false
 
     return (
         <MenubarMenu>

@@ -1,9 +1,13 @@
 import { useAppForm } from '@/components/forms'
 import { FieldGroup } from '@/components/ui/field'
 import { TabsContent } from '@/components/ui/tabs'
-import { type RegulatoryNodeProperties } from '@/lib/schema'
-import { useReactFlow, type Node } from '@xyflow/react'
-import { useEffect, type CSSProperties } from 'react'
+import {
+    type EditableRegulatoryEdge,
+    type RegulatoryNodeProperties,
+} from '@/lib/schema'
+import { useChangesTracking, useEditorStore } from '@/store'
+import { useReactFlow, type Edge, type Node } from '@xyflow/react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { useStore as useFormStore } from '@tanstack/react-form'
 import {
     DEFAULT_NODE_BACKGROUND_COLOR,
@@ -74,7 +78,13 @@ const NODE_THEME_PRESETS: NodeThemePreset[] = [
 ]
 
 export function StyleMenu({ node }: StyleMenuProps) {
-    const { updateNode } = useReactFlow<Node<RegulatoryNodeProperties>>()
+    const { updateNode, getNode, getNodes, getEdges } = useReactFlow<
+        Node<RegulatoryNodeProperties>,
+        Edge<EditableRegulatoryEdge>
+    >()
+    const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
+    const beginGroup = useChangesTracking((state) => state.beginGroup)
+    const endGroup = useChangesTracking((state) => state.endGroup)
 
     const form = useAppForm({
         defaultValues: {
@@ -88,23 +98,59 @@ export function StyleMenu({ node }: StyleMenuProps) {
     })
 
     const formValues = useFormStore(form.store, (state) => state.values)
+    const isFormTouched = useFormStore(form.store, (state) => state.isTouched)
+    const hasInitializedStyleSyncRef = useRef(false)
+    const runAsSingleStyleHistoryStep = (fn: () => void) => {
+        beginGroup('style-preset-change', getNodes(), getEdges())
+        setSnapshotPaused(true)
+        fn()
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                endGroup(getNodes(), getEdges())
+                setSnapshotPaused(false)
+            })
+        })
+    }
+
     const applyThemePreset = (preset: NodeThemePreset) => {
-        form.setFieldValue('foregroundColor', preset.foregroundColor)
-        form.setFieldValue('backgroundColor', preset.backgroundColor)
-        form.setFieldValue('borderColor', preset.borderColor)
+        runAsSingleStyleHistoryStep(() => {
+            form.setFieldValue('foregroundColor', preset.foregroundColor)
+            form.setFieldValue('backgroundColor', preset.backgroundColor)
+            form.setFieldValue('borderColor', preset.borderColor)
+        })
     }
 
     useEffect(() => {
-        updateNode(node.id, (currentNode) => ({
-            style: {
-                ...omitWrapperNodeColors(currentNode.style),
-                color: formValues.foregroundColor,
-                [NODE_BACKGROUND_COLOR_STYLE_PROPERTY]:
-                    formValues.backgroundColor,
-                [NODE_BORDER_COLOR_STYLE_PROPERTY]: formValues.borderColor,
-            } satisfies RegulatoryNodeStyle,
+        if (!hasInitializedStyleSyncRef.current) {
+            hasInitializedStyleSyncRef.current = true
+            return
+        }
+
+        if (!isFormTouched) {
+            return
+        }
+
+        const currentNode = getNode(node.id)
+        if (!currentNode) {
+            return
+        }
+
+        const nextStyle = {
+            ...omitWrapperNodeColors(currentNode.style),
+            color: formValues.foregroundColor,
+            [NODE_BACKGROUND_COLOR_STYLE_PROPERTY]: formValues.backgroundColor,
+            [NODE_BORDER_COLOR_STYLE_PROPERTY]: formValues.borderColor,
+        } satisfies RegulatoryNodeStyle
+
+        if (areStylesEqual(currentNode.style, nextStyle)) {
+            return
+        }
+
+        updateNode(node.id, () => ({
+            style: nextStyle,
         }))
-    }, [formValues, node.id, updateNode])
+    }, [formValues, getNode, isFormTouched, node.id, updateNode])
 
     return (
         <TabsContent
@@ -186,4 +232,38 @@ function omitWrapperNodeColors(
     delete styleWithoutWrapperColors.borderColor
 
     return styleWithoutWrapperColors
+}
+
+function normalizeStyle(style: CSSProperties | undefined): CSSProperties {
+    if (!style) {
+        return {}
+    }
+
+    const normalized = { ...style }
+    Object.keys(normalized).forEach((key) => {
+        if (normalized[key as keyof CSSProperties] === undefined) {
+            delete normalized[key as keyof CSSProperties]
+        }
+    })
+
+    return normalized
+}
+
+function areStylesEqual(
+    currentStyle: CSSProperties | undefined,
+    nextStyle: CSSProperties
+) {
+    const normalizedCurrent = normalizeStyle(currentStyle)
+    const normalizedNext = normalizeStyle(nextStyle)
+    const currentEntries = Object.entries(normalizedCurrent)
+    const nextEntries = Object.entries(normalizedNext)
+
+    if (currentEntries.length !== nextEntries.length) {
+        return false
+    }
+
+    return nextEntries.every(
+        ([key, value]) =>
+            normalizedCurrent[key as keyof CSSProperties] === value
+    )
 }

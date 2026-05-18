@@ -26,6 +26,7 @@
         "@tailwindcss/vite": "^4.1.18",
         "@tanstack/react-form": "^1.28.5",
         "@xyflow/react": "^12.10.1",
+        "animejs": "^3.2.2",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
@@ -56,6 +57,7 @@
     },
     "devDependencies": {
         "@eslint/js": "^9.39.1",
+        "@types/animejs": "^3.1.13",
         "@types/lodash": "^4.17.24",
         "@types/node": "^25.2.3",
         "@types/react": "^19.2.7",

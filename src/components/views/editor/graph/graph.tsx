@@ -2,6 +2,7 @@ import type { EditableRegulatoryEdge, InternalGRNModel } from '@/lib/schema'
 import { isRegulatoryRuleExpressionValid } from '@/lib/regulatory-rules'
 import {
     type Edge,
+    type EdgeChange,
     Background,
     Panel,
     ReactFlow,
@@ -32,12 +33,17 @@ import {
     useGraphInteractions,
 } from './utils'
 import { useHotkeysSetup } from '@/hooks'
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useChangesTracking, useEditorStore } from '@/store'
 
 interface GraphProps {
     model: InternalGRNModel
 }
+
+const shouldKeepEdgeChange = (
+    hasSelectedNodes: boolean,
+    change: EdgeChange<Edge<EditableRegulatoryEdge>>
+) => !hasSelectedNodes || change.type !== 'select' || !change.selected
 
 export function Graph({ model }: GraphProps) {
     const platformClass =
@@ -49,21 +55,49 @@ export function Graph({ model }: GraphProps) {
     const [nodes, setNodes] = useNodesState(
         normalizeRegulatoryNodes(model.nodes)
     )
-    const [edges, setEdges, onEdgesChange] = useEdgesState<
-        Edge<EditableRegulatoryEdge>
-    >(model.edges)
+    const [edges, setEdges] = useEdgesState<Edge<EditableRegulatoryEdge>>(
+        model.edges
+    )
 
     const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
+    const resetHistory = useChangesTracking((state) => state.resetHistory)
     const dragging = useEditorStore((state) => state.isDragging)
-    const modelAnnotations = useEditorStore((state) => state.modelAnnotations)
     const setModelAnnotations = useEditorStore(
         (state) => state.setModelAnnotations
     )
+    const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
     const isApplyingHistory = useEditorStore((state) => state.isApplyingHistory)
     const isSnapshotPaused = useEditorStore((state) => state.isSnapshotPaused)
+    const hasInitializedHistoryRef = useRef(false)
+
     useEffect(() => {
+        if (hasInitializedHistoryRef.current) {
+            return
+        }
+
+        hasInitializedHistoryRef.current = true
+        const normalizedNodes = normalizeRegulatoryNodes(model.nodes)
+        setSnapshotPaused(true)
+        setNodes(normalizedNodes)
+        setEdges(model.edges)
         setModelAnnotations(model.annotations ?? null)
-    }, [model.annotations, setModelAnnotations])
+        resetHistory(normalizedNodes, model.edges)
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                setSnapshotPaused(false)
+            })
+        })
+    }, [
+        model.annotations,
+        model.edges,
+        model.nodes,
+        resetHistory,
+        setEdges,
+        setModelAnnotations,
+        setNodes,
+        setSnapshotPaused,
+    ])
 
     useEffect(() => {
         if (isApplyingHistory || isSnapshotPaused) {
@@ -71,12 +105,11 @@ export function Graph({ model }: GraphProps) {
         }
 
         if (!dragging) {
-            takeSnapshot(nodes, edges, modelAnnotations)
+            takeSnapshot(nodes, edges)
         }
     }, [
         nodes,
         edges,
-        modelAnnotations,
         dragging,
         isApplyingHistory,
         isSnapshotPaused,
@@ -200,10 +233,22 @@ export function Graph({ model }: GraphProps) {
         onConnectStart,
         onConnect,
         onConnectEnd,
+        onEdgesChange: applyGraphEdgeChanges,
     } = useGraphInteractions({
         setNodes,
         setEdges,
     })
+    const onEdgesChange = useCallback(
+        (changes: EdgeChange<Edge<EditableRegulatoryEdge>>[]) => {
+            const hasSelectedNodes = nodes.some((node) => node.selected)
+            const filteredChanges = changes.filter((change) =>
+                shouldKeepEdgeChange(hasSelectedNodes, change)
+            )
+
+            applyGraphEdgeChanges(filteredChanges)
+        },
+        [applyGraphEdgeChanges, nodes]
+    )
 
     const {
         handleNodeDragStart,

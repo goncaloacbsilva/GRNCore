@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ChevronDownIcon, PencilIcon, SaveIcon } from 'lucide-react'
+import { ChevronUpIcon, PencilIcon, SaveIcon } from 'lucide-react'
 import { twJoin } from 'tailwind-merge'
 
 import { Button } from '@/components/ui/button'
@@ -46,7 +46,7 @@ export function AnnotationCard({
             <TooltipProvider>
                 <div className="flex h-10 shrink-0 items-center justify-between gap-2 overflow-auto border-b p-1">
                     <CollapsibleTrigger className="group flex items-center rounded-sm px-2 py-1 text-sm font-medium hover:bg-accent data-[state=open]:bg-accent">
-                        <ChevronDownIcon
+                        <ChevronUpIcon
                             size={18}
                             className="ml-auto group-data-[state=open]:rotate-180"
                         />

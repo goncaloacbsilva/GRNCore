@@ -4,6 +4,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import anime from 'animejs'
 import { shallow } from 'zustand/shallow'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -17,10 +18,13 @@ import type {
 } from '@/lib/schema'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ChevronDownIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditorStore } from '@/store/editor'
 
 const SHEET_ANIMATION_DURATION_MS = 200
+const SHEET_EXPAND_DURATION_MS = 200
+const SHEET_COLLAPSE_DURATION_MS = 200
+const SHEET_COLLAPSE_EASING = 'easeOutQuad'
 
 export function MenuSheet() {
     const { selectedNodes, selectedEdges } = useStore(
@@ -41,6 +45,9 @@ export function MenuSheet() {
     const selectedElements = selectedNodes.length + selectedEdges.length
     const [isSheetMounted, setIsSheetMounted] = useState(false)
     const [isSheetVisible, setIsSheetVisible] = useState(false)
+    const [collapsedSelectionKeys, setCollapsedSelectionKeys] = useState(
+        () => new Set<string>()
+    )
     const [renderedSelection, setRenderedSelection] = useState<{
         nodes: Node<RegulatoryNodeProperties>[]
         edges: Edge<EditableRegulatoryEdge>[]
@@ -48,6 +55,10 @@ export function MenuSheet() {
         nodes: [],
         edges: [],
     })
+    const animatedContentRef = useRef<HTMLDivElement | null>(null)
+    const animatedContentInnerRef = useRef<HTMLDivElement | null>(null)
+    const contentAnimationRef = useRef<ReturnType<typeof anime> | null>(null)
+    const hasInitializedContentAnimationRef = useRef(false)
 
     useEffect(() => {
         if (selectedElements > 0) {
@@ -94,6 +105,87 @@ export function MenuSheet() {
         renderedSelectedElements === 1
             ? (renderedSelection.nodes[0]?.id ?? renderedSelection.edges[0]?.id)
             : renderedSelectedElements.toString()
+    const activeSelectionKey = selectedElementKey ?? '__none__'
+    const isSheetOpen = !collapsedSelectionKeys.has(activeSelectionKey)
+
+    const handleSheetOpenChange = useCallback(
+        (open: boolean) => {
+            setCollapsedSelectionKeys((previousKeys) => {
+                const nextKeys = new Set(previousKeys)
+                if (open) {
+                    nextKeys.delete(activeSelectionKey)
+                } else {
+                    nextKeys.add(activeSelectionKey)
+                }
+                return nextKeys
+            })
+        },
+        [activeSelectionKey]
+    )
+
+    useEffect(() => {
+        const content = animatedContentRef.current
+        const contentInner = animatedContentInnerRef.current
+        if (!content || !contentInner) {
+            return
+        }
+
+        if (contentAnimationRef.current) {
+            contentAnimationRef.current.pause()
+            contentAnimationRef.current = null
+        }
+
+        const measuredExpandedHeight = contentInner.scrollHeight
+        const currentHeight = content.getBoundingClientRect().height
+
+        if (!hasInitializedContentAnimationRef.current) {
+            hasInitializedContentAnimationRef.current = true
+            content.style.overflow = isSheetOpen ? 'auto' : 'hidden'
+            content.style.height = isSheetOpen ? 'auto' : '0px'
+            content.style.pointerEvents = isSheetOpen ? 'auto' : 'none'
+            return
+        }
+
+        content.style.overflow = 'hidden'
+
+        if (isSheetOpen) {
+            content.style.pointerEvents = 'auto'
+            contentAnimationRef.current = anime({
+                targets: content,
+                height: [currentHeight, measuredExpandedHeight],
+                duration: SHEET_EXPAND_DURATION_MS,
+                easing: SHEET_COLLAPSE_EASING,
+                complete: () => {
+                    content.style.height = 'auto'
+                    content.style.overflow = 'auto'
+                    content.style.pointerEvents = 'auto'
+                },
+            })
+            return
+        }
+
+        contentAnimationRef.current = anime({
+            targets: content,
+            height: [currentHeight, 0],
+            duration: SHEET_COLLAPSE_DURATION_MS,
+            easing: SHEET_COLLAPSE_EASING,
+            complete: () => {
+                content.style.height = '0px'
+                content.style.pointerEvents = 'none'
+                content.style.overflow = 'hidden'
+            },
+        })
+    }, [isSheetOpen, selectedElementKey])
+
+    useEffect(
+        () => () => {
+            if (contentAnimationRef.current) {
+                contentAnimationRef.current.pause()
+                contentAnimationRef.current = null
+            }
+        },
+        []
+    )
 
     if (!isSheetMounted || renderedSelectedElements === 0) {
         return null
@@ -106,10 +198,11 @@ export function MenuSheet() {
         >
             <Collapsible
                 key={selectedElementKey}
-                defaultOpen
-                className={`bg-background flex max-h-10 min-h-0 w-80 flex-col overflow-hidden rounded-lg border transition-all duration-200 ease-out data-[state=open]:max-h-[calc(100vh-13.5rem)] ${
+                open={isSheetOpen}
+                onOpenChange={handleSheetOpenChange}
+                className={`group bg-background pointer-events-auto flex max-h-10 min-h-0 w-80 flex-col overflow-hidden rounded-lg border transition-all duration-200 ease-out data-[state=open]:max-h-[calc(100vh-13.5rem)] ${
                     isSheetVisible
-                        ? 'pointer-events-auto opacity-100'
+                        ? 'opacity-100'
                         : 'pointer-events-none translate-x-4 opacity-0'
                 }`}
             >
@@ -118,7 +211,11 @@ export function MenuSheet() {
                     defaultValue="base"
                     value={renderedSelectedElements > 1 ? 'style' : undefined}
                 >
-                    <div className="flex h-10 shrink-0 items-center justify-between gap-2 overflow-auto border-b p-1">
+                    <div
+                        className={`flex h-10 shrink-0 items-center justify-between gap-2 overflow-auto p-1 ${
+                            isSheetOpen ? 'border-b' : ''
+                        }`}
+                    >
                         <CollapsibleTrigger className="group flex items-center rounded-sm px-2 py-1 text-sm font-medium hover:bg-accent data-[state=open]:bg-accent">
                             <ChevronDownIcon
                                 size={18}
@@ -130,57 +227,64 @@ export function MenuSheet() {
                         </CollapsibleTrigger>
                     </div>
 
-                    <CollapsibleContent
-                        forceMount
-                        className="min-h-0 overflow-hidden data-[state=closed]:h-0 data-[state=closed]:grow-0 data-[state=closed]:shrink-0 data-[state=open]:flex data-[state=open]:max-h-[calc(100vh-16rem)] data-[state=open]:flex-col data-[state=open]:overflow-y-auto"
-                    >
-                        <div className="flex shrink-0 flex-col gap-2 px-4 pb-4">
-                            {renderedSelectedElements > 1 && (
-                                <Alert>
-                                    <AlertDescription className="text-xs">
-                                        {renderedSelectedElements} elements
-                                        selected
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                            <div className="flex flex-row items-center">
-                                <TabsList className="w-full">
-                                    {renderedSelectedElements == 1 && (
-                                        <>
-                                            <TabsTrigger value="base">
-                                                Base Properties
-                                            </TabsTrigger>
-                                            {renderedSelection.nodes.length >
-                                                0 && (
-                                                <TabsTrigger value="style">
-                                                    Style
-                                                </TabsTrigger>
-                                            )}
-                                        </>
+                    <CollapsibleContent forceMount className="min-h-0">
+                        <div
+                            ref={animatedContentRef}
+                            className="h-auto overflow-hidden"
+                        >
+                            <div
+                                ref={animatedContentInnerRef}
+                                className="flex min-h-0 max-h-[calc(100vh-16rem)] flex-col overflow-y-auto"
+                            >
+                                <div className="flex shrink-0 flex-col gap-2 px-4 pb-4">
+                                    {renderedSelectedElements > 1 && (
+                                        <Alert>
+                                            <AlertDescription className="text-xs">
+                                                {renderedSelectedElements}{' '}
+                                                elements selected
+                                            </AlertDescription>
+                                        </Alert>
                                     )}
-                                </TabsList>
+                                    <div className="flex flex-row items-center">
+                                        {renderedSelectedElements == 1 && (
+                                            <TabsList className="w-full">
+                                                <>
+                                                    <TabsTrigger value="base">
+                                                        Base Properties
+                                                    </TabsTrigger>
+                                                    {renderedSelection.nodes
+                                                        .length > 0 && (
+                                                        <TabsTrigger value="style">
+                                                            Style
+                                                        </TabsTrigger>
+                                                    )}
+                                                </>
+                                            </TabsList>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Menus */}
+                                {renderedSelection.nodes.length == 1 && (
+                                    <>
+                                        <NodeBasePropertiesMenu
+                                            key={`${renderedSelection.nodes[0].id}-base`}
+                                            node={renderedSelection.nodes[0]}
+                                        />
+                                        <StyleMenu
+                                            key={`${renderedSelection.nodes[0].id}-style`}
+                                            node={renderedSelection.nodes[0]}
+                                        />
+                                    </>
+                                )}
+                                {renderedSelection.edges.length == 1 && (
+                                    <EdgeBasePropertiesMenu
+                                        key={renderedSelection.edges[0].id}
+                                        edge={renderedSelection.edges[0]}
+                                    />
+                                )}
                             </div>
                         </div>
-
-                        {/* Menus */}
-                        {renderedSelection.nodes.length > 0 && (
-                            <>
-                                <NodeBasePropertiesMenu
-                                    key={renderedSelection.nodes[0].id}
-                                    node={renderedSelection.nodes[0]}
-                                />
-                                <StyleMenu
-                                    key={renderedSelection.nodes[0].id}
-                                    node={renderedSelection.nodes[0]}
-                                />
-                            </>
-                        )}
-                        {renderedSelection.edges.length > 0 && (
-                            <EdgeBasePropertiesMenu
-                                key={renderedSelection.edges[0].id}
-                                edge={renderedSelection.edges[0]}
-                            />
-                        )}
                     </CollapsibleContent>
                 </Tabs>
             </Collapsible>

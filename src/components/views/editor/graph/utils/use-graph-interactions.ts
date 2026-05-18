@@ -1,9 +1,11 @@
 import { useCallback, useRef } from 'react'
 import {
     addEdge,
+    applyEdgeChanges,
     applyNodeChanges,
     type Connection,
     type Edge,
+    type EdgeChange,
     type Node,
     type NodeChange,
     type OnConnectStartParams,
@@ -29,6 +31,8 @@ type SetNodes = (
 type SetEdges = (
     payload: RegulatoryEdge[] | ((edges: RegulatoryEdge[]) => RegulatoryEdge[])
 ) => void
+const deselectEdges = (edges: RegulatoryEdge[]) =>
+    edges.map((edge) => (edge.selected ? { ...edge, selected: false } : edge))
 
 function getEventClientPoint(
     event: MouseEvent | TouchEvent
@@ -72,8 +76,27 @@ export function useGraphInteractions({
             })
 
             setNodes((prevNodes) => applyNodeChanges(changes, prevNodes))
+
+            const hasNodeSelectionChange = changes.some(
+                (change) => change.type === 'select'
+            )
+            if (hasNodeSelectionChange) {
+                const clearSelectedEdges = () => {
+                    setEdges(deselectEdges)
+                }
+
+                clearSelectedEdges()
+                requestAnimationFrame(clearSelectedEdges)
+            }
         },
-        [setNodes, popSelectedNodeId]
+        [setNodes, setEdges, popSelectedNodeId]
+    )
+
+    const onEdgesChange = useCallback(
+        (changes: EdgeChange<RegulatoryEdge>[]) => {
+            setEdges((prevEdges) => applyEdgeChanges(changes, prevEdges))
+        },
+        [setEdges]
     )
 
     const onNodeDragStart = useCallback(
@@ -200,5 +223,6 @@ export function useGraphInteractions({
         onConnectStart,
         onConnect,
         onConnectEnd,
+        onEdgesChange,
     }
 }

@@ -3,6 +3,7 @@ import { useElementsActions } from './use-elements-actions'
 import { useEditorStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
 import { useHistory } from './use-history'
+import { useEffect } from 'react'
 
 function isEditableHotkeyTarget(event: KeyboardEvent) {
     const editableSelector =
@@ -53,34 +54,41 @@ export function useHotkeysSetup() {
         )
     const { undo, redo } = useHistory()
 
-    // History
-    useHotkeys(
-        'mod+shift+z',
-        (event) => {
-            if (isEditableHotkeyTarget(event)) {
+    // History: use a native listener to avoid mod+z / mod+shift+z parsing edge-cases.
+    useEffect(() => {
+        const handleHistoryHotkeys = (event: KeyboardEvent) => {
+            if (event.defaultPrevented) {
                 return
             }
 
-            redo()
-        },
-        {
-            preventDefault: shouldHandleGlobalHotkey,
-        }
-    )
+            const isModPressed = event.metaKey || event.ctrlKey
+            if (!isModPressed || event.altKey) {
+                return
+            }
 
-    useHotkeys(
-        'mod+z',
-        (event) => {
-            if (isEditableHotkeyTarget(event)) {
+            if (event.key.toLowerCase() !== 'z') {
+                return
+            }
+
+            if (!shouldHandleGlobalHotkey(event)) {
+                return
+            }
+
+            event.preventDefault()
+
+            if (event.shiftKey) {
+                redo()
                 return
             }
 
             undo()
-        },
-        {
-            preventDefault: shouldHandleGlobalHotkey,
         }
-    )
+
+        document.addEventListener('keydown', handleHistoryHotkeys)
+        return () => {
+            document.removeEventListener('keydown', handleHistoryHotkeys)
+        }
+    }, [undo, redo])
 
     // Support Windows delete
     useHotkeys(

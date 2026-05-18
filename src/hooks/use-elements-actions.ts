@@ -29,8 +29,8 @@ export function useElementsActions() {
             }))
         )
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
-    const modelAnnotations = useEditorStore((state) => state.modelAnnotations)
-    const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
+    const beginGroup = useChangesTracking((state) => state.beginGroup)
+    const endGroup = useChangesTracking((state) => state.endGroup)
     const { triggerNodeChanges, triggerEdgeChanges } = useStore(
         useShallow((state) => ({
             triggerNodeChanges: state.triggerNodeChanges,
@@ -53,16 +53,20 @@ export function useElementsActions() {
     }
 
     const runAsSingleHistoryStep = (fn: () => void) => {
-        takeSnapshot(
+        beginGroup(
+            'elements-action',
             reactFlowInstance.getNodes(),
-            reactFlowInstance.getEdges(),
-            modelAnnotations
+            reactFlowInstance.getEdges()
         )
         setSnapshotPaused(true)
         fn()
 
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
+                endGroup(
+                    reactFlowInstance.getNodes(),
+                    reactFlowInstance.getEdges()
+                )
                 setSnapshotPaused(false)
             })
         })
