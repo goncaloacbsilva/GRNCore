@@ -135,71 +135,54 @@ const sanitizeSnapshot = (
 ): InternalGRNModel => ({
     // Title/annotations are intentionally excluded from graph history.
     ...EMPTY_HISTORY_META,
-    nodes: (() => {
-        const nodes = snapshot.nodes ?? []
-        const hasMultipleSelectedNodes =
-            nodes.filter((node) => node.selected).length > 1
+    nodes: (snapshot.nodes ?? []).map((node) => {
+        const nodeSnapshot = {
+            ...node,
+            data: {
+                ...node.data,
+                rules: node.data.rules.map((rule) => ({
+                    ...rule,
+                    isValid: false,
+                })),
+            },
+        }
+        const nodeSnapshotRecord = nodeSnapshot as Record<string, unknown>
 
-        return nodes.map((node) => {
-            const nodeSnapshot = {
-                ...node,
-                data: {
-                    ...node.data,
-                    rules: node.data.rules.map((rule) => ({
-                        ...rule,
-                        isValid: false,
-                    })),
-                },
-            }
-            const nodeSnapshotRecord = nodeSnapshot as Record<string, unknown>
+        delete nodeSnapshot.selected
+        delete nodeSnapshot.dragging
+        delete nodeSnapshot.resizing
+        delete nodeSnapshot.measured
+        delete nodeSnapshot.width
+        delete nodeSnapshot.height
+        delete nodeSnapshot.zIndex
+        delete nodeSnapshotRecord.positionAbsolute
+        delete nodeSnapshot.ariaLabel
+        delete nodeSnapshot.focusable
 
-            if (!hasMultipleSelectedNodes) {
-                delete nodeSnapshot.selected
-            }
+        return nodeSnapshot
+    }),
 
-            delete nodeSnapshot.dragging
-            delete nodeSnapshot.resizing
-            delete nodeSnapshot.measured
-            delete nodeSnapshot.width
-            delete nodeSnapshot.height
-            delete nodeSnapshot.zIndex
-            delete nodeSnapshotRecord.positionAbsolute
-            delete nodeSnapshot.ariaLabel
-            delete nodeSnapshot.focusable
+    edges: (snapshot.edges ?? []).map((edge) => {
+        const edgeSnapshot = {
+            ...edge,
+            data: edge.data
+                ? {
+                      ...edge.data,
+                      levels: edge.data.levels.map((level) => ({
+                          ...level,
+                          isValid: false,
+                      })),
+                  }
+                : edge.data,
+        }
 
-            return nodeSnapshot
-        })
-    })(),
+        delete edgeSnapshot.selected
+        delete edgeSnapshot.zIndex
+        delete edgeSnapshot.ariaLabel
+        delete edgeSnapshot.focusable
 
-    edges: (() => {
-        const edges = snapshot.edges ?? []
-        const hasMultipleSelectedEdges =
-            edges.filter((edge) => edge.selected).length > 1
-
-        return edges.map((edge) => {
-            const edgeSnapshot = {
-                ...edge,
-                data: edge.data
-                    ? {
-                          ...edge.data,
-                          levels: edge.data.levels.map((level) => ({
-                              ...level,
-                              isValid: false,
-                          })),
-                      }
-                    : edge.data,
-            }
-
-            if (!hasMultipleSelectedEdges) {
-                delete edgeSnapshot.selected
-            }
-            delete edgeSnapshot.zIndex
-            delete edgeSnapshot.ariaLabel
-            delete edgeSnapshot.focusable
-
-            return edgeSnapshot
-        })
-    })(),
+        return edgeSnapshot
+    }),
 })
 
 const getCanonicalState = (snapshot: InternalGRNModel): CanonicalGraphState =>
@@ -210,12 +193,6 @@ const getSnapshotChanges = (
     nextSnapshot: InternalGRNModel
 ): MicrodiffChange[] =>
     diff(getCanonicalState(previousSnapshot), getCanonicalState(nextSnapshot))
-
-const hasMultipleSelectedNodes = (snapshot: InternalGRNModel) =>
-    snapshot.nodes.filter((node) => node.selected).length > 1
-
-const hasMultipleSelectedEdges = (snapshot: InternalGRNModel) =>
-    snapshot.edges.filter((edge) => edge.selected).length > 1
 
 const isSelectionNoisePath = (path: (string | number)[]) => {
     const staticNoiseKeys = new Set([
@@ -232,17 +209,8 @@ const isSelectionNoisePath = (path: (string | number)[]) => {
 }
 
 const filterHistoryChanges = (
-    previousSnapshot: InternalGRNModel,
-    nextSnapshot: InternalGRNModel,
     changes: MicrodiffChange[]
 ): MicrodiffChange[] => {
-    const allowNodeSelectionDiff =
-        hasMultipleSelectedNodes(previousSnapshot) ||
-        hasMultipleSelectedNodes(nextSnapshot)
-    const allowEdgeSelectionDiff =
-        hasMultipleSelectedEdges(previousSnapshot) ||
-        hasMultipleSelectedEdges(nextSnapshot)
-
     return changes.filter((change) => {
         if (isSelectionNoisePath(change.path)) {
             return false
@@ -252,67 +220,15 @@ const filterHistoryChanges = (
         const lastSegment = change.path[change.path.length - 1]
 
         if (firstSegment === 'nodes' && lastSegment === 'selected') {
-            return allowNodeSelectionDiff
+            return false
         }
 
         if (firstSegment === 'edges' && lastSegment === 'selected') {
-            return allowEdgeSelectionDiff
+            return false
         }
 
         return true
     })
-}
-
-const isSelectionChangePath = (path: (string | number)[]) => {
-    const firstSegment = path[0]
-    const lastSegment = path[path.length - 1]
-
-    return (
-        (firstSegment === 'nodes' || firstSegment === 'edges') &&
-        lastSegment === 'selected'
-    )
-}
-
-const isSelectionOnlyChanges = (changes: MicrodiffChange[]) =>
-    changes.length > 0 &&
-    changes.every((change) => isSelectionChangePath(change.path))
-
-const hasNodeSelectionChanges = (changes: MicrodiffChange[]) =>
-    changes.some((change) => {
-        const path = change.path
-        return path[0] === 'nodes' && path[path.length - 1] === 'selected'
-    })
-
-const hasEdgeSelectionChanges = (changes: MicrodiffChange[]) =>
-    changes.some((change) => {
-        const path = change.path
-        return path[0] === 'edges' && path[path.length - 1] === 'selected'
-    })
-
-const getSelectedNodeCount = (snapshot: InternalGRNModel) =>
-    snapshot.nodes.reduce((count, node) => count + (node.selected ? 1 : 0), 0)
-
-const getSelectedEdgeCount = (snapshot: InternalGRNModel) =>
-    snapshot.edges.reduce((count, edge) => count + (edge.selected ? 1 : 0), 0)
-
-const isMultiSelectionTransitionBoundary = (
-    previousSnapshot: InternalGRNModel,
-    nextSnapshot: InternalGRNModel
-) => {
-    const previousNodeSelectionCount = getSelectedNodeCount(previousSnapshot)
-    const nextNodeSelectionCount = getSelectedNodeCount(nextSnapshot)
-    const previousEdgeSelectionCount = getSelectedEdgeCount(previousSnapshot)
-    const nextEdgeSelectionCount = getSelectedEdgeCount(nextSnapshot)
-
-    const previousHasMultiNodeSelection = previousNodeSelectionCount > 1
-    const nextHasMultiNodeSelection = nextNodeSelectionCount > 1
-    const previousHasMultiEdgeSelection = previousEdgeSelectionCount > 1
-    const nextHasMultiEdgeSelection = nextEdgeSelectionCount > 1
-
-    return (
-        previousHasMultiNodeSelection !== nextHasMultiNodeSelection ||
-        previousHasMultiEdgeSelection !== nextHasMultiEdgeSelection
-    )
 }
 
 const normalizeElementsForOrderInsensitiveComparison = <
@@ -478,23 +394,10 @@ const trimHistory = () => {
 const commitSnapshot = (nextSnapshot: InternalGRNModel): boolean => {
     const previousSnapshot = getSnapshotAtCurrentPosition()
     const forwardDiffs = filterHistoryChanges(
-        previousSnapshot,
-        nextSnapshot,
         getSnapshotChanges(previousSnapshot, nextSnapshot)
     )
 
-    if (
-        isSelectionOnlyChanges(forwardDiffs) &&
-        !isMultiSelectionTransitionBoundary(previousSnapshot, nextSnapshot)
-    ) {
-        historyCanonicalState = getCanonicalState(nextSnapshot)
-        return false
-    }
-
-    if (
-        !isMultiSelectionTransitionBoundary(previousSnapshot, nextSnapshot) &&
-        isEquivalentIgnoringSelectionAndOrder(previousSnapshot, nextSnapshot)
-    ) {
+    if (isEquivalentIgnoringSelectionAndOrder(previousSnapshot, nextSnapshot)) {
         historyCanonicalState = getCanonicalState(nextSnapshot)
         return false
     }
@@ -505,48 +408,8 @@ const commitSnapshot = (nextSnapshot: InternalGRNModel): boolean => {
     }
 
     const backwardDiffs = filterHistoryChanges(
-        nextSnapshot,
-        previousSnapshot,
         getSnapshotChanges(nextSnapshot, previousSnapshot)
     )
-
-    // Selection interactions can emit a burst of intermediate states.
-    // Keep them as a single undo step by squashing consecutive selection-only entries.
-    if (
-        isSelectionOnlyChanges(forwardDiffs) &&
-        historyJournal.position === historyJournal.entries.length &&
-        historyJournal.entries.length > 0
-    ) {
-        const lastEntryIndex = historyJournal.entries.length - 1
-        const lastEntry = historyJournal.entries[lastEntryIndex]
-
-        if (lastEntry && isSelectionOnlyChanges(lastEntry.forwardDiffs)) {
-            const squashBaseSnapshot = getSnapshotAtPosition(lastEntryIndex)
-            const squashedForwardDiffs = filterHistoryChanges(
-                squashBaseSnapshot,
-                nextSnapshot,
-                getSnapshotChanges(squashBaseSnapshot, nextSnapshot)
-            )
-
-            if (squashedForwardDiffs.length === 0) {
-                historyCanonicalState = getCanonicalState(squashBaseSnapshot)
-                return false
-            }
-
-            const squashedBackwardDiffs = filterHistoryChanges(
-                nextSnapshot,
-                squashBaseSnapshot,
-                getSnapshotChanges(nextSnapshot, squashBaseSnapshot)
-            )
-
-            lastEntry.forwardDiffs = squashedForwardDiffs
-            lastEntry.backwardDiffs = squashedBackwardDiffs
-            lastEntry.afterState = cloneSnapshot(nextSnapshot)
-
-            historyCanonicalState = getCanonicalState(nextSnapshot)
-            return true
-        }
-    }
 
     if (historyJournal.position < historyJournal.entries.length) {
         historyJournal.entries.splice(historyJournal.position)
@@ -575,22 +438,12 @@ const resetDiffHistory = (nextSnapshot: InternalGRNModel) => {
     historyGroupContext = null
 }
 
-const shouldUseSnapshotNodeSelection = (snapshot: InternalGRNModel) =>
-    snapshot.nodes.filter((node) => node.selected).length > 1
-
-const shouldUseSnapshotEdgeSelection = (snapshot: InternalGRNModel) =>
-    snapshot.edges.filter((edge) => edge.selected).length > 1
-
 const applySnapshotToInstance = (
     snapshot: InternalGRNModel,
     instance: ReactFlowInstance<
         Node<RegulatoryNodeProperties>,
         Edge<EditableRegulatoryEdge>
-    >,
-    options?: {
-        forceNodeSelectionFromSnapshot?: boolean
-        forceEdgeSelectionFromSnapshot?: boolean
-    }
+    >
 ) => {
     const currentNodes = instance.getNodes()
     const currentEdges = instance.getEdges()
@@ -600,18 +453,7 @@ const applySnapshotToInstance = (
     const currentEdgeSelectionById = new Map(
         currentEdges.map((edge) => [edge.id, Boolean(edge.selected)])
     )
-    const useSnapshotNodeSelection =
-        options?.forceNodeSelectionFromSnapshot ??
-        shouldUseSnapshotNodeSelection(snapshot)
-    const useSnapshotEdgeSelection =
-        options?.forceEdgeSelectionFromSnapshot ??
-        shouldUseSnapshotEdgeSelection(snapshot)
-
     const nextNodes = snapshot.nodes.map((node) => {
-        if (useSnapshotNodeSelection) {
-            return node
-        }
-
         const currentSelected = currentNodeSelectionById.get(node.id)
         if (currentSelected === undefined) {
             const nextNode = { ...node }
@@ -630,10 +472,6 @@ const applySnapshotToInstance = (
     })
 
     const nextEdges = snapshot.edges.map((edge) => {
-        if (useSnapshotEdgeSelection) {
-            return edge
-        }
-
         const currentSelected = currentEdgeSelectionById.get(edge.id)
         if (currentSelected === undefined) {
             const nextEdge = { ...edge }
@@ -768,14 +606,7 @@ export const useChangesTracking = create<HistoryState>((set, get) => ({
 
         const snapshot = getSnapshotAtCurrentPosition()
         set({ snapshot })
-        applySnapshotToInstance(snapshot, instance, {
-            forceNodeSelectionFromSnapshot: hasNodeSelectionChanges(
-                entry.backwardDiffs
-            ),
-            forceEdgeSelectionFromSnapshot: hasEdgeSelectionChanges(
-                entry.backwardDiffs
-            ),
-        })
+        applySnapshotToInstance(snapshot, instance)
     },
     redo: (
         instance: ReactFlowInstance<
@@ -804,14 +635,7 @@ export const useChangesTracking = create<HistoryState>((set, get) => ({
 
         const snapshot = getSnapshotAtCurrentPosition()
         set({ snapshot })
-        applySnapshotToInstance(snapshot, instance, {
-            forceNodeSelectionFromSnapshot: hasNodeSelectionChanges(
-                entry.forwardDiffs
-            ),
-            forceEdgeSelectionFromSnapshot: hasEdgeSelectionChanges(
-                entry.forwardDiffs
-            ),
-        })
+        applySnapshotToInstance(snapshot, instance)
     },
     getLastHistoryEntry: () => {
         if (historyJournal.position === 0) {
