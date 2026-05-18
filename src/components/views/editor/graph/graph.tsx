@@ -55,9 +55,9 @@ export function Graph({ model }: GraphProps) {
     const [nodes, setNodes] = useNodesState(
         normalizeRegulatoryNodes(model.nodes)
     )
-    const [edges, setEdges] = useEdgesState<
-        Edge<EditableRegulatoryEdge>
-    >(model.edges)
+    const [edges, setEdges] = useEdgesState<Edge<EditableRegulatoryEdge>>(
+        model.edges
+    )
 
     const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
     const resetHistory = useChangesTracking((state) => state.resetHistory)
@@ -89,6 +89,9 @@ export function Graph({ model }: GraphProps) {
             })
         })
     }, [
+        model.annotations,
+        model.edges,
+        model.nodes,
         resetHistory,
         setEdges,
         setModelAnnotations,

@@ -290,16 +290,10 @@ const hasEdgeSelectionChanges = (changes: MicrodiffChange[]) =>
     })
 
 const getSelectedNodeCount = (snapshot: InternalGRNModel) =>
-    snapshot.nodes.reduce(
-        (count, node) => count + (node.selected ? 1 : 0),
-        0
-    )
+    snapshot.nodes.reduce((count, node) => count + (node.selected ? 1 : 0), 0)
 
 const getSelectedEdgeCount = (snapshot: InternalGRNModel) =>
-    snapshot.edges.reduce(
-        (count, edge) => count + (edge.selected ? 1 : 0),
-        0
-    )
+    snapshot.edges.reduce((count, edge) => count + (edge.selected ? 1 : 0), 0)
 
 const isMultiSelectionTransitionBoundary = (
     previousSnapshot: InternalGRNModel,
@@ -322,7 +316,7 @@ const isMultiSelectionTransitionBoundary = (
 }
 
 const normalizeElementsForOrderInsensitiveComparison = <
-    T extends { id: string; selected?: boolean }
+    T extends { id: string; selected?: boolean },
 >(
     elements: T[]
 ) =>

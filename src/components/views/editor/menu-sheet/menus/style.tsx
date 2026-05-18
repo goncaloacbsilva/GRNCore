@@ -78,11 +78,10 @@ const NODE_THEME_PRESETS: NodeThemePreset[] = [
 ]
 
 export function StyleMenu({ node }: StyleMenuProps) {
-    const { updateNode, getNode, getNodes, getEdges } =
-        useReactFlow<
-            Node<RegulatoryNodeProperties>,
-            Edge<EditableRegulatoryEdge>
-        >()
+    const { updateNode, getNode, getNodes, getEdges } = useReactFlow<
+        Node<RegulatoryNodeProperties>,
+        Edge<EditableRegulatoryEdge>
+    >()
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
     const beginGroup = useChangesTracking((state) => state.beginGroup)
     const endGroup = useChangesTracking((state) => state.endGroup)
@@ -148,7 +147,7 @@ export function StyleMenu({ node }: StyleMenuProps) {
             return
         }
 
-        updateNode(node.id, (_currentNode) => ({
+        updateNode(node.id, () => ({
             style: nextStyle,
         }))
     }, [formValues, getNode, isFormTouched, node.id, updateNode])

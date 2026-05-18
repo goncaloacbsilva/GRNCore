@@ -96,7 +96,8 @@ const getChangeOldValue = (change: Difference): unknown =>
 const getNodeNameById = (
     snapshot: InternalGRNModel | undefined,
     nodeId: string
-): string => snapshot?.nodes.find((node) => node.id === nodeId)?.data.name ?? nodeId
+): string =>
+    snapshot?.nodes.find((node) => node.id === nodeId)?.data.name ?? nodeId
 
 const getNodeNameFromChange = (
     snapshot: InternalGRNModel | undefined,
@@ -114,7 +115,10 @@ const getNodeNameFromChange = (
 
     if (isRecord(fallbackValue) && isRecord(fallbackValue.data)) {
         const fallbackName = fallbackValue.data.name
-        if (typeof fallbackName === 'string' && fallbackName.trim().length > 0) {
+        if (
+            typeof fallbackName === 'string' &&
+            fallbackName.trim().length > 0
+        ) {
             return fallbackName
         }
     }
@@ -213,7 +217,10 @@ const hasSemanticNodeStyleKeys = (value: unknown) => {
 
 const isSemanticNodeStyleChange = (change: Difference) => {
     const nodeIndex = change.path[1]
-    if (!rulePathShape(change.path.slice(0, 2), 'nodes', isNumber) || !isNumber(nodeIndex)) {
+    if (
+        !rulePathShape(change.path.slice(0, 2), 'nodes', isNumber) ||
+        !isNumber(nodeIndex)
+    ) {
         return false
     }
 
@@ -296,14 +303,20 @@ const HISTORY_CHANGE_RULES: HistoryChangeRule[] = [
             const oldValue = getChangeOldValue(change)
             const newValue = getChangeValue(change)
 
-            if (!isNumber(nodeIndex) || !isString(oldValue) || !isString(newValue)) {
+            if (
+                !isNumber(nodeIndex) ||
+                !isString(oldValue) ||
+                !isString(newValue)
+            ) {
                 return
             }
 
             const resolvedOldName = oldValue.trim().length
                 ? oldValue
                 : getNodeNameFromChange(snapshot, nodeIndex, change)
-            const resolvedNewName = newValue.trim().length ? newValue : '(empty)'
+            const resolvedNewName = newValue.trim().length
+                ? newValue
+                : '(empty)'
             pushUnique(
                 summary.renamedNodes,
                 `Renamed node ${resolvedOldName} to ${resolvedNewName}`
@@ -338,7 +351,11 @@ const HISTORY_CHANGE_RULES: HistoryChangeRule[] = [
     },
     {
         applies: (change) => {
-            if (change.type !== 'CHANGE' && change.type !== 'CREATE' && change.type !== 'REMOVE') {
+            if (
+                change.type !== 'CHANGE' &&
+                change.type !== 'CREATE' &&
+                change.type !== 'REMOVE'
+            ) {
                 return false
             }
 
@@ -398,7 +415,9 @@ const HISTORY_CHANGE_RULES: HistoryChangeRule[] = [
                 return
             }
 
-            const expression = normalizeExpression(getExpressionFromObject(value))
+            const expression = normalizeExpression(
+                getExpressionFromObject(value)
+            )
             const nodeName = getNodeNameFromChange(snapshot, nodeIndex)
             pushUnique(
                 summary.addedNodeExpressions,
@@ -513,7 +532,10 @@ const HISTORY_CHANGE_RULES: HistoryChangeRule[] = [
 
             const edgePath = getEdgePathByIndex(snapshot, edgeIndex, change)
             const ruleLabel = getEdgeRuleLabel(value)
-            pushUnique(summary.addedEdgeRules, `Added edge rule ${edgePath}:${ruleLabel}`)
+            pushUnique(
+                summary.addedEdgeRules,
+                `Added edge rule ${edgePath}:${ruleLabel}`
+            )
         },
     },
     {
@@ -610,7 +632,9 @@ const composeToastMessage = (summary: MutationSummary): string | null => {
     const structureParts: string[] = []
 
     if (summary.addedNodes > 0) {
-        structureParts.push(formatCountLabel('Added', summary.addedNodes, 'node'))
+        structureParts.push(
+            formatCountLabel('Added', summary.addedNodes, 'node')
+        )
     }
 
     if (summary.removedNodes > 0) {
@@ -626,7 +650,9 @@ const composeToastMessage = (summary: MutationSummary): string | null => {
                 : `Added edges ${summary.addedEdgePaths.join(', ')}`
         )
     } else if (summary.addedEdges > 0) {
-        structureParts.push(formatCountLabel('Added', summary.addedEdges, 'edge'))
+        structureParts.push(
+            formatCountLabel('Added', summary.addedEdges, 'edge')
+        )
     }
 
     if (summary.removedEdgePaths.length > 0) {

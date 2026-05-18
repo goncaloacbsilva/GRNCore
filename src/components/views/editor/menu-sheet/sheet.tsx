@@ -18,7 +18,7 @@ import type {
 } from '@/lib/schema'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ChevronDownIcon } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditorStore } from '@/store/editor'
 
 const SHEET_ANIMATION_DURATION_MS = 200
@@ -45,7 +45,9 @@ export function MenuSheet() {
     const selectedElements = selectedNodes.length + selectedEdges.length
     const [isSheetMounted, setIsSheetMounted] = useState(false)
     const [isSheetVisible, setIsSheetVisible] = useState(false)
-    const [isSheetOpen, setIsSheetOpen] = useState(true)
+    const [collapsedSelectionKeys, setCollapsedSelectionKeys] = useState(
+        () => new Set<string>()
+    )
     const [renderedSelection, setRenderedSelection] = useState<{
         nodes: Node<RegulatoryNodeProperties>[]
         edges: Edge<EditableRegulatoryEdge>[]
@@ -103,10 +105,23 @@ export function MenuSheet() {
         renderedSelectedElements === 1
             ? (renderedSelection.nodes[0]?.id ?? renderedSelection.edges[0]?.id)
             : renderedSelectedElements.toString()
+    const activeSelectionKey = selectedElementKey ?? '__none__'
+    const isSheetOpen = !collapsedSelectionKeys.has(activeSelectionKey)
 
-    useEffect(() => {
-        setIsSheetOpen(true)
-    }, [selectedElementKey])
+    const handleSheetOpenChange = useCallback(
+        (open: boolean) => {
+            setCollapsedSelectionKeys((previousKeys) => {
+                const nextKeys = new Set(previousKeys)
+                if (open) {
+                    nextKeys.delete(activeSelectionKey)
+                } else {
+                    nextKeys.add(activeSelectionKey)
+                }
+                return nextKeys
+            })
+        },
+        [activeSelectionKey]
+    )
 
     useEffect(() => {
         const content = animatedContentRef.current
@@ -184,7 +199,7 @@ export function MenuSheet() {
             <Collapsible
                 key={selectedElementKey}
                 open={isSheetOpen}
-                onOpenChange={setIsSheetOpen}
+                onOpenChange={handleSheetOpenChange}
                 className={`group bg-background pointer-events-auto flex max-h-10 min-h-0 w-80 flex-col overflow-hidden rounded-lg border transition-all duration-200 ease-out data-[state=open]:max-h-[calc(100vh-13.5rem)] ${
                     isSheetVisible
                         ? 'opacity-100'
@@ -212,10 +227,7 @@ export function MenuSheet() {
                         </CollapsibleTrigger>
                     </div>
 
-                    <CollapsibleContent
-                        forceMount
-                        className="min-h-0"
-                    >
+                    <CollapsibleContent forceMount className="min-h-0">
                         <div
                             ref={animatedContentRef}
                             className="h-auto overflow-hidden"

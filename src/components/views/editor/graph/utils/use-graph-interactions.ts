@@ -32,9 +32,7 @@ type SetEdges = (
     payload: RegulatoryEdge[] | ((edges: RegulatoryEdge[]) => RegulatoryEdge[])
 ) => void
 const deselectEdges = (edges: RegulatoryEdge[]) =>
-    edges.map((edge) =>
-        edge.selected ? { ...edge, selected: false } : edge
-    )
+    edges.map((edge) => (edge.selected ? { ...edge, selected: false } : edge))
 
 function getEventClientPoint(
     event: MouseEvent | TouchEvent

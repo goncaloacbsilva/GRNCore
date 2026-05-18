@@ -23,7 +23,9 @@ export function useHistory() {
         (state) => state.canHistoryForward
     )
     useChangesTracking((state) => state.baselineVersion)
-    const setApplyingHistory = useEditorStore((state) => state.setApplyingHistory)
+    const setApplyingHistory = useEditorStore(
+        (state) => state.setApplyingHistory
+    )
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
     const releaseTimeoutRef = useRef<number | null>(null)
     const releaseHistoryGuards = () => {
