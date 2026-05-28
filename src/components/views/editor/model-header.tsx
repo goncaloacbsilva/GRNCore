@@ -12,13 +12,63 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useEditorStore } from '@/store'
+import { Badge } from '@/components/ui/badge'
+import { Spinner } from '@/components/ui/spinner'
+import { usePersistenceStatus } from '@/lib/persistence'
+import { useChangesTracking, useEditorStore } from '@/store'
 import { useStore as useFormStore } from '@tanstack/react-form'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { CheckIcon } from 'lucide-react'
+
+function SavingIndicator() {
+    const isSaving = usePersistenceStatus((state) => state.isSaving)
+    const contentRef = useRef<HTMLSpanElement | null>(null)
+    const [contentWidth, setContentWidth] = useState<number | null>(null)
+
+    useLayoutEffect(() => {
+        if (!contentRef.current) {
+            return
+        }
+
+        setContentWidth(contentRef.current.offsetWidth)
+    }, [isSaving])
+
+    return (
+        <Badge
+            variant={isSaving ? 'secondary' : 'ghost'}
+            className={
+                isSaving ? '' : ' text-black hover:bg-muted transition-all'
+            }
+        >
+            <span
+                className="inline-flex items-center overflow-hidden transition-[width] duration-100 ease-in-out"
+                style={{
+                    width: contentWidth === null ? 'auto' : `${contentWidth}px`,
+                }}
+            >
+                <span
+                    ref={contentRef}
+                    key={isSaving ? 'saving' : 'saved'}
+                    className="inline-flex items-center gap-1 animate-in fade-in-0 slide-in-from-bottom-1 duration-100 whitespace-nowrap"
+                >
+                    {isSaving ? (
+                        <Spinner className="size-3.5 text-blue-500" />
+                    ) : (
+                        <CheckIcon className="size-3.5 text-blue-500" />
+                    )}
+                    {isSaving ? 'Saving changes' : 'Saved'}
+                </span>
+            </span>
+        </Badge>
+    )
+}
 
 export function ModelHeader() {
     const modelTitle = useEditorStore((state) => state.modelTitle)
     const setModelTitle = useEditorStore((state) => state.setModelTitle)
+    const setSnapshotTitle = useChangesTracking(
+        (state) => state.setSnapshotTitle
+    )
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const form = useAppForm({
         defaultValues: {
@@ -35,12 +85,14 @@ export function ModelHeader() {
 
     const finishTitleEdit = () => {
         const trimmed = draftTitle.trim()
-        setModelTitle(trimmed || 'Untitled model')
+        const nextTitle = trimmed || 'Untitled model'
+        setModelTitle(nextTitle)
+        setSnapshotTitle(nextTitle)
         setIsEditingTitle(false)
     }
 
     return (
-        <div className="flex flex-col justify-center">
+        <div className="flex flex-row items-center justify-center gap-2">
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
@@ -99,6 +151,7 @@ export function ModelHeader() {
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
+            <SavingIndicator />
         </div>
     )
 }
