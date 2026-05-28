@@ -1,13 +1,16 @@
 import { displayHistoryActionToast } from '@/lib/history-utils'
+import { opfsStateStorage } from '@/lib/persistence'
 import type {
     EditableRegulatoryEdge,
     InternalGRNModel,
     RegulatoryNodeProperties,
 } from '@/lib/schema'
 import type { Node, Edge, ReactFlowInstance } from '@xyflow/react'
+import type { SerializedEditorState } from 'lexical'
 import diff, { type Difference } from 'microdiff'
 import isEqual from 'lodash/isEqual'
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 type MicrodiffChange = Difference
 
@@ -34,10 +37,14 @@ interface HistoryGroupContext {
 
 interface HistoryState {
     snapshot: InternalGRNModel
+    hasHydrated: boolean
     baselineVersion: number
     getBaselinePosition: () => number
     getHistoryPosition: () => number
     canHistoryForward: () => boolean
+    markHydrated: () => void
+    setSnapshotTitle: (title: string) => void
+    setSnapshotAnnotations: (annotations: SerializedEditorState | null) => void
 
     takeSnapshot: (
         nodes: Node<RegulatoryNodeProperties>[],
@@ -74,8 +81,13 @@ interface HistoryState {
     getLastHistoryEntry: () => HistoryEntry | null
 }
 
+interface PersistedHistoryState {
+    snapshot: InternalGRNModel
+}
+
 const MAX_HISTORY = 100
 const EMPTY_HISTORY_META = { title: '', annotations: undefined } as const
+const HISTORY_STORAGE_KEY = 'history-state'
 
 let historyBaselinePosition = 0
 let historyJournal: HistoryJournal = {
@@ -93,6 +105,12 @@ let historyCanonicalState: CanonicalGraphState = {
     edges: [],
 }
 let historyGroupContext: HistoryGroupContext | null = null
+
+const createEmptySnapshot = (): InternalGRNModel => ({
+    ...EMPTY_HISTORY_META,
+    nodes: [],
+    edges: [],
+})
 
 const buildSnapshot = (
     nodes: Node<RegulatoryNodeProperties>[],
@@ -370,9 +388,14 @@ const applyDiffs = (
 }
 
 const normalizeSnapshot = (
+    currentSnapshot: InternalGRNModel,
     nodes: Node<RegulatoryNodeProperties>[],
     edges: Edge<EditableRegulatoryEdge>[]
-): InternalGRNModel => stripTransientFields(buildSnapshot(nodes, edges))
+): InternalGRNModel => ({
+    ...stripTransientFields(buildSnapshot(nodes, edges)),
+    title: currentSnapshot.title,
+    annotations: currentSnapshot.annotations,
+})
 
 const trimHistory = () => {
     if (historyJournal.entries.length <= MAX_HISTORY) {
@@ -493,155 +516,218 @@ const applySnapshotToInstance = (
     instance.setEdges(nextEdges)
 }
 
-export const useChangesTracking = create<HistoryState>((set, get) => ({
-    snapshot: {} as InternalGRNModel,
-    baselineVersion: 0,
-    getBaselinePosition: () => historyBaselinePosition,
-    getHistoryPosition: () => historyJournal.position,
-    canHistoryForward: () =>
-        historyJournal.position < historyJournal.entries.length,
-    takeSnapshot: (
-        nodes: Node<RegulatoryNodeProperties>[],
-        edges: Edge<EditableRegulatoryEdge>[]
-    ) => {
-        const nextSnapshot = normalizeSnapshot(nodes, edges)
+export const useChangesTracking = create<HistoryState>()(
+    persist(
+        (set, get) => ({
+            snapshot: createEmptySnapshot(),
+            hasHydrated: false,
+            baselineVersion: 0,
+            getBaselinePosition: () => historyBaselinePosition,
+            getHistoryPosition: () => historyJournal.position,
+            canHistoryForward: () =>
+                historyJournal.position < historyJournal.entries.length,
+            markHydrated: () => set({ hasHydrated: true }),
+            setSnapshotTitle: (title: string) => {
+                set((state) => ({
+                    snapshot: {
+                        ...state.snapshot,
+                        title,
+                    },
+                }))
+            },
+            setSnapshotAnnotations: (annotations) => {
+                set((state) => ({
+                    snapshot: {
+                        ...state.snapshot,
+                        annotations: annotations ?? undefined,
+                    },
+                }))
+            },
+            takeSnapshot: (
+                nodes: Node<RegulatoryNodeProperties>[],
+                edges: Edge<EditableRegulatoryEdge>[]
+            ) => {
+                const nextSnapshot = normalizeSnapshot(
+                    get().snapshot,
+                    nodes,
+                    edges
+                )
 
-        if (historyGroupContext) {
-            return
+                if (historyGroupContext) {
+                    return
+                }
+
+                const didCommit = commitSnapshot(nextSnapshot)
+                if (!didCommit) {
+                    return
+                }
+
+                set({ snapshot: getSnapshotAtCurrentPosition() })
+            },
+            resetHistory: (
+                nodes: Node<RegulatoryNodeProperties>[],
+                edges: Edge<EditableRegulatoryEdge>[]
+            ) => {
+                const nextSnapshot = normalizeSnapshot(
+                    get().snapshot,
+                    nodes,
+                    edges
+                )
+
+                resetDiffHistory(nextSnapshot)
+                set({ snapshot: cloneSnapshot(nextSnapshot) })
+
+                historyBaselinePosition = historyJournal.position
+                set({
+                    baselineVersion: get().baselineVersion + 1,
+                })
+            },
+            beginGroup: (
+                reason,
+                nodes: Node<RegulatoryNodeProperties>[],
+                edges: Edge<EditableRegulatoryEdge>[]
+            ) => {
+                const currentSnapshot = normalizeSnapshot(
+                    get().snapshot,
+                    nodes,
+                    edges
+                )
+                const currentGroup = (historyGroupContext ??= {
+                    depth: 0,
+                    reason,
+                    startState: currentSnapshot,
+                })
+
+                currentGroup.depth += 1
+            },
+            endGroup: (
+                nodes: Node<RegulatoryNodeProperties>[],
+                edges: Edge<EditableRegulatoryEdge>[]
+            ) => {
+                if (!historyGroupContext) {
+                    return
+                }
+
+                historyGroupContext.depth = Math.max(
+                    0,
+                    historyGroupContext.depth - 1
+                )
+                if (historyGroupContext.depth > 0) {
+                    return
+                }
+
+                const finishedGroup = historyGroupContext
+                historyGroupContext = null
+
+                const nextSnapshot = normalizeSnapshot(
+                    get().snapshot,
+                    nodes,
+                    edges
+                )
+                const snapshotChanges = getSnapshotChanges(
+                    finishedGroup.startState,
+                    nextSnapshot
+                )
+
+                if (snapshotChanges.length === 0) {
+                    return
+                }
+
+                const didCommit = commitSnapshot(nextSnapshot)
+                if (!didCommit) {
+                    return
+                }
+
+                set({ snapshot: getSnapshotAtCurrentPosition() })
+            },
+            undo: (
+                instance: ReactFlowInstance<
+                    Node<RegulatoryNodeProperties>,
+                    Edge<EditableRegulatoryEdge>
+                >
+            ) => {
+                const baselinePosition = historyBaselinePosition
+                if (historyJournal.position <= baselinePosition) {
+                    return
+                }
+
+                const entry =
+                    historyJournal.entries[historyJournal.position - 1]
+                if (!entry) {
+                    return
+                }
+
+                displayHistoryActionToast({
+                    changes: entry.backwardDiffs,
+                    snapshot: entry.afterState,
+                })
+                historyCanonicalState = applyDiffs(
+                    historyCanonicalState,
+                    entry.backwardDiffs
+                )
+                historyJournal.position -= 1
+
+                const snapshot = getSnapshotAtCurrentPosition()
+                set({ snapshot })
+                applySnapshotToInstance(snapshot, instance)
+            },
+            redo: (
+                instance: ReactFlowInstance<
+                    Node<RegulatoryNodeProperties>,
+                    Edge<EditableRegulatoryEdge>
+                >
+            ) => {
+                if (historyJournal.position >= historyJournal.entries.length) {
+                    return
+                }
+
+                const entry = historyJournal.entries[historyJournal.position]
+                if (!entry) {
+                    return
+                }
+
+                displayHistoryActionToast({
+                    changes: entry.forwardDiffs,
+                    snapshot: entry.afterState,
+                })
+                historyCanonicalState = applyDiffs(
+                    historyCanonicalState,
+                    entry.forwardDiffs
+                )
+                historyJournal.position += 1
+
+                const snapshot = getSnapshotAtCurrentPosition()
+                set({ snapshot })
+                applySnapshotToInstance(snapshot, instance)
+            },
+            getLastHistoryEntry: () => {
+                if (historyJournal.position === 0) {
+                    return null
+                }
+
+                return (
+                    historyJournal.entries[historyJournal.position - 1] ?? null
+                )
+            },
+        }),
+        {
+            name: HISTORY_STORAGE_KEY,
+            storage: createJSONStorage(() => opfsStateStorage),
+            partialize: (state): PersistedHistoryState => ({
+                snapshot: state.snapshot,
+            }),
+            onRehydrateStorage: () => (state, error) => {
+                if (!state) {
+                    return
+                }
+
+                if (!error) {
+                    resetDiffHistory(state.snapshot)
+                    historyBaselinePosition = 0
+                }
+
+                state.markHydrated()
+            },
         }
-
-        const didCommit = commitSnapshot(nextSnapshot)
-        if (!didCommit) {
-            return
-        }
-
-        set({ snapshot: getSnapshotAtCurrentPosition() })
-    },
-    resetHistory: (
-        nodes: Node<RegulatoryNodeProperties>[],
-        edges: Edge<EditableRegulatoryEdge>[]
-    ) => {
-        const nextSnapshot = normalizeSnapshot(nodes, edges)
-
-        resetDiffHistory(nextSnapshot)
-        set({ snapshot: cloneSnapshot(nextSnapshot) })
-
-        historyBaselinePosition = historyJournal.position
-        set({
-            baselineVersion: get().baselineVersion + 1,
-        })
-    },
-    beginGroup: (
-        reason,
-        nodes: Node<RegulatoryNodeProperties>[],
-        edges: Edge<EditableRegulatoryEdge>[]
-    ) => {
-        const currentSnapshot = normalizeSnapshot(nodes, edges)
-        const currentGroup = (historyGroupContext ??= {
-            depth: 0,
-            reason,
-            startState: currentSnapshot,
-        })
-
-        currentGroup.depth += 1
-    },
-    endGroup: (
-        nodes: Node<RegulatoryNodeProperties>[],
-        edges: Edge<EditableRegulatoryEdge>[]
-    ) => {
-        if (!historyGroupContext) {
-            return
-        }
-
-        historyGroupContext.depth = Math.max(0, historyGroupContext.depth - 1)
-        if (historyGroupContext.depth > 0) {
-            return
-        }
-
-        const finishedGroup = historyGroupContext
-        historyGroupContext = null
-
-        const nextSnapshot = normalizeSnapshot(nodes, edges)
-        const snapshotChanges = getSnapshotChanges(
-            finishedGroup.startState,
-            nextSnapshot
-        )
-
-        if (snapshotChanges.length === 0) {
-            return
-        }
-
-        const didCommit = commitSnapshot(nextSnapshot)
-        if (!didCommit) {
-            return
-        }
-
-        set({ snapshot: getSnapshotAtCurrentPosition() })
-    },
-    undo: (
-        instance: ReactFlowInstance<
-            Node<RegulatoryNodeProperties>,
-            Edge<EditableRegulatoryEdge>
-        >
-    ) => {
-        const baselinePosition = historyBaselinePosition
-        if (historyJournal.position <= baselinePosition) {
-            return
-        }
-
-        const entry = historyJournal.entries[historyJournal.position - 1]
-        if (!entry) {
-            return
-        }
-
-        displayHistoryActionToast({
-            changes: entry.backwardDiffs,
-            snapshot: entry.afterState,
-        })
-        historyCanonicalState = applyDiffs(
-            historyCanonicalState,
-            entry.backwardDiffs
-        )
-        historyJournal.position -= 1
-
-        const snapshot = getSnapshotAtCurrentPosition()
-        set({ snapshot })
-        applySnapshotToInstance(snapshot, instance)
-    },
-    redo: (
-        instance: ReactFlowInstance<
-            Node<RegulatoryNodeProperties>,
-            Edge<EditableRegulatoryEdge>
-        >
-    ) => {
-        if (historyJournal.position >= historyJournal.entries.length) {
-            return
-        }
-
-        const entry = historyJournal.entries[historyJournal.position]
-        if (!entry) {
-            return
-        }
-
-        displayHistoryActionToast({
-            changes: entry.forwardDiffs,
-            snapshot: entry.afterState,
-        })
-        historyCanonicalState = applyDiffs(
-            historyCanonicalState,
-            entry.forwardDiffs
-        )
-        historyJournal.position += 1
-
-        const snapshot = getSnapshotAtCurrentPosition()
-        set({ snapshot })
-        applySnapshotToInstance(snapshot, instance)
-    },
-    getLastHistoryEntry: () => {
-        if (historyJournal.position === 0) {
-            return null
-        }
-
-        return historyJournal.entries[historyJournal.position - 1] ?? null
-    },
-}))
+    )
+)
