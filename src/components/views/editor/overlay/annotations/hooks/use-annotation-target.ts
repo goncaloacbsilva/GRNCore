@@ -5,7 +5,7 @@ import type {
     EditableRegulatoryEdge,
     RegulatoryNodeProperties,
 } from '@/lib/schema'
-import { useEditorStore } from '@/store'
+import { useChangesTracking, useEditorStore } from '@/store'
 import type {
     AnnotationDraft,
     PersistedAnnotations,
@@ -31,6 +31,9 @@ export function useAnnotationTarget() {
     const modelAnnotations = useEditorStore((state) => state.modelAnnotations)
     const setModelAnnotations = useEditorStore(
         (state) => state.setModelAnnotations
+    )
+    const setSnapshotAnnotations = useChangesTracking(
+        (state) => state.setSnapshotAnnotations
     )
 
     const selectedElements = selectedNodes.length + selectedEdges.length
@@ -92,6 +95,7 @@ export function useAnnotationTarget() {
         title: 'Model Annotations',
         updateAnnotations: (newAnnotations: AnnotationDraft) => {
             setModelAnnotations(newAnnotations.unstructured)
+            setSnapshotAnnotations(newAnnotations.unstructured)
         },
         widthClassName: 'w-140',
     }
