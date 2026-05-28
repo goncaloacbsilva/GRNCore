@@ -4,6 +4,7 @@ import { create } from 'zustand'
 
 const HISTORY_SNAPSHOT_FILE_PATH = '/history-snapshot.json'
 const MIN_SAVING_FEEDBACK_MS = 800
+const DEFAULT_PERSISTED_STATE = JSON.stringify({ state: {}, version: 0 })
 
 const isOPFSAvailable = () =>
     typeof navigator !== 'undefined' &&
@@ -66,14 +67,30 @@ export const opfsStateStorage: StateStorage = {
         }
 
         try {
+            const snapshotFile = file(HISTORY_SNAPSHOT_FILE_PATH)
+            const exists = await snapshotFile.exists()
+            if (!exists) {
+                await write(HISTORY_SNAPSHOT_FILE_PATH, DEFAULT_PERSISTED_STATE)
+                hasLoadedPersistedValue = true
+                lastPersistedValue = DEFAULT_PERSISTED_STATE
+                return DEFAULT_PERSISTED_STATE
+            }
+
             const value = await file(HISTORY_SNAPSHOT_FILE_PATH).text()
             hasLoadedPersistedValue = true
             lastPersistedValue = value
             return value
         } catch {
-            hasLoadedPersistedValue = true
-            lastPersistedValue = null
-            return null
+            try {
+                await write(HISTORY_SNAPSHOT_FILE_PATH, DEFAULT_PERSISTED_STATE)
+                hasLoadedPersistedValue = true
+                lastPersistedValue = DEFAULT_PERSISTED_STATE
+                return DEFAULT_PERSISTED_STATE
+            } catch {
+                hasLoadedPersistedValue = true
+                lastPersistedValue = null
+                return null
+            }
         }
     },
     setItem: async (_, value) => {
