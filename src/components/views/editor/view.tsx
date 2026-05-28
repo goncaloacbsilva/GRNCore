@@ -1,18 +1,23 @@
 import { ReactFlowProvider } from '@xyflow/react'
 import { Graph } from './graph'
 import { AddNodeDialog } from './dialogs'
-import { P53_NODES_ONLY_MODEL } from '@/data/test-models'
 import { MenuSheet } from './menu-sheet'
 import { useEffect } from 'react'
-import { useEditorStore } from '@/store'
+import { useChangesTracking, useEditorStore } from '@/store'
 import { ModelHeader } from './model-header'
 
 export function EditorView() {
     const setModelTitle = useEditorStore((state) => state.setModelTitle)
+    const snapshot = useChangesTracking((state) => state.snapshot)
+    const hasHydrated = useChangesTracking((state) => state.hasHydrated)
 
     useEffect(() => {
-        setModelTitle(P53_NODES_ONLY_MODEL.title || 'Untitled model')
-    }, [setModelTitle])
+        if (!hasHydrated) {
+            return
+        }
+
+        setModelTitle(snapshot.title || 'Untitled model')
+    }, [hasHydrated, setModelTitle, snapshot.title])
 
     return (
         <ReactFlowProvider>
@@ -21,7 +26,7 @@ export function EditorView() {
                     <ModelHeader />
                 </header>
                 <div className="relative h-[calc(100%-4rem)] w-full">
-                    <Graph model={P53_NODES_ONLY_MODEL} />
+                    {hasHydrated ? <Graph model={snapshot} /> : null}
                     {/* Overlay dialogs */}
                     <AddNodeDialog />
                     <MenuSheet />
