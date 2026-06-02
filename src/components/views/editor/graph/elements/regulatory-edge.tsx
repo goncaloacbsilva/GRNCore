@@ -39,7 +39,7 @@ export function RegulatoryEdge({
     style,
     data,
 }: EdgeProps<RegulatoryGraphEdge>) {
-    const { setEdges } = useReactFlow()
+    const { setEdges, setNodes } = useReactFlow()
     const sourceNode = useInternalNode(source)!
     const targetNode = useInternalNode(target)!
     const {
@@ -137,6 +137,7 @@ export function RegulatoryEdge({
     const { selectEdge, setControlPoints, setAnchorHint } =
         useRegulatoryEdgeActions({
             id,
+            setNodes,
             setEdges,
             startHandleId,
             endHandleId,
@@ -151,6 +152,7 @@ export function RegulatoryEdge({
         hasSelectedNodes,
         id,
         selected: isSelected,
+        setNodes,
         setEdges,
         transform,
         userSelectionActive,
@@ -181,14 +183,6 @@ export function RegulatoryEdge({
                 strokeWidth={REGULATORY_EDGE_HITBOX_WIDTH}
                 pointerEvents="stroke"
                 className="cursor-pointer"
-                onClick={(event) => {
-                    event.stopPropagation()
-                    selectEdge()
-                }}
-                onMouseDown={(event) => {
-                    event.stopPropagation()
-                    selectEdge()
-                }}
             />
             <BaseEdge
                 id={id}

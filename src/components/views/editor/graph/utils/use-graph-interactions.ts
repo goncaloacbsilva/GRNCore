@@ -31,6 +31,10 @@ type SetNodes = (
 type SetEdges = (
     payload: RegulatoryEdge[] | ((edges: RegulatoryEdge[]) => RegulatoryEdge[])
 ) => void
+
+const deselectNodes = (nodes: RegulatoryNode[]) =>
+    nodes.map((node) => (node.selected ? { ...node, selected: false } : node))
+
 const deselectEdges = (edges: RegulatoryEdge[]) =>
     edges.map((edge) => (edge.selected ? { ...edge, selected: false } : edge))
 
@@ -78,7 +82,10 @@ export function useGraphInteractions({
             setNodes((prevNodes) => applyNodeChanges(changes, prevNodes))
 
             const hasNodeSelectionChange = changes.some(
-                (change) => change.type === 'select'
+                (change) =>
+                    change.type === 'select' &&
+                    'selected' in change &&
+                    change.selected
             )
             if (hasNodeSelectionChange) {
                 const clearSelectedEdges = () => {
@@ -94,9 +101,17 @@ export function useGraphInteractions({
 
     const onEdgesChange = useCallback(
         (changes: EdgeChange<RegulatoryEdge>[]) => {
+            const hasEdgeSelectionChange = changes.some(
+                (change) => change.type === 'select' && change.selected
+            )
+
+            if (hasEdgeSelectionChange) {
+                setNodes(deselectNodes)
+            }
+
             setEdges((prevEdges) => applyEdgeChanges(changes, prevEdges))
         },
-        [setEdges]
+        [setEdges, setNodes]
     )
 
     const onNodeDragStart = useCallback(
