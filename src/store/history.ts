@@ -1,4 +1,5 @@
 import { displayHistoryActionToast } from '@/lib/history-utils'
+import { exportModel, type InterchangeFormat } from '@/lib/interchange'
 import { opfsStateStorage } from '@/lib/persistence'
 import type {
     EditableRegulatoryEdge,
@@ -11,6 +12,7 @@ import diff, { type Difference } from 'microdiff'
 import isEqual from 'lodash/isEqual'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { toast } from 'sonner'
 
 type MicrodiffChange = Difference
 
@@ -42,6 +44,7 @@ interface HistoryState {
     getBaselinePosition: () => number
     getHistoryPosition: () => number
     canHistoryForward: () => boolean
+    export: (format: InterchangeFormat) => void
     markHydrated: () => void
     setSnapshotTitle: (title: string) => void
     setSnapshotAnnotations: (annotations: SerializedEditorState | null) => void
@@ -526,6 +529,18 @@ export const useChangesTracking = create<HistoryState>()(
             getHistoryPosition: () => historyJournal.position,
             canHistoryForward: () =>
                 historyJournal.position < historyJournal.entries.length,
+            export: (format) => {
+                toast.promise<void>(() => exportModel(get().snapshot, format), {
+                    loading: `Exporting model as ${format.toUpperCase()}...`,
+                    success: `Model exported as ${format.toUpperCase()}`,
+                    error: (err) => ({
+                        message: `Failed to export model as ${format.toUpperCase()}`,
+                        description: `${err instanceof Error ? err.message : String(err)}`,
+                        duration: 5000,
+                    }),
+                    position: 'top-right',
+                })
+            },
             markHydrated: () => set({ hasHydrated: true }),
             setSnapshotTitle: (title: string) => {
                 set((state) => ({

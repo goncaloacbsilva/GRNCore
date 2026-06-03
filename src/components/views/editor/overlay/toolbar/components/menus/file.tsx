@@ -3,31 +3,44 @@ import {
     MenubarGroup,
     MenubarItem,
     MenubarMenu,
+    MenubarSub,
+    MenubarSubContent,
+    MenubarSubTrigger,
     MenubarTrigger,
 } from '@/components/ui/menubar'
+import { InterchangeFormat } from '@/lib/interchange'
+import { useChangesTracking } from '@/store'
 
 export function FileMenu() {
+    const exportModel = useChangesTracking((state) => state.export)
+
     return (
         <MenubarMenu>
             <MenubarTrigger>File</MenubarTrigger>
             <MenubarContent>
                 <MenubarGroup>
-                    <MenubarItem disabled>Export</MenubarItem>
-                    {/* <MenubarSub>
+                    <MenubarSub>
                         <MenubarSubTrigger>Export</MenubarSubTrigger>
                         <MenubarSubContent>
                             <MenubarGroup>
-                                <MenubarItem>SBML-qual</MenubarItem>
-                                <MenubarItem>GINML</MenubarItem>
-                                <MenubarItem>BoolNet</MenubarItem>
+                                {Object.values(InterchangeFormat).map(
+                                    (format) => (
+                                        <MenubarItem
+                                            onClick={() => exportModel(format)}
+                                            key={format}
+                                        >
+                                            {format.toUpperCase()}
+                                        </MenubarItem>
+                                    )
+                                )}
                             </MenubarGroup>
-                            <MenubarSeparator />
+                            {/* <MenubarSeparator />
                             <MenubarGroup>
                                 <MenubarItem>Image (.png)</MenubarItem>
                                 <MenubarItem>Image (.svg)</MenubarItem>
-                            </MenubarGroup>
+                            </MenubarGroup> */}
                         </MenubarSubContent>
-                    </MenubarSub> */}
+                    </MenubarSub>
                 </MenubarGroup>
             </MenubarContent>
         </MenubarMenu>
