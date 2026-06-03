@@ -56,7 +56,7 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
         },
         OrExpr_binary(left, _operator, right) {
             const negated = getNegatedArgument(
-                this as { args: { negated: boolean } }
+                this as unknown as { args: { negated: boolean } }
             )
 
             return [
@@ -70,7 +70,7 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
         },
         AndExpr_binary(left, _operator, right) {
             const negated = getNegatedArgument(
-                this as { args: { negated: boolean } }
+                this as unknown as { args: { negated: boolean } }
             )
 
             return [
@@ -84,7 +84,7 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
         },
         UnaryExpr(nots, primary) {
             const negated = getNegatedArgument(
-                this as { args: { negated: boolean } }
+                this as unknown as { args: { negated: boolean } }
             )
             const isNegated = negated !== (nots.children.length % 2 === 1)
 
@@ -95,7 +95,7 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
         Primary_paren(_open, expr, close) {
             void close
             const negated = getNegatedArgument(
-                this as { args: { negated: boolean } }
+                this as unknown as { args: { negated: boolean } }
             )
 
             return (expr as ExpressionReferenceNode).expressionReferences(
@@ -104,7 +104,7 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
         },
         Condition(variable, _colon, value) {
             const negated = getNegatedArgument(
-                this as { args: { negated: boolean } }
+                this as unknown as { args: { negated: boolean } }
             )
 
             return [
@@ -117,7 +117,7 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
         },
         Var(ident) {
             const negated = getNegatedArgument(
-                this as { args: { negated: boolean } }
+                this as unknown as { args: { negated: boolean } }
             )
 
             return [
@@ -129,7 +129,7 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
         },
         _iter(...children: ohm.Node[]) {
             const negated = getNegatedArgument(
-                this as { args: { negated: boolean } }
+                this as unknown as { args: { negated: boolean } }
             )
 
             return children.flatMap((child) =>
@@ -138,7 +138,7 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
         },
         _nonterminal(...children: ohm.Node[]) {
             const negated = getNegatedArgument(
-                this as { args: { negated: boolean } }
+                this as unknown as { args: { negated: boolean } }
             )
 
             return children.flatMap((child) =>
