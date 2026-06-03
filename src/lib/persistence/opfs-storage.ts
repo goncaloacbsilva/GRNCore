@@ -1,6 +1,6 @@
 import { file, write } from 'opfs-tools'
 import type { StateStorage } from 'zustand/middleware'
-import { create } from 'zustand'
+import { usePersistenceStatus } from '@/store'
 
 const HISTORY_SNAPSHOT_FILE_PATH = '/history-snapshot.json'
 const MIN_SAVING_FEEDBACK_MS = 800
@@ -15,16 +15,6 @@ let savingStartedAt = 0
 let finishTimer: ReturnType<typeof setTimeout> | null = null
 let hasLoadedPersistedValue = false
 let lastPersistedValue: string | null = null
-
-interface PersistenceStatusState {
-    isSaving: boolean
-    setSaving: (isSaving: boolean) => void
-}
-
-export const usePersistenceStatus = create<PersistenceStatusState>((set) => ({
-    isSaving: false,
-    setSaving: (isSaving) => set({ isSaving }),
-}))
 
 const startSaving = () => {
     pendingWrites += 1
