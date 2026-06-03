@@ -115,6 +115,10 @@ export function Graph({ model }: GraphProps) {
             (typeof nodes)[number]['id'],
             typeof nodes
         >()
+        const incomingEdgesByTargetId = new Map<
+            (typeof nodes)[number]['id'],
+            typeof edges
+        >()
 
         edges.forEach((edge) => {
             const sourceNode = nodes.find((node) => node.id === edge.source)
@@ -126,6 +130,10 @@ export function Graph({ model }: GraphProps) {
             const incomingNodes = incomingNodesByTargetId.get(edge.target) ?? []
             incomingNodes.push(sourceNode)
             incomingNodesByTargetId.set(edge.target, incomingNodes)
+
+            const incomingEdges = incomingEdgesByTargetId.get(edge.target) ?? []
+            incomingEdges.push(edge)
+            incomingEdgesByTargetId.set(edge.target, incomingEdges)
         })
 
         let hasChanges = false
@@ -135,10 +143,12 @@ export function Graph({ model }: GraphProps) {
             }
 
             const incomingNodes = incomingNodesByTargetId.get(node.id) ?? []
+            const incomingEdges = incomingEdgesByTargetId.get(node.id) ?? []
             const nextRules = node.data.rules.map((rule) => {
                 const isValid = isRegulatoryRuleExpressionValid(
                     rule.expression,
-                    incomingNodes
+                    incomingNodes,
+                    incomingEdges
                 )
 
                 return rule.isValid === isValid ? rule : { ...rule, isValid }

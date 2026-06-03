@@ -217,6 +217,7 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                 <NodeRules
                     node={{ ...node, data: currentNodeData }}
                     incomingNodes={incomingNodes}
+                    incomingEdges={incomingEdges}
                     variableSuggestions={variableSuggestions}
                     variableActivityLevels={variableActivityLevels}
                 />

@@ -6,11 +6,12 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
+    type EditableRegulatoryEdge,
     RegulatoryNodePropertiesSchema,
     type RegulatoryNodeProperties,
     type RegulatoryNodeRule,
 } from '@/lib/schema'
-import { useReactFlow, type Node } from '@xyflow/react'
+import { useReactFlow, type Edge, type Node } from '@xyflow/react'
 import { Plus } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { useEffect, useRef } from 'react'
@@ -19,6 +20,7 @@ import { NodeRule } from './node-rule'
 interface NodeRulesProps {
     node: Node<RegulatoryNodeProperties>
     incomingNodes: Node<RegulatoryNodeProperties>[]
+    incomingEdges: Edge<EditableRegulatoryEdge>[]
     variableSuggestions: string[]
     variableActivityLevels: Record<string, number>
 }
@@ -26,6 +28,7 @@ interface NodeRulesProps {
 export function NodeRules({
     node,
     incomingNodes,
+    incomingEdges,
     variableSuggestions,
     variableActivityLevels,
 }: NodeRulesProps) {
@@ -45,7 +48,11 @@ export function NodeRules({
             )
             const isValid =
                 !hasTargetConflict &&
-                isRegulatoryRuleExpressionValid(rule.expression, incomingNodes)
+                isRegulatoryRuleExpressionValid(
+                    rule.expression,
+                    incomingNodes,
+                    incomingEdges
+                )
 
             return rule.isValid === isValid ? rule : { ...rule, isValid }
         })
@@ -65,7 +72,7 @@ export function NodeRules({
                 rules: nextRules,
             },
         }))
-    }, [node.id, nodeData.rules, incomingNodes, updateNode])
+    }, [incomingEdges, incomingNodes, node.id, nodeData.rules, updateNode])
 
     useEffect(() => {
         const rulesLength = nodeData.rules.length
@@ -144,6 +151,7 @@ export function NodeRules({
                             rule={rule}
                             node={{ ...node, data: nodeData }}
                             incomingNodes={incomingNodes}
+                            incomingEdges={incomingEdges}
                             variableSuggestions={variableSuggestions}
                             variableActivityLevels={variableActivityLevels}
                             updateCallback={updateNodeRule}

@@ -1,11 +1,60 @@
-import type { RegulatoryNodeProperties } from '@/lib/schema'
-import type { Node } from '@xyflow/react'
+import {
+    InteractionType,
+    type EditableRegulatoryEdge,
+    type RegulatoryNodeProperties,
+} from '@/lib/schema'
+import type { Edge, Node } from '@xyflow/react'
 import { regulatoryRuleGrammar } from './grammar'
-import { getExpressionVars } from './semantics'
+import { getExpressionReferences, getExpressionVars } from './semantics'
+
+interface IncomingEdgeConstraint {
+    positiveMaxThreshold?: number
+    negativeMaxThreshold?: number
+}
+
+function buildIncomingEdgeConstraints(
+    incomingNodes: Node<RegulatoryNodeProperties>[],
+    incomingEdges: Edge<EditableRegulatoryEdge>[]
+) {
+    const nodeNameById = new Map(
+        incomingNodes.map((node) => [node.id, node.data.name])
+    )
+    const constraints = new Map<string, IncomingEdgeConstraint>()
+
+    incomingEdges.forEach((edge) => {
+        const sourceName = nodeNameById.get(edge.source)
+
+        if (!sourceName) {
+            return
+        }
+
+        const currentConstraint = constraints.get(sourceName) ?? {}
+
+        edge.data?.levels.forEach((level) => {
+            if (level.type === InteractionType.Activation) {
+                currentConstraint.positiveMaxThreshold = Math.max(
+                    currentConstraint.positiveMaxThreshold ?? 0,
+                    level.target
+                )
+                return
+            }
+
+            currentConstraint.negativeMaxThreshold = Math.max(
+                currentConstraint.negativeMaxThreshold ?? 0,
+                level.target
+            )
+        })
+
+        constraints.set(sourceName, currentConstraint)
+    })
+
+    return constraints
+}
 
 export function validateRegulatoryRuleExpression(
     expression: string,
-    incomingNodes: Node<RegulatoryNodeProperties>[]
+    incomingNodes: Node<RegulatoryNodeProperties>[],
+    incomingEdges: Edge<EditableRegulatoryEdge>[] = []
 ) {
     const trimmedExpression = expression.trim()
 
@@ -23,8 +72,13 @@ export function validateRegulatoryRuleExpression(
     }
 
     const expressionVars = getExpressionVars(matchResult)
+    const expressionReferences = getExpressionReferences(matchResult)
     const incomingNodeActivityLevels = new Map(
         incomingNodes.map((node) => [node.data.name, node.data.activityLevels])
+    )
+    const incomingEdgeConstraints = buildIncomingEdgeConstraints(
+        incomingNodes,
+        incomingEdges
     )
     const allowedNodes = new Set(incomingNodeActivityLevels.keys())
     const referencedVariables = Array.from(
@@ -58,12 +112,71 @@ export function validateRegulatoryRuleExpression(
                   .join(', ')}`
     }
 
+    const edgeCoherenceError = expressionReferences.find(
+        ({ name, value, negated }) => {
+            const constraint = incomingEdgeConstraints.get(name)
+            const activityLevels = incomingNodeActivityLevels.get(name) ?? 1
+
+            if (!constraint) {
+                return false
+            }
+
+            const maxThreshold = negated
+                ? constraint.negativeMaxThreshold
+                : constraint.positiveMaxThreshold
+
+            if (maxThreshold === undefined) {
+                return true
+            }
+
+            if (value === undefined) {
+                return activityLevels > 1
+            }
+
+            return value > maxThreshold
+        }
+    )
+
+    if (edgeCoherenceError) {
+        const constraint = incomingEdgeConstraints.get(edgeCoherenceError.name)
+        const maxThreshold = edgeCoherenceError.negated
+            ? constraint?.negativeMaxThreshold
+            : constraint?.positiveMaxThreshold
+        const expectedInteractionLabel =
+            edgeCoherenceError.negated === true ? 'positive' : 'negative'
+
+        if (maxThreshold === undefined) {
+            return `${edgeCoherenceError.name} must appear as a ${expectedInteractionLabel} interaction in the rule`
+        }
+
+        if (edgeCoherenceError.value === undefined) {
+            const interactionLabel = edgeCoherenceError.negated
+                ? 'negative'
+                : 'positive'
+
+            return `${edgeCoherenceError.name} must reference an existing ${interactionLabel} edge threshold`
+        }
+
+        const interactionLabel = edgeCoherenceError.negated
+            ? 'negative'
+            : 'positive'
+
+        return `${edgeCoherenceError.name}:${edgeCoherenceError.value} exceeds the ${interactionLabel} edge threshold ${maxThreshold}`
+    }
+
     return null
 }
 
 export function isRegulatoryRuleExpressionValid(
     expression: string,
-    incomingNodes: Node<RegulatoryNodeProperties>[]
+    incomingNodes: Node<RegulatoryNodeProperties>[],
+    incomingEdges: Edge<EditableRegulatoryEdge>[] = []
 ) {
-    return validateRegulatoryRuleExpression(expression, incomingNodes) === null
+    return (
+        validateRegulatoryRuleExpression(
+            expression,
+            incomingNodes,
+            incomingEdges
+        ) === null
+    )
 }

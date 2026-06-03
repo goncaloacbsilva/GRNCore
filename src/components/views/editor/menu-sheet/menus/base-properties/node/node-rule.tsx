@@ -8,13 +8,14 @@ import { FieldGroup } from '@/components/ui/field'
 import { Item, ItemContent, ItemFooter } from '@/components/ui/item'
 import { Separator } from '@/components/ui/separator'
 import {
+    type EditableRegulatoryEdge,
     RegulatoryNodeRuleSchema,
     type RegulatoryNodeProperties,
     type RegulatoryNodeRule,
 } from '@/lib/schema'
 import { useEditorStore } from '@/store'
 import { useStore } from '@tanstack/react-form'
-import { type Node } from '@xyflow/react'
+import { type Edge, type Node } from '@xyflow/react'
 import { XIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Fragment } from 'react/jsx-runtime'
@@ -26,6 +27,7 @@ interface NodeRuleProps {
     rule: RegulatoryNodeRule
     node: Node<RegulatoryNodeProperties>
     incomingNodes: Node<RegulatoryNodeProperties>[]
+    incomingEdges: Edge<EditableRegulatoryEdge>[]
     variableSuggestions: string[]
     variableActivityLevels: Record<string, number>
     updateCallback: (ruleId: string, rule: RegulatoryNodeRule) => void
@@ -37,6 +39,7 @@ export function NodeRule({
     rule,
     node,
     incomingNodes,
+    incomingEdges,
     variableSuggestions,
     variableActivityLevels,
     updateCallback,
@@ -60,7 +63,8 @@ export function NodeRule({
                 )
                 const expressionError = validateRegulatoryRuleExpression(
                     value.expression,
-                    incomingNodes
+                    incomingNodes,
+                    incomingEdges
                 )
                 const conflict = node.data.rules.some(
                     (currentRule) =>
@@ -97,6 +101,7 @@ export function NodeRule({
     const latestFormValuesRef = useRef(formValues)
     const latestNodeRulesRef = useRef(node.data.rules)
     const latestIncomingNodesRef = useRef(incomingNodes)
+    const latestIncomingEdgesRef = useRef(incomingEdges)
     const latestRuleRef = useRef(rule)
     const latestUpdateCallbackRef = useRef(updateCallback)
     const hasTargetConflict = node.data.rules.some(
@@ -107,6 +112,7 @@ export function NodeRule({
     latestFormValuesRef.current = formValues
     latestNodeRulesRef.current = node.data.rules
     latestIncomingNodesRef.current = incomingNodes
+    latestIncomingEdgesRef.current = incomingEdges
     latestRuleRef.current = rule
     latestUpdateCallbackRef.current = updateCallback
 
@@ -131,7 +137,8 @@ export function NodeRule({
         )
         const isExpressionValid = isRegulatoryRuleExpressionValid(
             values.expression,
-            latestIncomingNodesRef.current
+            latestIncomingNodesRef.current,
+            latestIncomingEdgesRef.current
         )
 
         latestUpdateCallbackRef.current(currentRule.id, {
@@ -228,11 +235,13 @@ export function NodeRule({
                 !hasConflict &&
                 isRegulatoryRuleExpressionValid(
                     formValues.expression,
-                    incomingNodes
+                    incomingNodes,
+                    incomingEdges
                 ),
         })
     }, [
         formValues,
+        incomingEdges,
         incomingNodes,
         node.data.rules,
         rule.id,
@@ -254,7 +263,8 @@ export function NodeRule({
         )
         const isExpressionValid = isRegulatoryRuleExpressionValid(
             expression,
-            incomingNodes
+            incomingNodes,
+            incomingEdges
         )
         const isValid =
             targetParseResult.success && !hasConflict && isExpressionValid
@@ -267,7 +277,14 @@ export function NodeRule({
             ...formValues,
             isValid,
         })
-    }, [formValues, incomingNodes, node.data.rules, rule, updateCallback])
+    }, [
+        formValues,
+        incomingEdges,
+        incomingNodes,
+        node.data.rules,
+        rule,
+        updateCallback,
+    ])
 
     const handleFocusCapture = () => {
         isRuleFocusedRef.current = true
