@@ -9,10 +9,13 @@ import {
     MenubarTrigger,
 } from '@/components/ui/menubar'
 import { InterchangeFormat } from '@/lib/interchange'
-import { useChangesTracking } from '@/store'
+import { useChangesTracking, useEditorStore } from '@/store'
 
 export function FileMenu() {
     const exportModel = useChangesTracking((state) => state.export)
+    const setImportDialogOpen = useEditorStore(
+        (state) => state.setImportModelDialogVisible
+    )
 
     return (
         <MenubarMenu>
@@ -41,6 +44,9 @@ export function FileMenu() {
                             </MenubarGroup> */}
                         </MenubarSubContent>
                     </MenubarSub>
+                    <MenubarItem onClick={() => setImportDialogOpen(true)}>
+                        Import
+                    </MenubarItem>
                 </MenubarGroup>
             </MenubarContent>
         </MenubarMenu>

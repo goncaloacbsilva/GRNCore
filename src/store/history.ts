@@ -1,5 +1,9 @@
 import { displayHistoryActionToast } from '@/lib/history-utils'
-import { exportModel, type InterchangeFormat } from '@/lib/interchange'
+import {
+    exportModel,
+    importModel,
+    type InterchangeFormat,
+} from '@/lib/interchange'
 import { opfsStateStorage } from '@/lib/persistence'
 import type {
     EditableRegulatoryEdge,
@@ -41,10 +45,12 @@ interface HistoryState {
     snapshot: InternalGRNModel
     hasHydrated: boolean
     baselineVersion: number
+    graphVersion: number
     getBaselinePosition: () => number
     getHistoryPosition: () => number
     canHistoryForward: () => boolean
     export: (format: InterchangeFormat) => void
+    import: (file: File, callback: () => void) => void
     markHydrated: () => void
     setSnapshotTitle: (title: string) => void
     setSnapshotAnnotations: (annotations: SerializedEditorState | null) => void
@@ -525,6 +531,7 @@ export const useChangesTracking = create<HistoryState>()(
             snapshot: createEmptySnapshot(),
             hasHydrated: false,
             baselineVersion: 0,
+            graphVersion: 0,
             getBaselinePosition: () => historyBaselinePosition,
             getHistoryPosition: () => historyJournal.position,
             canHistoryForward: () =>
@@ -540,6 +547,31 @@ export const useChangesTracking = create<HistoryState>()(
                     }),
                     position: 'top-right',
                 })
+            },
+            import: (file, callback) => {
+                toast.promise(
+                    async () => {
+                        const importedSnapshot = await importModel(file)
+                        resetDiffHistory(importedSnapshot)
+                        historyBaselinePosition = historyJournal.position
+                        set({
+                            snapshot: cloneSnapshot(importedSnapshot),
+                            baselineVersion: get().baselineVersion + 1,
+                            graphVersion: get().graphVersion + 1,
+                        })
+                        callback()
+                    },
+                    {
+                        loading: `Importing ${file.name}...`,
+                        success: `Imported ${file.name}`,
+                        error: (err) => ({
+                            message: `Failed to import ${file.name}`,
+                            description: `${err instanceof Error ? err.message : String(err)}`,
+                            duration: 5000,
+                        }),
+                        position: 'top-right',
+                    }
+                )
             },
             markHydrated: () => set({ hasHydrated: true }),
             setSnapshotTitle: (title: string) => {

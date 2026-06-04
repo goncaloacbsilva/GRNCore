@@ -1,2 +1,2 @@
-export { exportModel } from './interchanger'
+export { exportModel, importModel, getInterchangeFormat } from './interchanger'
 export { InterchangeFormat } from './interchanger'

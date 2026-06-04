@@ -12,6 +12,7 @@ interface EditorState {
     modelAnnotations: SerializedEditorState | null
     annotationsPanelOpen: boolean
     addNodeDialogVisible: boolean
+    importModelDialogVisible: boolean
     connectModeEnabled: boolean
     connectModeInteraction: InteractionType
     selectedNodesIds: Set<string>
@@ -21,6 +22,7 @@ interface EditorState {
     isSnapshotPaused: boolean
 
     setAddNodeDialogVisible: (visible: boolean) => void
+    setImportModelDialogVisible: (visible: boolean) => void
     setConnectMode: (enabled: boolean) => void
     setConnectModeInteraction: (interaction: InteractionType) => void
     setDragging: (value: boolean) => void
@@ -54,10 +56,13 @@ export const useEditorStore = create<EditorState>()(
             isSnapshotPaused: false,
             annotationsPanelOpen: false,
             modelAnnotations: null as SerializedEditorState | null,
+            importModelDialogVisible: false,
         },
         (set, get) => ({
             setAddNodeDialogVisible: (visible) =>
                 set(() => ({ addNodeDialogVisible: visible })),
+            setImportModelDialogVisible: (visible) =>
+                set(() => ({ importModelDialogVisible: visible })),
             setConnectMode: (enabled) => {
                 if (enabled) {
                     toast.info('Switched to Connect Mode', {
