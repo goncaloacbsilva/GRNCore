@@ -32,18 +32,15 @@ export function ImportModelDialog() {
     const importModel = useChangesTracking((state) => state.import)
     const [files, setFiles] = useState<File[]>([])
 
-    const onFileValidate = useCallback(
-        (file: File): string | null => {
-            try {
-                getInterchangeFormat(file.name)
-            } catch (error) {
-                return (error as Error).message
-            }
+    const onFileValidate = useCallback((file: File): string | null => {
+        try {
+            getInterchangeFormat(file.name)
+        } catch (error) {
+            return (error as Error).message
+        }
 
-            return null
-        },
-        [files]
-    )
+        return null
+    }, [])
 
     const onFileReject = useCallback((file: File, message: string) => {
         toast.error(message, {
