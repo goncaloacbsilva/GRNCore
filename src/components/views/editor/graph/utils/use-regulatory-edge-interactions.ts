@@ -38,11 +38,7 @@ export function useRegulatoryEdgeSelection({
     userSelectionRect,
 }: UseRegulatoryEdgeSelectionArgs) {
     useEffect(() => {
-        if (
-            !userSelectionActive ||
-            !userSelectionRect ||
-            selected
-        ) {
+        if (!userSelectionActive || !userSelectionRect || selected) {
             return
         }
 
