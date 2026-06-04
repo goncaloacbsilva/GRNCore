@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react'
-import type { Edge, InternalNode, Node, XYPosition } from '@xyflow/react'
+import type { Edge, InternalNode, XYPosition } from '@xyflow/react'
 import type { EditableRegulatoryEdge } from '@/lib/schema'
 import {
     DEFAULT_ALGORITHM,
@@ -10,7 +10,6 @@ import { shouldPromoteCatmullToLinear } from './geometry'
 import { isSingleControlPointOrthogonal, projectToNodePerimeter } from '.'
 
 type SetEdges = (updater: (currentEdges: Edge[]) => Edge[]) => void
-type SetNodes = (updater: (currentNodes: Node[]) => Node[]) => void
 
 interface SelectionRect {
     x: number
@@ -21,10 +20,8 @@ interface SelectionRect {
 
 interface UseRegulatoryEdgeSelectionArgs {
     controlPoints: ControlPoint[]
-    hasSelectedNodes: boolean
     id: string
     selected: boolean
-    setNodes: SetNodes
     setEdges: SetEdges
     transform: [number, number, number]
     userSelectionActive: boolean
@@ -33,10 +30,8 @@ interface UseRegulatoryEdgeSelectionArgs {
 
 export function useRegulatoryEdgeSelection({
     controlPoints,
-    hasSelectedNodes,
     id,
     selected,
-    setNodes,
     setEdges,
     transform,
     userSelectionActive,
@@ -46,8 +41,7 @@ export function useRegulatoryEdgeSelection({
         if (
             !userSelectionActive ||
             !userSelectionRect ||
-            selected ||
-            hasSelectedNodes
+            selected
         ) {
             return
         }
@@ -80,17 +74,10 @@ export function useRegulatoryEdgeSelection({
                 edge.id === id ? { ...edge, selected: true } : edge
             )
         )
-        setNodes((currentNodes) =>
-            currentNodes.map((node) =>
-                node.selected ? { ...node, selected: false } : node
-            )
-        )
     }, [
         controlPoints,
-        hasSelectedNodes,
         id,
         selected,
-        setNodes,
         setEdges,
         transform,
         userSelectionActive,
@@ -100,7 +87,6 @@ export function useRegulatoryEdgeSelection({
 
 interface UseRegulatoryEdgeActionsArgs {
     id: string
-    setNodes: SetNodes
     setEdges: SetEdges
     startHandleId: string
     endHandleId: string
@@ -113,7 +99,6 @@ interface UseRegulatoryEdgeActionsArgs {
 
 export function useRegulatoryEdgeActions({
     id,
-    setNodes,
     setEdges,
     startHandleId,
     endHandleId,
@@ -124,18 +109,13 @@ export function useRegulatoryEdgeActions({
     targetNode,
 }: UseRegulatoryEdgeActionsArgs) {
     const selectEdge = useCallback(() => {
-        setNodes((currentNodes) =>
-            currentNodes.map((node) =>
-                node.selected ? { ...node, selected: false } : node
-            )
-        )
         setEdges((currentEdges) =>
             currentEdges.map((edge) => ({
                 ...edge,
                 selected: edge.id === id,
             }))
         )
-    }, [id, setEdges, setNodes])
+    }, [id, setEdges])
 
     const setControlPoints = useCallback(
         (updater: (points: ControlPoint[]) => ControlPoint[]) => {

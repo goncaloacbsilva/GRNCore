@@ -84,21 +84,52 @@ export const getBasePosition = (
         : screenToFlowPosition({ x: 10, y: 50 })),
 })
 
+function toNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value
+    }
+
+    if (typeof value === 'string') {
+        const parsed = Number.parseFloat(value)
+        if (Number.isFinite(parsed)) {
+            return parsed
+        }
+    }
+
+    return undefined
+}
+
 const createNodeCopy = (
     node: Node<RegulatoryNodeProperties>,
     offset: XYPosition
-): Node<RegulatoryNodeProperties> => ({
-    id: v4(),
-    position: {
-        x: node.position.x + offset.x,
-        y: node.position.y + offset.y,
-    },
-    width: getNodeContentMinWidth(node.data.name),
-    height: DEFAULT_NODE_HEIGHT,
-    type: node.type,
-    data: node.data,
-    selected: true,
-})
+): Node<RegulatoryNodeProperties> => {
+    const width =
+        node.measured?.width ??
+        toNumber(node.style?.width) ??
+        toNumber(node.width) ??
+        getNodeContentMinWidth(node.data.name)
+    const height =
+        node.measured?.height ??
+        toNumber(node.style?.height) ??
+        toNumber(node.height) ??
+        DEFAULT_NODE_HEIGHT
+
+    return {
+        id: v4(),
+        position: {
+            x: node.position.x + offset.x,
+            y: node.position.y + offset.y,
+        },
+        type: node.type,
+        data: node.data,
+        style: {
+            ...node.style,
+            width,
+            height,
+        },
+        selected: true,
+    }
+}
 
 const createEdgeCopy = (
     edge: Edge<EditableRegulatoryEdge>,

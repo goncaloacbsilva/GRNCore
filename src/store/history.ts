@@ -137,6 +137,7 @@ const stripTransientFields = (
     nodes: snapshot.nodes.map((node) => {
         const nextNode = { ...node }
         const nextNodeRecord = nextNode as Record<string, unknown>
+        delete nextNode.selected
         delete nextNode.dragging
         delete nextNode.resizing
         delete nextNode.measured
@@ -150,6 +151,7 @@ const stripTransientFields = (
     }),
     edges: snapshot.edges.map((edge) => {
         const nextEdge = { ...edge }
+        delete nextEdge.selected
         delete nextEdge.zIndex
         delete nextEdge.ariaLabel
         delete nextEdge.focusable
@@ -761,7 +763,7 @@ export const useChangesTracking = create<HistoryState>()(
             name: HISTORY_STORAGE_KEY,
             storage: createJSONStorage(() => opfsStateStorage),
             partialize: (state): PersistedHistoryState => ({
-                snapshot: state.snapshot,
+                snapshot: stripTransientFields(state.snapshot),
             }),
             onRehydrateStorage: () => (state, error) => {
                 if (!state) {
@@ -769,7 +771,11 @@ export const useChangesTracking = create<HistoryState>()(
                 }
 
                 if (!error) {
-                    resetDiffHistory(state.snapshot)
+                    const sanitizedSnapshot = stripTransientFields(
+                        state.snapshot
+                    )
+                    state.snapshot = sanitizedSnapshot
+                    resetDiffHistory(sanitizedSnapshot)
                     historyBaselinePosition = 0
                 }
 
