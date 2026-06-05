@@ -21,6 +21,7 @@
     },
     "registries": {
         "@ss-components": "https://shadcnstudio.com/r/components/{name}.json",
-        "@shadcn-editor": "https://raw.githubusercontent.com/htmujahid/shadcn-editor/refs/heads/main/public/r/{name}.json"
+        "@shadcn-editor": "https://raw.githubusercontent.com/htmujahid/shadcn-editor/refs/heads/main/public/r/{name}.json",
+        "@diceui": "https://diceui.com/r/{name}.json"
     }
 }

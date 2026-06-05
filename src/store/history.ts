@@ -1,4 +1,9 @@
 import { displayHistoryActionToast } from '@/lib/history-utils'
+import {
+    exportModel,
+    importModel,
+    type InterchangeFormat,
+} from '@/lib/interchange'
 import { opfsStateStorage } from '@/lib/persistence'
 import type {
     EditableRegulatoryEdge,
@@ -11,6 +16,7 @@ import diff, { type Difference } from 'microdiff'
 import isEqual from 'lodash/isEqual'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { toast } from 'sonner'
 
 type MicrodiffChange = Difference
 
@@ -39,9 +45,12 @@ interface HistoryState {
     snapshot: InternalGRNModel
     hasHydrated: boolean
     baselineVersion: number
+    graphVersion: number
     getBaselinePosition: () => number
     getHistoryPosition: () => number
     canHistoryForward: () => boolean
+    export: (format: InterchangeFormat) => void
+    import: (file: File, callback: () => void) => void
     markHydrated: () => void
     setSnapshotTitle: (title: string) => void
     setSnapshotAnnotations: (annotations: SerializedEditorState | null) => void
@@ -128,6 +137,7 @@ const stripTransientFields = (
     nodes: snapshot.nodes.map((node) => {
         const nextNode = { ...node }
         const nextNodeRecord = nextNode as Record<string, unknown>
+        delete nextNode.selected
         delete nextNode.dragging
         delete nextNode.resizing
         delete nextNode.measured
@@ -141,6 +151,7 @@ const stripTransientFields = (
     }),
     edges: snapshot.edges.map((edge) => {
         const nextEdge = { ...edge }
+        delete nextEdge.selected
         delete nextEdge.zIndex
         delete nextEdge.ariaLabel
         delete nextEdge.focusable
@@ -522,10 +533,48 @@ export const useChangesTracking = create<HistoryState>()(
             snapshot: createEmptySnapshot(),
             hasHydrated: false,
             baselineVersion: 0,
+            graphVersion: 0,
             getBaselinePosition: () => historyBaselinePosition,
             getHistoryPosition: () => historyJournal.position,
             canHistoryForward: () =>
                 historyJournal.position < historyJournal.entries.length,
+            export: (format) => {
+                toast.promise<void>(() => exportModel(get().snapshot, format), {
+                    loading: `Exporting model as ${format.toUpperCase()}...`,
+                    success: `Model exported as ${format.toUpperCase()}`,
+                    error: (err) => ({
+                        message: `Failed to export model as ${format.toUpperCase()}`,
+                        description: `${err instanceof Error ? err.message : String(err)}`,
+                        duration: 5000,
+                    }),
+                    position: 'top-right',
+                })
+            },
+            import: (file, callback) => {
+                toast.promise(
+                    async () => {
+                        const importedSnapshot = await importModel(file)
+                        resetDiffHistory(importedSnapshot)
+                        historyBaselinePosition = historyJournal.position
+                        set({
+                            snapshot: cloneSnapshot(importedSnapshot),
+                            baselineVersion: get().baselineVersion + 1,
+                            graphVersion: get().graphVersion + 1,
+                        })
+                        callback()
+                    },
+                    {
+                        loading: `Importing ${file.name}...`,
+                        success: `Imported ${file.name}`,
+                        error: (err) => ({
+                            message: `Failed to import ${file.name}`,
+                            description: `${err instanceof Error ? err.message : String(err)}`,
+                            duration: 5000,
+                        }),
+                        position: 'top-right',
+                    }
+                )
+            },
             markHydrated: () => set({ hasHydrated: true }),
             setSnapshotTitle: (title: string) => {
                 set((state) => ({
@@ -657,9 +706,12 @@ export const useChangesTracking = create<HistoryState>()(
                     return
                 }
 
+                const previousSnapshot = getSnapshotAtPosition(
+                    historyJournal.position - 1
+                )
                 displayHistoryActionToast({
                     changes: entry.backwardDiffs,
-                    snapshot: entry.afterState,
+                    snapshot: previousSnapshot,
                 })
                 historyCanonicalState = applyDiffs(
                     historyCanonicalState,
@@ -714,7 +766,7 @@ export const useChangesTracking = create<HistoryState>()(
             name: HISTORY_STORAGE_KEY,
             storage: createJSONStorage(() => opfsStateStorage),
             partialize: (state): PersistedHistoryState => ({
-                snapshot: state.snapshot,
+                snapshot: stripTransientFields(state.snapshot),
             }),
             onRehydrateStorage: () => (state, error) => {
                 if (!state) {
@@ -722,7 +774,11 @@ export const useChangesTracking = create<HistoryState>()(
                 }
 
                 if (!error) {
-                    resetDiffHistory(state.snapshot)
+                    const sanitizedSnapshot = stripTransientFields(
+                        state.snapshot
+                    )
+                    state.snapshot = sanitizedSnapshot
+                    resetDiffHistory(sanitizedSnapshot)
                     historyBaselinePosition = 0
                 }
 

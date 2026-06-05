@@ -1,6 +1,6 @@
 import { ReactFlowProvider } from '@xyflow/react'
 import { Graph } from './graph'
-import { AddNodeDialog } from './dialogs'
+import { AddNodeDialog, ImportModelDialog } from './dialogs'
 import { MenuSheet } from './menu-sheet'
 import { useEffect } from 'react'
 import { useChangesTracking, useEditorStore } from '@/store'
@@ -10,6 +10,7 @@ export function EditorView() {
     const setModelTitle = useEditorStore((state) => state.setModelTitle)
     const snapshot = useChangesTracking((state) => state.snapshot)
     const hasHydrated = useChangesTracking((state) => state.hasHydrated)
+    const graphVersion = useChangesTracking((state) => state.graphVersion)
 
     useEffect(() => {
         if (!hasHydrated) {
@@ -26,10 +27,13 @@ export function EditorView() {
                     <ModelHeader />
                 </header>
                 <div className="relative h-[calc(100%-4rem)] w-full">
-                    {hasHydrated ? <Graph model={snapshot} /> : null}
+                    {hasHydrated ? (
+                        <Graph key={graphVersion} model={snapshot} />
+                    ) : null}
                     {/* Overlay dialogs */}
                     <AddNodeDialog />
                     <MenuSheet />
+                    <ImportModelDialog />
                 </div>
             </div>
         </ReactFlowProvider>

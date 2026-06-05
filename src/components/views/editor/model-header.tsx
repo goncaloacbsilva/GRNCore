@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
-import { usePersistenceStatus } from '@/lib/persistence'
+import { usePersistenceStatus } from '@/store'
 import { useChangesTracking, useEditorStore } from '@/store'
 import { useStore as useFormStore } from '@tanstack/react-form'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'

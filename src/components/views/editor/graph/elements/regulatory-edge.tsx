@@ -39,7 +39,7 @@ export function RegulatoryEdge({
     style,
     data,
 }: EdgeProps<RegulatoryGraphEdge>) {
-    const { setEdges, setNodes } = useReactFlow()
+    const { setEdges } = useReactFlow()
     const sourceNode = useInternalNode(source)!
     const targetNode = useInternalNode(target)!
     const {
@@ -48,7 +48,6 @@ export function RegulatoryEdge({
         userSelectionActive,
         userSelectionRect,
         transform,
-        hasSelectedNodes,
     } = useStore(
         (state) => ({
             edges: state.edges,
@@ -56,7 +55,6 @@ export function RegulatoryEdge({
             userSelectionActive: state.userSelectionActive,
             userSelectionRect: state.userSelectionRect,
             transform: state.transform,
-            hasSelectedNodes: state.nodes.some((node) => node.selected),
         }),
         shallow
     )
@@ -137,7 +135,6 @@ export function RegulatoryEdge({
     const { selectEdge, setControlPoints, setAnchorHint } =
         useRegulatoryEdgeActions({
             id,
-            setNodes,
             setEdges,
             startHandleId,
             endHandleId,
@@ -149,10 +146,8 @@ export function RegulatoryEdge({
         })
     useRegulatoryEdgeSelection({
         controlPoints: editableControlPoints,
-        hasSelectedNodes,
         id,
         selected: isSelected,
-        setNodes,
         setEdges,
         transform,
         userSelectionActive,

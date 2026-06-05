@@ -32,12 +32,6 @@ type SetEdges = (
     payload: RegulatoryEdge[] | ((edges: RegulatoryEdge[]) => RegulatoryEdge[])
 ) => void
 
-const deselectNodes = (nodes: RegulatoryNode[]) =>
-    nodes.map((node) => (node.selected ? { ...node, selected: false } : node))
-
-const deselectEdges = (edges: RegulatoryEdge[]) =>
-    edges.map((edge) => (edge.selected ? { ...edge, selected: false } : edge))
-
 function getEventClientPoint(
     event: MouseEvent | TouchEvent
 ): { x: number; y: number } | null {
@@ -80,38 +74,15 @@ export function useGraphInteractions({
             })
 
             setNodes((prevNodes) => applyNodeChanges(changes, prevNodes))
-
-            const hasNodeSelectionChange = changes.some(
-                (change) =>
-                    change.type === 'select' &&
-                    'selected' in change &&
-                    change.selected
-            )
-            if (hasNodeSelectionChange) {
-                const clearSelectedEdges = () => {
-                    setEdges(deselectEdges)
-                }
-
-                clearSelectedEdges()
-                requestAnimationFrame(clearSelectedEdges)
-            }
         },
-        [setNodes, setEdges, popSelectedNodeId]
+        [setNodes, popSelectedNodeId]
     )
 
     const onEdgesChange = useCallback(
         (changes: EdgeChange<RegulatoryEdge>[]) => {
-            const hasEdgeSelectionChange = changes.some(
-                (change) => change.type === 'select' && change.selected
-            )
-
-            if (hasEdgeSelectionChange) {
-                setNodes(deselectNodes)
-            }
-
             setEdges((prevEdges) => applyEdgeChanges(changes, prevEdges))
         },
-        [setEdges, setNodes]
+        [setEdges]
     )
 
     const onNodeDragStart = useCallback(

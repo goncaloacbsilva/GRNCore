@@ -13,6 +13,8 @@ interface NumberFieldProps {
     description?: string
     max?: number
     min?: number
+    inputClassName?: string
+    stackedLabel?: boolean
     decrementTooltip?: React.ReactElement
     incrementTooltip?: React.ReactElement
 }
@@ -23,6 +25,8 @@ export function NumberField({
     description,
     max,
     min,
+    inputClassName,
+    stackedLabel = false,
     decrementTooltip,
     incrementTooltip,
 }: NumberFieldProps) {
@@ -33,16 +37,26 @@ export function NumberField({
 
     return (
         <Field data-invalid={isInvalid}>
-            <div className="flex flex-row justify-between gap-3">
+            <div
+                className={
+                    stackedLabel
+                        ? 'flex w-full flex-col gap-2'
+                        : 'flex flex-row justify-between gap-3'
+                }
+            >
                 <FieldLabel
                     id={labelId}
-                    className="w-fit whitespace-nowrap"
+                    className={
+                        stackedLabel
+                            ? 'w-full whitespace-nowrap'
+                            : 'w-fit whitespace-nowrap'
+                    }
                     htmlFor={field.name}
                 >
                     {label}
                 </FieldLabel>
                 <NumberInput
-                    className="w-44"
+                    className={inputClassName ?? 'w-44'}
                     inputClassName="text-left"
                     id={field.name}
                     name={field.name}

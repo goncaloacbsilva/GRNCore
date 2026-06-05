@@ -72,6 +72,15 @@ function growRect(rect: Rect, margin: number): Rect {
     }
 }
 
+function rectsIntersect(left: Rect, right: Rect): boolean {
+    return !(
+        left.x + left.width < right.x ||
+        right.x + right.width < left.x ||
+        left.y + left.height < right.y ||
+        right.y + right.height < left.y
+    )
+}
+
 function pointInRect(point: XYPosition, rect: Rect): boolean {
     return (
         point.x >= rect.x &&
@@ -224,7 +233,7 @@ interface NextNodePositionArgs {
     height: number
     nodes: Node<RegulatoryNodeProperties>[]
     edges: Edge<EditableRegulatoryEdge>[]
-    getIntersectingNodes: ReactFlowInstance<
+    getIntersectingNodes?: ReactFlowInstance<
         Node<RegulatoryNodeProperties>,
         Edge<EditableRegulatoryEdge>
     >['getIntersectingNodes']
@@ -246,7 +255,16 @@ export function findNextNodePosition({
         const nodeSafeRect = growRect(candidateRect, NODE_CLEARANCE)
         const edgeSafeRect = growRect(candidateRect, EDGE_CLEARANCE)
 
-        if (getIntersectingNodes(nodeSafeRect, true).length > 0) {
+        const intersectingNodes = getIntersectingNodes
+            ? getIntersectingNodes(nodeSafeRect, true)
+            : nodes.filter((node) =>
+                  rectsIntersect(
+                      growRect(getNodeRect(node), NODE_CLEARANCE),
+                      nodeSafeRect
+                  )
+              )
+
+        if (intersectingNodes.length > 0) {
             return false
         }
 
