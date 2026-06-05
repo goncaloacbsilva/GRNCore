@@ -127,6 +127,26 @@
     * {
         @apply border-border outline-ring/50;
     }
+    :where(body, body *) {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    :where(
+        input,
+        textarea,
+        select,
+        option,
+        [data-annotation-editor='true'],
+        [data-annotation-editor='true'] *,
+        [contenteditable='true'],
+        [data-lexical-editor='true'],
+        .ContentEditable__root,
+        .monaco-editor,
+        .monaco-editor *
+    ) {
+        -webkit-user-select: text;
+        user-select: text;
+    }
     body {
         @apply bg-background text-foreground;
         font-family: 'Inter', system-ui, sans-serif;
