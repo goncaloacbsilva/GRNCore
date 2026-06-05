@@ -5,7 +5,6 @@ import {
 } from '@/lib/regulatory-rules'
 import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
-import { Item, ItemContent, ItemFooter } from '@/components/ui/item'
 import { Separator } from '@/components/ui/separator'
 import {
     type EditableRegulatoryEdge,
@@ -19,11 +18,13 @@ import { type Edge, type Node } from '@xyflow/react'
 import { XIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Fragment } from 'react/jsx-runtime'
+import { twJoin } from 'tailwind-merge'
 
 const targetSchema = RegulatoryNodeRuleSchema.shape.target
 
 interface NodeRuleProps {
     ruleKey: number
+    ruleCount: number
     rule: RegulatoryNodeRule
     node: Node<RegulatoryNodeProperties>
     incomingNodes: Node<RegulatoryNodeProperties>[]
@@ -36,6 +37,7 @@ interface NodeRuleProps {
 
 export function NodeRule({
     ruleKey,
+    ruleCount,
     rule,
     node,
     incomingNodes,
@@ -305,74 +307,67 @@ export function NodeRule({
 
     return (
         <Fragment key={ruleKey}>
-            <Item
+            <div
                 ref={ruleContainerRef}
-                variant="default"
-                size="sm"
-                className="group"
+                className="group ml-3 flex flex-col p-1"
                 onFocusCapture={handleFocusCapture}
                 onBlurCapture={handleBlurCapture}
             >
-                <ItemContent className="flex flex-col items-center gap-2">
-                    <FieldGroup className="flex flex-col items-center gap-4">
-                        <form.AppField
-                            name="target"
-                            children={(field) => (
-                                <field.NumberField
-                                    label="Target Level"
-                                    placeholder=""
-                                    min={targetSchema.minValue ?? undefined}
-                                    max={node.data.activityLevels}
-                                />
-                            )}
-                        />
-                        <form.AppField
-                            name="expression"
-                            children={(field) => (
-                                <field.RuleEditorField
-                                    label="Logical expression"
-                                    placeholder="Regulatory logical expression"
-                                    tooltip={
-                                        <div className="flex flex-col">
-                                            <strong>
-                                                Insert node regulatory
-                                                expression
-                                            </strong>
-                                            <span>
-                                                For syntax refer to:{' '}
-                                                <a
-                                                    className="hover:underline"
-                                                    target="_blank"
-                                                    href="https://colomoto.github.io"
-                                                >
-                                                    https://colomoto.github.io
-                                                </a>
-                                            </span>
-                                        </div>
-                                    }
-                                    variableSuggestions={variableSuggestions}
-                                    variableActivityLevels={
-                                        variableActivityLevels
-                                    }
-                                    onBlur={persistRuleValues}
-                                />
-                            )}
-                        />
-                    </FieldGroup>
-                </ItemContent>
-                <ItemFooter className="flex flex-col items-center">
+                <div className="flex w-full flex-row justify-end">
                     <Button
                         variant="ghost"
                         size="xs"
-                        className="hidden flex-row group-hover:flex"
+                        className="flex flex-row"
                         onClick={() => removeCallback(rule.id)}
                     >
                         <XIcon />
-                        Remove
                     </Button>
-                </ItemFooter>
-            </Item>
-            <Separator className="my-1" />
+                </div>
+                <FieldGroup className="flex flex-col items-center gap-4 pr-6 pb-2">
+                    <form.AppField
+                        name="target"
+                        children={(field) => (
+                            <field.NumberField
+                                label="Target Level"
+                                placeholder=""
+                                inputClassName="w-63"
+                                min={targetSchema.minValue ?? undefined}
+                                max={node.data.activityLevels}
+                            />
+                        )}
+                    />
+                    <form.AppField
+                        name="expression"
+                        children={(field) => (
+                            <field.RuleEditorField
+                                label="Logical expression"
+                                placeholder="Regulatory logical expression"
+                                tooltip={
+                                    <div className="flex flex-col">
+                                        <strong>
+                                            Insert node regulatory expression
+                                        </strong>
+                                        <span>
+                                            For syntax refer to:{' '}
+                                            <a
+                                                className="hover:underline"
+                                                target="_blank"
+                                                href="https://colomoto.github.io"
+                                            >
+                                                https://colomoto.github.io
+                                            </a>
+                                        </span>
+                                    </div>
+                                }
+                                variableSuggestions={variableSuggestions}
+                                variableActivityLevels={variableActivityLevels}
+                                onBlur={persistRuleValues}
+                            />
+                        )}
+                    />
+                </FieldGroup>
+            </div>
+            <Separator hidden={ruleKey === ruleCount - 1} className="my-1" />
         </Fragment>
     )
 }

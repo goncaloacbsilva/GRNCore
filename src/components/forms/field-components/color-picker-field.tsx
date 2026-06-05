@@ -104,7 +104,7 @@ export function ColorPickerField({
                             <ColorPickerFormatSelect className="w-24" />
                             <ColorPickerInput
                                 withoutAlpha
-                                className="min-w-0 flex-1"
+                                className="min-w-0 flex-1 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                                 onBlur={field.handleBlur}
                             />
                         </div>

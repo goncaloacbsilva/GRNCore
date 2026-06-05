@@ -148,6 +148,7 @@ export function NodeRules({
                         <NodeRule
                             key={rule.id}
                             ruleKey={index}
+                            ruleCount={nodeData.rules.length}
                             rule={rule}
                             node={{ ...node, data: nodeData }}
                             incomingNodes={incomingNodes}

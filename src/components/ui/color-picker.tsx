@@ -1418,7 +1418,7 @@ function RgbInput(props: FormatInputProps) {
                 pattern="[0-9]*"
                 min="0"
                 max="255"
-                className="w-14"
+                className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                 value={rValue}
                 onChange={onChannelChange('r', 255)}
                 disabled={context.disabled}
@@ -1432,7 +1432,7 @@ function RgbInput(props: FormatInputProps) {
                 pattern="[0-9]*"
                 min="0"
                 max="255"
-                className="w-14"
+                className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                 value={gValue}
                 onChange={onChannelChange('g', 255)}
                 disabled={context.disabled}
@@ -1446,7 +1446,7 @@ function RgbInput(props: FormatInputProps) {
                 pattern="[0-9]*"
                 min="0"
                 max="255"
-                className="w-14"
+                className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                 value={bValue}
                 onChange={onChannelChange('b', 255)}
                 disabled={context.disabled}
@@ -1461,7 +1461,7 @@ function RgbInput(props: FormatInputProps) {
                     pattern="[0-9]*"
                     min="0"
                     max="100"
-                    className="w-14"
+                    className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                     value={alphaValue}
                     onChange={onChannelChange('a', 100, true)}
                     disabled={context.disabled}
@@ -1521,7 +1521,7 @@ function HslInput(props: FormatInputProps) {
                 pattern="[0-9]*"
                 min="0"
                 max="360"
-                className="w-14"
+                className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                 value={hsl.h}
                 onChange={onHslChannelChange('h', 360)}
                 disabled={context.disabled}
@@ -1535,7 +1535,7 @@ function HslInput(props: FormatInputProps) {
                 pattern="[0-9]*"
                 min="0"
                 max="100"
-                className="w-14"
+                className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                 value={hsl.s}
                 onChange={onHslChannelChange('s', 100)}
                 disabled={context.disabled}
@@ -1549,7 +1549,7 @@ function HslInput(props: FormatInputProps) {
                 pattern="[0-9]*"
                 min="0"
                 max="100"
-                className="w-14"
+                className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                 value={hsl.l}
                 onChange={onHslChannelChange('l', 100)}
                 disabled={context.disabled}
@@ -1564,7 +1564,7 @@ function HslInput(props: FormatInputProps) {
                     pattern="[0-9]*"
                     min="0"
                     max="100"
-                    className="w-14"
+                    className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                     value={alphaValue}
                     onChange={onAlphaChange}
                     disabled={context.disabled}
@@ -1628,7 +1628,7 @@ function HsbInput(props: HsbInputProps) {
                 pattern="[0-9]*"
                 min="0"
                 max="360"
-                className="w-14"
+                className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                 value={hsv?.h ?? 0}
                 onChange={onHsvChannelChange('h', 360)}
                 disabled={context.disabled}
@@ -1642,7 +1642,7 @@ function HsbInput(props: HsbInputProps) {
                 pattern="[0-9]*"
                 min="0"
                 max="100"
-                className="w-14"
+                className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                 value={hsv?.s ?? 0}
                 onChange={onHsvChannelChange('s', 100)}
                 disabled={context.disabled}
@@ -1656,7 +1656,7 @@ function HsbInput(props: HsbInputProps) {
                 pattern="[0-9]*"
                 min="0"
                 max="100"
-                className="w-14"
+                className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                 value={hsv?.v ?? 0}
                 onChange={onHsvChannelChange('v', 100)}
                 disabled={context.disabled}
@@ -1671,7 +1671,7 @@ function HsbInput(props: HsbInputProps) {
                     pattern="[0-9]*"
                     min="0"
                     max="100"
-                    className="w-14"
+                    className="w-14 focus-visible:ring-[#2f81ed89]/50 focus-visible:border-[#2f81ed89]"
                     value={alphaValue}
                     onChange={onAlphaChange}
                     disabled={context.disabled}
