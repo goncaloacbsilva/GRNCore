@@ -18,7 +18,6 @@ import { type Edge, type Node } from '@xyflow/react'
 import { XIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Fragment } from 'react/jsx-runtime'
-import { twJoin } from 'tailwind-merge'
 
 const targetSchema = RegulatoryNodeRuleSchema.shape.target
 
