@@ -44,7 +44,7 @@ export function FileMenu() {
                             </MenubarGroup> */}
                         </MenubarSubContent>
                     </MenubarSub>
-                    <MenubarItem onClick={() => setImportDialogOpen(true)}>
+                    <MenubarItem onSelect={() => setImportDialogOpen(true)}>
                         Import
                     </MenubarItem>
                 </MenubarGroup>

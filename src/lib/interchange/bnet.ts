@@ -34,11 +34,6 @@ const normalizeExpression = (expression: string) =>
 const denormalizeExpression = (expression: string) =>
     expression.trim().replaceAll('&', '&&').replaceAll('|', '||')
 
-const wrapExpression = (expression: string) =>
-    expression.includes('&') || expression.includes('|')
-        ? `(${expression})`
-        : expression
-
 const DEFAULT_IMPORTED_MODEL_TITLE = 'Imported model'
 const HEADER_LINE = 'targets, factors'
 const IGNORED_TITLE_COMMENTS = new Set([
@@ -145,9 +140,7 @@ export class BooleanNetworkInterchanger extends Interchanger {
 
             if (nonEmptyRules.length > 0) {
                 factor = nonEmptyRules
-                    .map((rule) =>
-                        wrapExpression(normalizeExpression(rule.expression))
-                    )
+                    .map((rule) => normalizeExpression(rule.expression))
                     .join(' | ')
             } else if (isInputNode) {
                 factor = name

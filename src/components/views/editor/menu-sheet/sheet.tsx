@@ -19,7 +19,7 @@ import type {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ChevronDownIcon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useEditorStore } from '@/store/editor'
+import { useEditorStore, type MenuSheetTab } from '@/store'
 
 const SHEET_ANIMATION_DURATION_MS = 200
 const SHEET_EXPAND_DURATION_MS = 200
@@ -27,6 +27,13 @@ const SHEET_COLLAPSE_DURATION_MS = 200
 const SHEET_COLLAPSE_EASING = 'easeOutQuad'
 
 export function MenuSheet() {
+    const { activeTab, setActiveTab } = useEditorStore(
+        (state) => ({
+            activeTab: state.menuSheetTab,
+            setActiveTab: state.setMenuSheetTab,
+        }),
+        shallow
+    )
     const { selectedNodes, selectedEdges } = useStore(
         (state) => ({
             selectedNodes: state.nodes.filter(
@@ -209,7 +216,16 @@ export function MenuSheet() {
                 <Tabs
                     className="min-h-0 gap-3"
                     defaultValue="base"
-                    value={renderedSelectedElements > 1 ? 'style' : undefined}
+                    value={
+                        renderedSelectedElements > 1
+                            ? 'style'
+                            : renderedSelection.edges.length == 1
+                              ? 'base'
+                              : activeTab
+                    }
+                    onValueChange={(value) =>
+                        setActiveTab(value as MenuSheetTab)
+                    }
                 >
                     <div
                         className={`flex h-10 shrink-0 items-center justify-between gap-2 overflow-auto p-1 ${

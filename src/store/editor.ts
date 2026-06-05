@@ -7,6 +7,8 @@ import { toast } from 'sonner'
 import { create } from 'zustand'
 import { combine } from 'zustand/middleware'
 
+export type MenuSheetTab = 'base' | 'style'
+
 interface EditorState {
     modelTitle: string
     modelAnnotations: SerializedEditorState | null
@@ -16,6 +18,7 @@ interface EditorState {
     connectModeEnabled: boolean
     connectModeInteraction: InteractionType
     selectedNodesIds: Set<string>
+    menuSheetTab: MenuSheetTab
     copyArea: InternalGRNModel | null
     isDragging: boolean
     isApplyingHistory: boolean
@@ -31,6 +34,7 @@ interface EditorState {
     setAnnotationsPanelOpen: (open: boolean) => void
     setModelAnnotations: (annotations: SerializedEditorState | null) => void
     setModelTitle: (title: string) => void
+    setMenuSheetTab: (tab: MenuSheetTab) => void
 
     pushSelectedNodeId: (node: string) => void
     popSelectedNodeId: (node: string) => void
@@ -50,6 +54,7 @@ export const useEditorStore = create<EditorState>()(
             connectModeEnabled: false,
             connectModeInteraction: 'activation' as InteractionType,
             selectedNodesIds: new Set<string>(),
+            menuSheetTab: 'base' as MenuSheetTab,
             copyArea: null as InternalGRNModel | null,
             isDragging: false,
             isApplyingHistory: false,
@@ -77,6 +82,9 @@ export const useEditorStore = create<EditorState>()(
                 }
 
                 set(() => ({ connectModeEnabled: enabled }))
+            },
+            setMenuSheetTab: (tab) => {
+                set(() => ({ menuSheetTab: tab }))
             },
             setConnectModeInteraction: (interaction) => {
                 set(() => ({ connectModeInteraction: interaction }))
