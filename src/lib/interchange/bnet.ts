@@ -32,7 +32,7 @@ const normalizeExpression = (expression: string) =>
     expression.trim().replaceAll('&&', '&').replaceAll('||', '|')
 
 const denormalizeExpression = (expression: string) =>
-    expression.trim().replaceAll('&', ' && ').replaceAll('|', ' || ')
+    expression.trim().replaceAll('&', '&&').replaceAll('|', '||')
 
 const wrapExpression = (expression: string) =>
     expression.includes('&') || expression.includes('|')
