@@ -706,9 +706,12 @@ export const useChangesTracking = create<HistoryState>()(
                     return
                 }
 
+                const previousSnapshot = getSnapshotAtPosition(
+                    historyJournal.position - 1
+                )
                 displayHistoryActionToast({
                     changes: entry.backwardDiffs,
-                    snapshot: entry.afterState,
+                    snapshot: previousSnapshot,
                 })
                 historyCanonicalState = applyDiffs(
                     historyCanonicalState,

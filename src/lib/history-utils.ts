@@ -93,11 +93,12 @@ const getChangeValue = (change: Difference): unknown =>
 const getChangeOldValue = (change: Difference): unknown =>
     'oldValue' in change ? (change.oldValue as unknown) : undefined
 
-const getNodeNameById = (
+const getEdgeEndpointNameById = (
     snapshot: InternalGRNModel | undefined,
     nodeId: string
 ): string =>
-    snapshot?.nodes.find((node) => node.id === nodeId)?.data.name ?? nodeId
+    snapshot?.nodes.find((node) => node.id === nodeId)?.data.name ??
+    'Unknown node'
 
 const getNodeNameFromChange = (
     snapshot: InternalGRNModel | undefined,
@@ -148,7 +149,7 @@ const getEdgePathByIndex = (
 ): string => {
     const edge = snapshot?.edges[edgeIndex]
     if (edge) {
-        return `${getNodeNameById(snapshot, edge.source)}->${getNodeNameById(snapshot, edge.target)}`
+        return `${getEdgeEndpointNameById(snapshot, edge.source)}->${getEdgeEndpointNameById(snapshot, edge.target)}`
     }
 
     const fallbackValue = fallbackChange
@@ -157,7 +158,7 @@ const getEdgePathByIndex = (
     const endpoints = getEdgeEndpoints(fallbackValue)
 
     if (endpoints) {
-        return `${getNodeNameById(snapshot, endpoints.source)}->${getNodeNameById(snapshot, endpoints.target)}`
+        return `${getEdgeEndpointNameById(snapshot, endpoints.source)}->${getEdgeEndpointNameById(snapshot, endpoints.target)}`
     }
 
     return 'Unknown edge'
@@ -655,13 +656,7 @@ const composeToastMessage = (summary: MutationSummary): string | null => {
         )
     }
 
-    if (summary.removedEdgePaths.length > 0) {
-        structureParts.push(
-            summary.removedEdgePaths.length === 1
-                ? `Removed edge ${summary.removedEdgePaths[0]}`
-                : `Removed edges ${summary.removedEdgePaths.join(', ')}`
-        )
-    } else if (summary.removedEdges > 0) {
+    if (summary.removedEdges > 0) {
         structureParts.push(
             formatCountLabel('Removed', summary.removedEdges, 'edge')
         )

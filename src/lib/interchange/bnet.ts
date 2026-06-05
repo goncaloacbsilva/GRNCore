@@ -31,6 +31,9 @@ const bnetHeader = (modelName: string) => [
 const normalizeExpression = (expression: string) =>
     expression.trim().replaceAll('&&', '&').replaceAll('||', '|')
 
+const denormalizeExpression = (expression: string) =>
+    expression.trim().replaceAll('&', ' && ').replaceAll('|', ' || ')
+
 const wrapExpression = (expression: string) =>
     expression.includes('&') || expression.includes('|')
         ? `(${expression})`
@@ -182,7 +185,7 @@ export class BooleanNetworkInterchanger extends Interchanger {
                           {
                               id: nanoid(),
                               target: 1,
-                              expression: trimmedFactor,
+                              expression: denormalizeExpression(trimmedFactor),
                               isValid: true,
                           },
                       ]
