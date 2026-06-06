@@ -6,24 +6,10 @@ import {
     MenubarShortcut,
     MenubarTrigger,
 } from '@/components/ui/menubar'
-import { FIT_VIEW_OPTIONS } from '@/components/views/editor/graph/config'
-import { useReactFlow } from '@xyflow/react'
-import { useHotkeys } from 'react-hotkeys-hook'
+import { useViewActions } from '@/hooks'
 
 export function ViewMenu() {
-    const { fitView } = useReactFlow()
-
-    const resetZoom = () => {
-        void fitView({
-            duration: 300,
-            interpolate: 'smooth',
-            ...FIT_VIEW_OPTIONS,
-        })
-    }
-
-    useHotkeys('r', resetZoom, {
-        preventDefault: true,
-    })
+    const { resetZoom } = useViewActions()
 
     return (
         <MenubarMenu>

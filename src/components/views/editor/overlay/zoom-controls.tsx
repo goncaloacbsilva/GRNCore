@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button'
-import { useReactFlow, useStore, useViewport } from '@xyflow/react'
+import { useStore, useViewport } from '@xyflow/react'
 import { shallow } from 'zustand/shallow'
 import { ZoomInIcon, ZoomOutIcon } from 'lucide-react'
+import { useViewActions } from '@/hooks'
 
 export function ZoomControls() {
     // Get Zoom limits
@@ -11,7 +12,7 @@ export function ZoomControls() {
     )
 
     // Zoom actions
-    const { zoomIn, zoomOut } = useReactFlow()
+    const { zoomIn, zoomOut } = useViewActions()
 
     // Current zoom
     const { zoom } = useViewport()
@@ -20,12 +21,7 @@ export function ZoomControls() {
         <div className="flex flex-col gap-2">
             <Button
                 disabled={zoom == maxZoom}
-                onClick={() =>
-                    void zoomIn({
-                        duration: 300,
-                        interpolate: 'smooth',
-                    })
-                }
+                onClick={zoomIn}
                 variant="outline"
                 size="icon"
             >
@@ -33,12 +29,7 @@ export function ZoomControls() {
             </Button>
             <Button
                 disabled={zoom == minZoom}
-                onClick={() =>
-                    void zoomOut({
-                        duration: 300,
-                        interpolate: 'smooth',
-                    })
-                }
+                onClick={zoomOut}
                 variant="outline"
                 size="icon"
             >
