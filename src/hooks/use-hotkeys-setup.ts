@@ -4,6 +4,7 @@ import { useEditorStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
 import { useHistory } from './use-history'
 import { useViewActions } from './use-view-actions'
+import { useStore } from '@xyflow/react'
 
 export function useHotkeysSetup() {
     const {
@@ -15,17 +16,47 @@ export function useHotkeysSetup() {
     } = useElementsActions()
 
     const { resetZoom } = useViewActions()
+    const { selectedNodesCount, selectedEdgesCount } = useStore((state) => ({
+        selectedNodesCount: state.nodes.filter((node) => node.selected).length,
+        selectedEdgesCount: state.edges.filter((edge) => edge.selected).length,
+    }))
 
-    const { setAddNodeDialogVisible, connectModeEnabled, setConnectMode } =
-        useEditorStore(
-            useShallow((state) => ({
-                setAddNodeDialogVisible: state.setAddNodeDialogVisible,
-                connectModeEnabled: state.connectModeEnabled,
-                setConnectMode: state.setConnectMode,
-            }))
-        )
+    const {
+        setAddNodeDialogVisible,
+        connectModeEnabled,
+        setConnectMode,
+        setMenuSheetTab,
+    } = useEditorStore(
+        useShallow((state) => ({
+            setAddNodeDialogVisible: state.setAddNodeDialogVisible,
+            connectModeEnabled: state.connectModeEnabled,
+            setConnectMode: state.setConnectMode,
+            setMenuSheetTab: state.setMenuSheetTab,
+        }))
+    )
 
     const { undo, redo } = useHistory()
+
+    const focusSelectedNodeNameField = () => {
+        if (selectedNodesCount !== 1 || selectedEdgesCount !== 0) {
+            return
+        }
+
+        setMenuSheetTab('base')
+
+        requestAnimationFrame(() => {
+            const nameInput = document.querySelector<HTMLInputElement>(
+                '[data-element-properties-menu="true"] input[name="name"]'
+            )
+
+            if (!nameInput) {
+                return
+            }
+
+            nameInput.focus()
+            nameInput.select()
+        })
+    }
 
     useHotkeys(
         [
@@ -80,6 +111,10 @@ export function useHotkeysSetup() {
             {
                 hotkey: 'Escape',
                 callback: () => setConnectMode(false),
+            },
+            {
+                hotkey: 'F2',
+                callback: () => focusSelectedNodeNameField(),
             },
         ],
         {

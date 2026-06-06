@@ -29,6 +29,20 @@ const NodeBasePropertiesFormSchema = z.object({
     isInputNode: RegulatoryNodePropertiesSchema.shape.isInputNode.unwrap(),
 })
 
+function getSafeFormValue<T>({
+    schema,
+    value,
+    fallback,
+}: {
+    schema: z.ZodType<T>
+    value: unknown
+    fallback: T
+}) {
+    const parsedValue = schema.safeParse(value)
+
+    return parsedValue.success ? parsedValue.data : fallback
+}
+
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     const { getNode, updateNode } =
         useReactFlow<Node<RegulatoryNodeProperties>>()
@@ -111,7 +125,21 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     const previousIsInputNodeRef = useRef(formValues.isInputNode)
     const currentNodeData: RegulatoryNodeProperties = {
         ...nodeData,
-        ...formValues,
+        name: getSafeFormValue({
+            schema: NodeBasePropertiesFormSchema.shape.name,
+            value: formValues.name,
+            fallback: nodeData.name,
+        }),
+        activityLevels: getSafeFormValue({
+            schema: NodeBasePropertiesFormSchema.shape.activityLevels,
+            value: formValues.activityLevels,
+            fallback: nodeData.activityLevels,
+        }),
+        isInputNode: getSafeFormValue({
+            schema: NodeBasePropertiesFormSchema.shape.isInputNode,
+            value: formValues.isInputNode,
+            fallback: nodeData.isInputNode,
+        }),
     }
     const incomingNodes = useMemo(
         () =>
@@ -170,7 +198,18 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                 <form.AppField
                     name="name"
                     children={(field) => (
-                        <field.TextField label="Name" placeholder="" />
+                        <field.TextField
+                            label="Name"
+                            placeholder=""
+                            inputProps={{
+                                onKeyDown: (event) => {
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault()
+                                        event.currentTarget.blur()
+                                    }
+                                },
+                            }}
+                        />
                     )}
                 />
                 <form.AppField
