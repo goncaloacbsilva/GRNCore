@@ -36,7 +36,8 @@ export function compileRuleExpressionToMdd(
     const semantics = regulatoryRuleGrammar
         .createSemantics()
         .addOperation<number>('toMdd', {
-            RuleExpr(expr) {
+            RuleExpr(expr, end) {
+                void end
                 return evaluateNode(expr as unknown as SemanticNode)
             },
             OrExpr_binary(left, operator, right) {
