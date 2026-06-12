@@ -153,13 +153,12 @@ function createInternalModelEdges(
                 }
 
                 const edge = getOrCreateEdge(sourceId, targetNode.id)
-                const edgeData = edge.data as EditableRegulatoryEdge
+                const edgeData = edge.data!
                 const levelType = getEdgeTypeFromReference(reference)
                 const levelTarget = Math.max(reference.value ?? 1, 1)
                 const hasLevel = edgeData.levels.some(
                     (level) =>
-                        level.type === levelType &&
-                        level.target === levelTarget
+                        level.type === levelType && level.target === levelTarget
                 )
 
                 if (!hasLevel) {

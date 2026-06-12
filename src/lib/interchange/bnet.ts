@@ -1,7 +1,6 @@
 import type { InternalGRNModel } from '@/lib/schema'
 import {
     DEFAULT_NODE_HEIGHT,
-    DEFAULT_NODE_TYPE,
     NODE_PLACEMENT_OFFSET,
 } from '@/components/views/editor/graph/config'
 import {

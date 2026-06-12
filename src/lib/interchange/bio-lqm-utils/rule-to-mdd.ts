@@ -5,7 +5,19 @@ import {
     type MDDVariable,
     MDDBaseOperators,
 } from 'mddlib-ts'
-import { NodeInfo } from 'biolqm-io-ts'
+import type { NodeInfo } from 'biolqm-io-ts'
+
+interface SemanticNode {
+    toMdd(): number
+}
+
+interface SemanticNodeWithSource {
+    sourceString: string
+}
+
+interface SemanticChildrenNode {
+    children: unknown[]
+}
 
 export function compileRuleExpressionToMdd(
     expression: string,
@@ -18,52 +30,63 @@ export function compileRuleExpressionToMdd(
         throw new Error(matchResult.message)
     }
 
+    const evaluateNode = (node: SemanticNode): number => node.toMdd()
+
     const semantics = regulatoryRuleGrammar.createSemantics().addOperation<number>(
         'toMdd',
         {
-            RuleExpr(expr, _end) {
-                return expr.toMdd()
+            RuleExpr(expr: SemanticNode) {
+                return evaluateNode(expr)
             },
-            OrExpr_binary(left, _operator, right) {
+            OrExpr_binary(left: SemanticNode, operator: unknown, right: SemanticNode) {
+                void operator
                 return MDDBaseOperators.OR.combine(
                     manager,
-                    left.toMdd(),
-                    right.toMdd()
+                    evaluateNode(left),
+                    evaluateNode(right)
                 )
             },
-            AndExpr_binary(left, _operator, right) {
+            AndExpr_binary(left: SemanticNode, operator: unknown, right: SemanticNode) {
+                void operator
                 return MDDBaseOperators.AND.combine(
                     manager,
-                    left.toMdd(),
-                    right.toMdd()
+                    evaluateNode(left),
+                    evaluateNode(right)
                 )
             },
-            UnaryExpr(nots, primary) {
-                let result = primary.toMdd()
+            UnaryExpr(nots: SemanticChildrenNode, primary: SemanticNode) {
+                let result = evaluateNode(primary)
                 if (nots.children.length % 2 === 1) {
                     result = manager.not(result)
                 }
                 return result
             },
-            Primary_paren(_open, expr, _close) {
-                return expr.toMdd()
+            Primary_paren(open: unknown, expr: SemanticNode, close: unknown) {
+                void open
+                void close
+                return evaluateNode(expr)
             },
-            Condition(variable, _colon, value) {
+            Condition(
+                variable: SemanticNodeWithSource,
+                colon: unknown,
+                value: SemanticNodeWithSource
+            ) {
+                void colon
                 return buildConditionNode(
                     variable.sourceString,
                     Number(value.sourceString)
                 )
             },
-            Var(ident) {
+            Var(ident: SemanticNodeWithSource) {
                 return buildConditionNode(ident.sourceString, 1)
             },
-            Val(value) {
+            Val(value: SemanticNodeWithSource) {
                 return Number(value.sourceString) === 0 ? 0 : 1
             },
         }
     )
 
-    return (semantics(matchResult) as { toMdd(): number }).toMdd()
+    return evaluateNode(semantics(matchResult) as SemanticNode)
 
     function buildConditionNode(name: string, threshold: number): number {
         const sourceNode = nodeByName.get(name)

@@ -5,6 +5,7 @@ export class StringStreamProvider implements StreamProvider {
     private closed = false
 
     async output(pattern?: string): Promise<WritableStream<Uint8Array>> {
+        void pattern
         this.buffer = []
         this.closed = false
 
@@ -26,6 +27,7 @@ export class StringStreamProvider implements StreamProvider {
     }
 
     async input(pattern?: string): Promise<ReadableStream<Uint8Array>> {
+        void pattern
         const buffer = this.buffer
         let index = 0
 
