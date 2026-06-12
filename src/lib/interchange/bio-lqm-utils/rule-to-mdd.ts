@@ -58,7 +58,8 @@ export function compileRuleExpressionToMdd(
             UnaryExpr(nots, primary) {
                 let result = evaluateNode(primary as unknown as SemanticNode)
                 if (
-                    (nots as unknown as SemanticNodeWithChildren).children.length %
+                    (nots as unknown as SemanticNodeWithChildren).children
+                        .length %
                         2 ===
                     1
                 ) {
@@ -74,9 +75,11 @@ export function compileRuleExpressionToMdd(
             Condition(variable, colon, value) {
                 void colon
                 return buildConditionNode(
-                    (variable as unknown as SemanticNodeWithSource).sourceString,
+                    (variable as unknown as SemanticNodeWithSource)
+                        .sourceString,
                     Number(
-                        (value as unknown as SemanticNodeWithSource).sourceString
+                        (value as unknown as SemanticNodeWithSource)
+                            .sourceString
                     )
                 )
             },
