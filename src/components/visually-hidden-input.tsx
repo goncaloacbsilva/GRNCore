@@ -42,18 +42,19 @@ function VisuallyHiddenInput<T = InputValue>(
     const [controlSize, setControlSize] = React.useState<{
         width?: number
         height?: number
-    }>({})
+    }>(() =>
+        control
+            ? {
+                  width: control.offsetWidth,
+                  height: control.offsetHeight,
+              }
+            : {}
+    )
 
     React.useLayoutEffect(() => {
         if (!control) {
-            setControlSize({})
             return
         }
-
-        setControlSize({
-            width: control.offsetWidth,
-            height: control.offsetHeight,
-        })
 
         if (typeof window === 'undefined') return
 

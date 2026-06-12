@@ -102,6 +102,6 @@ export function shiftDraggedEdgePoints<T extends Edge>({
                         : point
                 }),
             },
-        } as T
+        }
     })
 }

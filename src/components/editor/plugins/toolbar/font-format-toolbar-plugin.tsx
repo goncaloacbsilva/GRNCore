@@ -5,7 +5,6 @@ import {
     $isRangeSelection,
     type BaseSelection,
     FORMAT_TEXT_COMMAND,
-    type TextFormatType,
 } from 'lexical'
 
 import {
@@ -38,7 +37,7 @@ export function FontFormatToolbarPlugin() {
         if ($isRangeSelection(selection) || $isTableSelection(selection)) {
             const formats: string[] = []
             FORMATS.forEach(({ format }) => {
-                if (selection.hasFormat(format as TextFormatType)) {
+                if (selection.hasFormat(format)) {
                     formats.push(format)
                 }
             })
@@ -73,7 +72,7 @@ export function FontFormatToolbarPlugin() {
                     onClick={() => {
                         activeEditor.dispatchCommand(
                             FORMAT_TEXT_COMMAND,
-                            format as TextFormatType
+                            format
                         )
                     }}
                 >

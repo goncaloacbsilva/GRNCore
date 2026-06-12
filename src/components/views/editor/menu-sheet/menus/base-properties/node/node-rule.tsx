@@ -110,12 +110,21 @@ export function NodeRule({
             currentRule.id !== rule.id && currentRule.target === rule.target
     )
 
-    latestFormValuesRef.current = formValues
-    latestNodeRulesRef.current = node.data.rules
-    latestIncomingNodesRef.current = incomingNodes
-    latestIncomingEdgesRef.current = incomingEdges
-    latestRuleRef.current = rule
-    latestUpdateCallbackRef.current = updateCallback
+    useEffect(() => {
+        latestFormValuesRef.current = formValues
+        latestNodeRulesRef.current = node.data.rules
+        latestIncomingNodesRef.current = incomingNodes
+        latestIncomingEdgesRef.current = incomingEdges
+        latestRuleRef.current = rule
+        latestUpdateCallbackRef.current = updateCallback
+    }, [
+        formValues,
+        incomingEdges,
+        incomingNodes,
+        node.data.rules,
+        rule,
+        updateCallback,
+    ])
 
     const persistRuleValues = () => {
         const values = latestFormValuesRef.current
