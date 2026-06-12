@@ -36,7 +36,6 @@
         "lexical": "^0.44.0",
         "lodash": "^4.18.1",
         "lucide-react": "^1.14.0",
-        "mddlib-ts": "git+https://github.com/goncaloacbsilva/mddlib-ts.git",
         "microdiff": "^1.5.0",
         "monaco-editor": "^0.55.1",
         "mutative": "^1.3.0",
