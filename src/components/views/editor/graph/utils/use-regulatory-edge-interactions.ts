@@ -150,7 +150,7 @@ export function useRegulatoryEdgeActions({
                         nextActivePoints.length === 1 &&
                         isSingleControlPointOrthogonal({
                             source: sourcePoint,
-                            pivot: nextActivePoints[0] as XYPosition,
+                            pivot: nextActivePoints[0],
                             target: targetPoint,
                         })
                     const looksLinear =

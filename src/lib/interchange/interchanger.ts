@@ -1,9 +1,11 @@
 import type { InternalGRNModel } from '@/lib/schema'
 import { Interchanger } from './base'
 import { BooleanNetworkInterchanger } from './bnet'
+import { SBMLInterchanger } from './sbml'
 
 export const InterchangeFormat = {
     BNET: 'bnet',
+    SBML: 'sbml',
 } as const
 
 export type InterchangeFormat =
@@ -11,6 +13,7 @@ export type InterchangeFormat =
 
 const REGISTERED_INTERCHANGERS: Record<InterchangeFormat, Interchanger> = {
     [InterchangeFormat.BNET]: new BooleanNetworkInterchanger(),
+    [InterchangeFormat.SBML]: new SBMLInterchanger(),
 }
 
 export function getInterchangeFormat(filename: string): InterchangeFormat {
@@ -31,6 +34,15 @@ export function getInterchangeFormat(filename: string): InterchangeFormat {
     return format
 }
 
+function getFilenameStem(filename: string): string {
+    const lastDotIndex = filename.lastIndexOf('.')
+    if (lastDotIndex <= 0) {
+        return filename
+    }
+
+    return filename.slice(0, lastDotIndex)
+}
+
 export async function exportModel(
     snapshot: InternalGRNModel,
     format: InterchangeFormat
@@ -38,7 +50,7 @@ export async function exportModel(
     const interchanger = REGISTERED_INTERCHANGERS[format]
 
     const content = await interchanger.export(snapshot)
-    const filename = `${snapshot.title}.${format}`
+    const filename = `${snapshot.title || 'untitled-model'}.${format}`
     download(content, filename, interchanger.mimeType)
 }
 
@@ -47,7 +59,12 @@ export async function importModel(file: File) {
     const content = await file.text()
 
     const interchanger = REGISTERED_INTERCHANGERS[format]
-    return await interchanger.import(content)
+    const snapshot = await interchanger.import(content)
+
+    return {
+        ...snapshot,
+        title: getFilenameStem(file.name),
+    }
 }
 
 // Some utils

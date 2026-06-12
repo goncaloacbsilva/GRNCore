@@ -57,7 +57,8 @@ export function ImportModelDialog() {
                     <DialogDescription>
                         Upload a model file to import it into the editor.
                         <br />
-                        Supported formats are: BoolNet (.bnet)
+                        Supported formats are: BoolNet (.bnet), SBML-Qual
+                        (.sbml)
                     </DialogDescription>
                 </DialogHeader>
                 <FileUpload
@@ -65,7 +66,7 @@ export function ImportModelDialog() {
                     onValueChange={setFiles}
                     onFileValidate={onFileValidate}
                     onFileReject={onFileReject}
-                    accept="application/sbml+xml,.bnet,.zginml"
+                    accept="application/sbml+xml,.bnet,.zginml,.sbml"
                     maxFiles={1}
                     className="w-full max-w-md"
                 >

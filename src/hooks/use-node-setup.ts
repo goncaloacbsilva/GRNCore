@@ -59,7 +59,7 @@ export function useNodeSetup() {
                     width,
                     height,
                 },
-            } as Node<RegulatoryNodeProperties>)
+            })
 
             // Hide dialog
             setOpen(false)

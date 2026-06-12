@@ -17,11 +17,9 @@ export type RegulatoryNodeStyle = CSSProperties &
     >
 
 export function getRegulatoryNodeBackgroundColor(
-    style: CSSProperties | undefined
+    style: RegulatoryNodeStyle | undefined
 ) {
-    const regulatoryStyle = style as RegulatoryNodeStyle | undefined
-    const customBackgroundColor =
-        regulatoryStyle?.[NODE_BACKGROUND_COLOR_STYLE_PROPERTY]
+    const customBackgroundColor = style?.[NODE_BACKGROUND_COLOR_STYLE_PROPERTY]
 
     if (typeof customBackgroundColor === 'string') {
         return customBackgroundColor
@@ -34,10 +32,10 @@ export function getRegulatoryNodeBackgroundColor(
     return DEFAULT_NODE_BACKGROUND_COLOR
 }
 
-export function getRegulatoryNodeBorderColor(style: CSSProperties | undefined) {
-    const regulatoryStyle = style as RegulatoryNodeStyle | undefined
-    const customBorderColor =
-        regulatoryStyle?.[NODE_BORDER_COLOR_STYLE_PROPERTY]
+export function getRegulatoryNodeBorderColor(
+    style: RegulatoryNodeStyle | undefined
+) {
+    const customBorderColor = style?.[NODE_BORDER_COLOR_STYLE_PROPERTY]
 
     if (typeof customBorderColor === 'string') {
         return customBorderColor
