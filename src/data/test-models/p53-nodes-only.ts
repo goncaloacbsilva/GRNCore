@@ -1,4 +1,5 @@
 import type { InternalGRNModel } from '@/lib/schema'
+import type { SerializedEditorState } from 'lexical'
 
 export const P53_NODES_ONLY_MODEL: InternalGRNModel = {
     title: 'p53-Mdm2 network model',
@@ -433,7 +434,7 @@ export const P53_NODES_ONLY_MODEL: InternalGRNModel = {
             type: 'root',
             version: 1,
         },
-    },
+    } as unknown as SerializedEditorState,
     nodes: [
         {
             id: 'node-1',

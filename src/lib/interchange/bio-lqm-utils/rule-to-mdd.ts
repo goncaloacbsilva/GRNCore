@@ -15,6 +15,8 @@ interface SemanticChildrenNode {
     children: unknown[]
 }
 
+interface SemanticNodeWithChildren extends SemanticNode, SemanticChildrenNode {}
+
 export function compileRuleExpressionToMdd(
     expression: string,
     manager: MDDManager,
@@ -34,61 +36,62 @@ export function compileRuleExpressionToMdd(
     const semantics = regulatoryRuleGrammar
         .createSemantics()
         .addOperation<number>('toMdd', {
-            RuleExpr(expr: SemanticNode) {
-                return evaluateNode(expr)
+            RuleExpr(expr) {
+                return evaluateNode(expr as unknown as SemanticNode)
             },
-            OrExpr_binary(
-                left: SemanticNode,
-                operator: unknown,
-                right: SemanticNode
-            ) {
+            OrExpr_binary(left, operator, right) {
                 void operator
                 return MDDBaseOperators.OR.combine(
                     manager,
-                    evaluateNode(left),
-                    evaluateNode(right)
+                    evaluateNode(left as unknown as SemanticNode),
+                    evaluateNode(right as unknown as SemanticNode)
                 )
             },
-            AndExpr_binary(
-                left: SemanticNode,
-                operator: unknown,
-                right: SemanticNode
-            ) {
+            AndExpr_binary(left, operator, right) {
                 void operator
                 return MDDBaseOperators.AND.combine(
                     manager,
-                    evaluateNode(left),
-                    evaluateNode(right)
+                    evaluateNode(left as unknown as SemanticNode),
+                    evaluateNode(right as unknown as SemanticNode)
                 )
             },
-            UnaryExpr(nots: SemanticChildrenNode, primary: SemanticNode) {
-                let result = evaluateNode(primary)
-                if (nots.children.length % 2 === 1) {
+            UnaryExpr(nots, primary) {
+                let result = evaluateNode(primary as unknown as SemanticNode)
+                if (
+                    (nots as unknown as SemanticNodeWithChildren).children.length %
+                        2 ===
+                    1
+                ) {
                     result = manager.not(result)
                 }
                 return result
             },
-            Primary_paren(open: unknown, expr: SemanticNode, close: unknown) {
+            Primary_paren(open, expr, close) {
                 void open
                 void close
-                return evaluateNode(expr)
+                return evaluateNode(expr as unknown as SemanticNode)
             },
-            Condition(
-                variable: SemanticNodeWithSource,
-                colon: unknown,
-                value: SemanticNodeWithSource
-            ) {
+            Condition(variable, colon, value) {
                 void colon
                 return buildConditionNode(
-                    variable.sourceString,
-                    Number(value.sourceString)
+                    (variable as unknown as SemanticNodeWithSource).sourceString,
+                    Number(
+                        (value as unknown as SemanticNodeWithSource).sourceString
+                    )
                 )
             },
-            Var(ident: SemanticNodeWithSource) {
-                return buildConditionNode(ident.sourceString, 1)
+            Var(ident) {
+                return buildConditionNode(
+                    (ident as unknown as SemanticNodeWithSource).sourceString,
+                    1
+                )
             },
-            Val(value: SemanticNodeWithSource) {
-                return Number(value.sourceString) === 0 ? 0 : 1
+            Val(value) {
+                return Number(
+                    (value as unknown as SemanticNodeWithSource).sourceString
+                ) === 0
+                    ? 0
+                    : 1
             },
         })
 

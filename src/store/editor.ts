@@ -46,23 +46,42 @@ interface EditorState {
     ) => void
 }
 
+type EditorStateSnapshot = Pick<
+    EditorState,
+    | 'modelTitle'
+    | 'modelAnnotations'
+    | 'annotationsPanelOpen'
+    | 'addNodeDialogVisible'
+    | 'importModelDialogVisible'
+    | 'connectModeEnabled'
+    | 'connectModeInteraction'
+    | 'selectedNodesIds'
+    | 'menuSheetTab'
+    | 'copyArea'
+    | 'isDragging'
+    | 'isApplyingHistory'
+    | 'isSnapshotPaused'
+>
+
+const initialEditorState: EditorStateSnapshot = {
+    modelTitle: 'Untitled model',
+    addNodeDialogVisible: false,
+    connectModeEnabled: false,
+    connectModeInteraction: InteractionType.Activation,
+    selectedNodesIds: new Set<string>(),
+    menuSheetTab: 'base',
+    copyArea: null,
+    isDragging: false,
+    isApplyingHistory: false,
+    isSnapshotPaused: false,
+    annotationsPanelOpen: false,
+    modelAnnotations: null,
+    importModelDialogVisible: false,
+}
+
 export const useEditorStore = create<EditorState>()(
     combine(
-        {
-            modelTitle: 'Untitled model',
-            addNodeDialogVisible: false,
-            connectModeEnabled: false,
-            connectModeInteraction: 'activation',
-            selectedNodesIds: new Set<string>(),
-            menuSheetTab: 'base',
-            copyArea: null as InternalGRNModel | null,
-            isDragging: false,
-            isApplyingHistory: false,
-            isSnapshotPaused: false,
-            annotationsPanelOpen: false,
-            modelAnnotations: null as SerializedEditorState | null,
-            importModelDialogVisible: false,
-        },
+        initialEditorState,
         (set, get) => ({
             setAddNodeDialogVisible: (visible) =>
                 set(() => ({ addNodeDialogVisible: visible })),
