@@ -1,10 +1,6 @@
 import type { InternalGRNModel } from '@/lib/schema'
 import { regulatoryRuleGrammar } from '@/lib/regulatory-rules/grammar'
-import {
-    type MDDManager,
-    type MDDVariable,
-    MDDBaseOperators,
-} from 'mddlib-ts'
+import { type MDDManager, type MDDVariable, MDDBaseOperators } from 'mddlib-ts'
 import type { NodeInfo } from 'biolqm-io-ts'
 
 interface SemanticNode {
@@ -25,20 +21,27 @@ export function compileRuleExpressionToMdd(
     nodeByName: Map<string, InternalGRNModel['nodes'][number]>,
     nodesById: Map<string, NodeInfo>
 ): number {
-    const matchResult = regulatoryRuleGrammar.match(expression.trim(), 'RuleExpr')
+    const matchResult = regulatoryRuleGrammar.match(
+        expression.trim(),
+        'RuleExpr'
+    )
     if (matchResult.failed()) {
         throw new Error(matchResult.message)
     }
 
     const evaluateNode = (node: SemanticNode): number => node.toMdd()
 
-    const semantics = regulatoryRuleGrammar.createSemantics().addOperation<number>(
-        'toMdd',
-        {
+    const semantics = regulatoryRuleGrammar
+        .createSemantics()
+        .addOperation<number>('toMdd', {
             RuleExpr(expr: SemanticNode) {
                 return evaluateNode(expr)
             },
-            OrExpr_binary(left: SemanticNode, operator: unknown, right: SemanticNode) {
+            OrExpr_binary(
+                left: SemanticNode,
+                operator: unknown,
+                right: SemanticNode
+            ) {
                 void operator
                 return MDDBaseOperators.OR.combine(
                     manager,
@@ -46,7 +49,11 @@ export function compileRuleExpressionToMdd(
                     evaluateNode(right)
                 )
             },
-            AndExpr_binary(left: SemanticNode, operator: unknown, right: SemanticNode) {
+            AndExpr_binary(
+                left: SemanticNode,
+                operator: unknown,
+                right: SemanticNode
+            ) {
                 void operator
                 return MDDBaseOperators.AND.combine(
                     manager,
@@ -83,8 +90,7 @@ export function compileRuleExpressionToMdd(
             Val(value: SemanticNodeWithSource) {
                 return Number(value.sourceString) === 0 ? 0 : 1
             },
-        }
-    )
+        })
 
     return evaluateNode(semantics(matchResult) as SemanticNode)
 
