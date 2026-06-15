@@ -84,8 +84,8 @@ export function useAnnotationTarget() {
     }
 
     return {
-        annotations: {
-            unstructured: modelAnnotations,
+        annotations: modelAnnotations ?? {
+            unstructured: undefined,
             references: EMPTY_REFERENCES,
         },
         hasSingleSelectedElement,
@@ -94,8 +94,8 @@ export function useAnnotationTarget() {
         selectedElements,
         title: 'Model Annotations',
         updateAnnotations: (newAnnotations: AnnotationDraft) => {
-            setModelAnnotations(newAnnotations.unstructured)
-            setSnapshotAnnotations(newAnnotations.unstructured)
+            setModelAnnotations(newAnnotations)
+            setSnapshotAnnotations(newAnnotations)
         },
         widthClassName: 'w-140',
     }

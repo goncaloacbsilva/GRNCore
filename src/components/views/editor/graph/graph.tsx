@@ -74,7 +74,7 @@ export function Graph({ model }: GraphProps) {
         setSnapshotPaused(true)
         setNodes(normalizedNodes)
         setEdges(model.edges)
-        setModelAnnotations(model.annotations ?? null)
+        setModelAnnotations(model.annotations)
         resetHistory(normalizedNodes, model.edges)
 
         requestAnimationFrame(() => {

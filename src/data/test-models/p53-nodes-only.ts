@@ -1,83 +1,83 @@
 import type { InternalGRNModel } from '@/lib/schema'
-import type { SerializedEditorState } from 'lexical'
 
 export const P53_NODES_ONLY_MODEL: InternalGRNModel = {
     title: 'p53-Mdm2 network model',
     annotations: {
-        root: {
-            children: [
-                {
-                    children: [
-                        {
-                            detail: 0,
-                            format: 1,
-                            mode: 'normal',
-                            style: '',
-                            text: 'Model origin:',
-                            type: 'text',
-                            version: 1,
-                        },
-                        {
-                            detail: 0,
-                            format: 0,
-                            mode: 'normal',
-                            style: '',
-                            text: ' This model is an adapted version of the logical model of the p53-mdm2 network described in Fig. 5a of Abou-Jaoudé et al. ',
-                            type: 'text',
-                            version: 1,
-                        },
-                        {
-                            children: [
-                                {
-                                    detail: 0,
-                                    format: 0,
-                                    mode: 'normal',
-                                    style: '',
-                                    text: '1',
-                                    type: 'specialText',
-                                    version: 1,
-                                },
-                            ],
-                            direction: null,
-                            format: '',
-                            indent: 0,
-                            type: 'link',
-                            version: 1,
-                            rel: null,
-                            target: null,
-                            title: null,
-                            url: 'https://doi.org/10.3389/fgene.2016.00094',
-                        },
-                        {
-                            detail: 0,
-                            format: 0,
-                            mode: 'normal',
-                            style: '',
-                            text: '.',
-                            type: 'text',
-                            version: 1,
-                        },
-                    ],
-                    direction: null,
-                    format: 'start',
-                    indent: 0,
-                    type: 'paragraph',
-                    version: 1,
-                    textFormat: 1,
-                    textStyle: '',
-                },
-                {
-                    children: [],
-                    direction: null,
-                    format: 'start',
-                    indent: 0,
-                    type: 'paragraph',
-                    version: 1,
-                    textFormat: 0,
-                    textStyle: '',
-                },
-                {
-                    children: [
+        unstructured: {
+            root: {
+                children: [
+                    {
+                        children: [
+                            {
+                                detail: 0,
+                                format: 1,
+                                mode: 'normal',
+                                style: '',
+                                text: 'Model origin:',
+                                type: 'text',
+                                version: 1,
+                            },
+                            {
+                                detail: 0,
+                                format: 0,
+                                mode: 'normal',
+                                style: '',
+                                text: ' This model is an adapted version of the logical model of the p53-mdm2 network described in Fig. 5a of Abou-Jaoudé et al. ',
+                                type: 'text',
+                                version: 1,
+                            },
+                            {
+                                children: [
+                                    {
+                                        detail: 0,
+                                        format: 0,
+                                        mode: 'normal',
+                                        style: '',
+                                        text: '1',
+                                        type: 'specialText',
+                                        version: 1,
+                                    },
+                                ],
+                                direction: null,
+                                format: '',
+                                indent: 0,
+                                type: 'link',
+                                version: 1,
+                                rel: null,
+                                target: null,
+                                title: null,
+                                url: 'https://doi.org/10.3389/fgene.2016.00094',
+                            },
+                            {
+                                detail: 0,
+                                format: 0,
+                                mode: 'normal',
+                                style: '',
+                                text: '.',
+                                type: 'text',
+                                version: 1,
+                            },
+                        ],
+                        direction: null,
+                        format: 'start',
+                        indent: 0,
+                        type: 'paragraph',
+                        version: 1,
+                        textFormat: 1,
+                        textStyle: '',
+                    },
+                    {
+                        children: [],
+                        direction: null,
+                        format: 'start',
+                        indent: 0,
+                        type: 'paragraph',
+                        version: 1,
+                        textFormat: 0,
+                        textStyle: '',
+                    },
+                    {
+                        children: [
                         {
                             detail: 0,
                             format: 1,
@@ -426,15 +426,17 @@ export const P53_NODES_ONLY_MODEL: InternalGRNModel = {
                     version: 1,
                     textFormat: 1,
                     textStyle: '',
-                },
-            ],
-            direction: null,
-            format: '',
-            indent: 0,
-            type: 'root',
-            version: 1,
+                    },
+                ],
+                direction: null,
+                format: '',
+                indent: 0,
+                type: 'root',
+                version: 1,
+            },
         },
-    } as unknown as SerializedEditorState,
+        references: [],
+    },
     nodes: [
         {
             id: 'node-1',
