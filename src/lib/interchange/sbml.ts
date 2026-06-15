@@ -50,7 +50,9 @@ function createSerializedEditorStateFromLines(
     } as unknown as SerializedEditorState
 }
 
-function parseNotes(element: Element | null): SerializedEditorState | undefined {
+function parseNotes(
+    element: Element | null
+): SerializedEditorState | undefined {
     const notesElement = element?.querySelector(':scope > notes')
     const body = notesElement?.querySelector('body')
     const source = body ?? notesElement
@@ -64,12 +66,13 @@ function parseNotes(element: Element | null): SerializedEditorState | undefined 
     const rawLines =
         blockCandidates.length > 0
             ? blockCandidates.map((node) => node.textContent?.trim() ?? '')
-            : source.textContent
+            : (source.textContent
                   ?.split(/\r?\n/u)
                   .map((line) => line.trim())
-                  .filter((line, _lineIndex, lines) =>
-                      line.length > 0 || lines.length === 1
-                  ) ?? []
+                  .filter(
+                      (line, _lineIndex, lines) =>
+                          line.length > 0 || lines.length === 1
+                  ) ?? [])
 
     const lines = rawLines.filter((line) => line.length > 0)
     if (lines.length === 0) {
@@ -168,7 +171,9 @@ function parseSbmlAnnotations(content: string): ParsedSbmlAnnotations {
             continue
         }
 
-        const inputsContainer = getDirectChild(transitionElement, ['listOfInputs'])
+        const inputsContainer = getDirectChild(transitionElement, [
+            'listOfInputs',
+        ])
         for (const inputElement of Array.from(
             inputsContainer?.querySelectorAll('input') ?? []
         )) {

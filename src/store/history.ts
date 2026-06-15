@@ -53,7 +53,9 @@ interface HistoryState {
     import: (file: File, callback: () => void) => void
     markHydrated: () => void
     setSnapshotTitle: (title: string) => void
-    setSnapshotAnnotations: (annotations: PersistedAnnotations | undefined) => void
+    setSnapshotAnnotations: (
+        annotations: PersistedAnnotations | undefined
+    ) => void
 
     takeSnapshot: (
         nodes: Node<RegulatoryNodeProperties>[],

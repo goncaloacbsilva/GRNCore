@@ -226,11 +226,7 @@ function createInternalModelEdges(
             addSemanticLevels(
                 sourceId,
                 targetId,
-                getSemanticEffectsForRegulator(
-                    manager,
-                    functionId,
-                    source
-                )
+                getSemanticEffectsForRegulator(manager, functionId, source)
             )
         }
     }
@@ -255,7 +251,9 @@ function getSemanticEffectsForRegulator(
     return manager.getMultivaluedVariableEffect(variable, functionId)
 }
 
-function getInteractionTypesFromEffect(effect: VariableEffect): InteractionType[] {
+function getInteractionTypesFromEffect(
+    effect: VariableEffect
+): InteractionType[] {
     switch (effect) {
         case VariableEffect.POSITIVE:
             return [InteractionType.Activation]
@@ -456,10 +454,10 @@ function buildThresholdExpressionWithPredicate(
         )
     )
 
-        return {
-            expression,
-            predicate: variable.getNode(children),
-        }
+    return {
+        expression,
+        predicate: variable.getNode(children),
+    }
 }
 
 function isPredicateSubset(
