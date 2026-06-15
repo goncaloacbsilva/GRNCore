@@ -17,10 +17,9 @@ import {
     MDDBaseOperators,
     MDDManagerFactory,
     MDDVariableFactory,
+    VariableEffect,
 } from 'mddlib-ts'
 import { compileRuleExpressionToMdd } from './rule-to-mdd'
-import { getExpressionReferences } from '@/lib/regulatory-rules/semantics'
-import { regulatoryRuleGrammar } from '@/lib/regulatory-rules/grammar'
 
 export function createLogicalModelFromInternalModel(
     snapshot: InternalGRNModel
@@ -102,13 +101,13 @@ function createInternalModelEdges(
     nodes: InternalGRNModel['nodes']
 ) {
     const matrix = new ConnectivityMatrix(model)
+    const manager = (model as LogicalModelImpl).getMDDManager()
     const edges: Edge<EditableRegulatoryEdge>[] = []
     const edgesByEndpoints = new Map<string, Edge<EditableRegulatoryEdge>>()
-    const nodeIdByReferenceName = new Map<string, string>()
+    const nodeIdByComponentId = new Map<string, string>()
 
     for (const node of nodes) {
-        nodeIdByReferenceName.set(node.data.name || node.id, node.id)
-        nodeIdByReferenceName.set(node.id, node.id)
+        nodeIdByComponentId.set(node.id, node.id)
     }
 
     const getOrCreateEdge = (
@@ -135,37 +134,41 @@ function createInternalModelEdges(
         return edge
     }
 
-    for (const targetNode of nodes) {
-        for (const rule of targetNode.data.rules) {
-            const matchResult = regulatoryRuleGrammar.match(
-                rule.expression.trim(),
-                'RuleExpr'
-            )
-            if (matchResult.failed()) {
+    const coreComponents = model.getComponents()
+    const extraComponents = model.getExtraComponents()
+    const allComponents = [...coreComponents, ...extraComponents]
+    const allFunctions = [
+        ...model.getLogicalFunctions(),
+        ...model.getExtraLogicalFunctions(),
+    ]
+
+    const addSemanticLevels = (
+        sourceId: string,
+        targetId: string,
+        effects: VariableEffect[]
+    ) => {
+        const edge = getOrCreateEdge(sourceId, targetId)
+        const edgeData = edge.data!
+
+        for (const [index, effect] of effects.entries()) {
+            const threshold = index + 1
+
+            if (effect === VariableEffect.NONE) {
                 continue
             }
 
-            const references = getExpressionReferences(matchResult)
-            for (const reference of references) {
-                const sourceId = nodeIdByReferenceName.get(reference.name)
-                if (sourceId == null) {
-                    continue
-                }
-
-                const edge = getOrCreateEdge(sourceId, targetNode.id)
-                const edgeData = edge.data!
-                const levelType = getEdgeTypeFromReference(reference)
-                const levelTarget = Math.max(reference.value ?? 1, 1)
+            const levelTypes = getInteractionTypesFromEffect(effect)
+            for (const levelType of levelTypes) {
                 const hasLevel = edgeData.levels.some(
                     (level) =>
-                        level.type === levelType && level.target === levelTarget
+                        level.type === levelType && level.target === threshold
                 )
 
                 if (!hasLevel) {
                     edgeData.levels.push({
                         id: nanoid(),
                         type: levelType,
-                        target: levelTarget,
+                        target: threshold,
                         isValid: true,
                     })
                 }
@@ -173,46 +176,96 @@ function createInternalModelEdges(
         }
     }
 
-    // Preserve any remaining regulators reported by bioLQM even if the
-    // recovered rules omitted them, but leave their thresholds unspecified.
-    const coreComponents = model.getComponents()
-    const extraComponents = model.getExtraComponents()
-    const allComponents = [...coreComponents, ...extraComponents]
-
     for (const [index, target] of coreComponents.entries()) {
+        if (target.isInput() || (allFunctions[index] ?? 0) === 0) {
+            continue
+        }
+
         for (const regulatorIndex of matrix.getRegulators(index, false)) {
             const source = allComponents[regulatorIndex]
             if (source == null) {
                 continue
             }
-            getOrCreateEdge(source.getNodeID(), target.getNodeID())
+
+            const sourceId = nodeIdByComponentId.get(source.getNodeID())
+            const targetId = nodeIdByComponentId.get(target.getNodeID())
+            if (sourceId == null || targetId == null) {
+                continue
+            }
+
+            addSemanticLevels(
+                sourceId,
+                targetId,
+                getSemanticEffectsForRegulator(
+                    manager,
+                    allFunctions[index] ?? 0,
+                    source
+                )
+            )
         }
     }
 
     for (const [index, target] of extraComponents.entries()) {
+        const functionId = allFunctions[coreComponents.length + index] ?? 0
+        if (target.isInput() || functionId === 0) {
+            continue
+        }
+
         for (const regulatorIndex of matrix.getRegulators(index, true)) {
             const source = allComponents[regulatorIndex]
             if (source == null) {
                 continue
             }
-            getOrCreateEdge(source.getNodeID(), target.getNodeID())
+
+            const sourceId = nodeIdByComponentId.get(source.getNodeID())
+            const targetId = nodeIdByComponentId.get(target.getNodeID())
+            if (sourceId == null || targetId == null) {
+                continue
+            }
+
+            addSemanticLevels(
+                sourceId,
+                targetId,
+                getSemanticEffectsForRegulator(
+                    manager,
+                    functionId,
+                    source
+                )
+            )
         }
     }
 
     return edges
 }
 
-function getEdgeTypeFromReference({
-    negated,
-    value,
-}: {
-    negated: boolean
-    value?: number
-}): InteractionType {
-    const isZeroCondition = value === 0
-    return negated !== isZeroCondition
-        ? InteractionType.Inhibition
-        : InteractionType.Activation
+function getSemanticEffectsForRegulator(
+    manager: MDDManager,
+    functionId: number,
+    source: NodeInfo
+): VariableEffect[] {
+    const variable = manager.getVariableForKey(source)
+    if (variable == null) {
+        return []
+    }
+
+    if (variable.nbval <= 2) {
+        return [manager.getVariableEffect(variable, functionId)]
+    }
+
+    return manager.getMultivaluedVariableEffect(variable, functionId)
+}
+
+function getInteractionTypesFromEffect(effect: VariableEffect): InteractionType[] {
+    switch (effect) {
+        case VariableEffect.POSITIVE:
+            return [InteractionType.Activation]
+        case VariableEffect.NEGATIVE:
+            return [InteractionType.Inhibition]
+        case VariableEffect.DUAL:
+            return [InteractionType.Activation, InteractionType.Inhibition]
+        default:
+            return []
+    }
 }
 
 function createInternalModelRules(
@@ -250,49 +303,66 @@ function createRuleExpressionForThreshold(
     functionId: number,
     target: number
 ) {
-    const expression = buildExpressionForThreshold(manager, functionId, target)
+    const expression = buildThresholdExpression(manager, functionId, target)
     return expression === '1' ? '1' : expression
 }
 
-function buildExpressionForThreshold(
+function buildThresholdExpression(
     manager: MDDManager,
     node: number,
     threshold: number
 ): string {
+    return buildThresholdExpressionWithPredicate(manager, node, threshold)
+        .expression
+}
+
+function buildThresholdExpressionWithPredicate(
+    manager: MDDManager,
+    node: number,
+    threshold: number
+): { expression: string; predicate: number } {
     const variable = manager.getNodeVariable(node)
     if (variable == null) {
-        return manager.isleaf(node) && node >= threshold ? '1' : '0'
+        const predicate = manager.isleaf(node) && node >= threshold ? 1 : 0
+        return {
+            expression: predicate === 1 ? '1' : '0',
+            predicate,
+        }
     }
 
     const children = manager.getChildren(node)
     if (children == null || children.length === 0) {
-        return '0'
+        return {
+            expression: '0',
+            predicate: 0,
+        }
     }
 
-    const segments: string[] = []
+    const segments: {
+        start: number
+        end: number
+        expression: string
+        predicate: number
+    }[] = []
     let start = 0
     let currentChild = children[0]
 
     const pushSegment = (end: number, child: number) => {
-        const childExpression = buildExpressionForThreshold(
+        const childResult = buildThresholdExpressionWithPredicate(
             manager,
             child,
             threshold
         )
-        if (childExpression === '0') {
+        if (childResult.expression === '0') {
             return
         }
 
-        const intervalCondition = buildIntervalCondition(variable, start, end)
-
-        const segment =
-            intervalCondition === '1'
-                ? childExpression
-                : childExpression === '1'
-                  ? intervalCondition
-                  : `(${intervalCondition} && ${childExpression})`
-
-        segments.push(segment)
+        segments.push({
+            start,
+            end,
+            expression: childResult.expression,
+            predicate: childResult.predicate,
+        })
     }
 
     for (let index = 1; index < children.length; index += 1) {
@@ -307,10 +377,129 @@ function buildExpressionForThreshold(
     pushSegment(children.length - 1, currentChild)
 
     if (segments.length === 0) {
+        return {
+            expression: '0',
+            predicate: 0,
+        }
+    }
+
+    if (children.length === 2 && segments.length === 2) {
+        const lowSegment = segments.find((segment) => segment.start === 0)
+        const highSegment = segments.find((segment) => segment.end === 1)
+
+        if (lowSegment != null && highSegment != null) {
+            if (
+                isPredicateSubset(
+                    manager,
+                    lowSegment.predicate,
+                    highSegment.predicate
+                )
+            ) {
+                const expression = joinOrExpressions([
+                    lowSegment.expression,
+                    combineWithCondition(
+                        variable.getNode(0, 1),
+                        variable,
+                        1,
+                        1,
+                        highSegment.expression
+                    ),
+                ])
+
+                return {
+                    expression,
+                    predicate: variable.getNode(
+                        lowSegment.predicate,
+                        highSegment.predicate
+                    ),
+                }
+            }
+
+            if (
+                isPredicateSubset(
+                    manager,
+                    highSegment.predicate,
+                    lowSegment.predicate
+                )
+            ) {
+                const expression = joinOrExpressions([
+                    highSegment.expression,
+                    combineWithCondition(
+                        variable.getNode(0, 1),
+                        variable,
+                        0,
+                        0,
+                        lowSegment.expression
+                    ),
+                ])
+
+                return {
+                    expression,
+                    predicate: variable.getNode(
+                        lowSegment.predicate,
+                        highSegment.predicate
+                    ),
+                }
+            }
+        }
+    }
+
+    const expression = joinOrExpressions(
+        segments.map((segment) =>
+            combineWithCondition(
+                segment.predicate,
+                variable,
+                segment.start,
+                segment.end,
+                segment.expression
+            )
+        )
+    )
+
+        return {
+            expression,
+            predicate: variable.getNode(children),
+        }
+}
+
+function isPredicateSubset(
+    manager: MDDManager,
+    left: number,
+    right: number
+): boolean {
+    return MDDBaseOperators.AND.combine(manager, left, manager.not(right)) === 0
+}
+
+function joinOrExpressions(segments: string[]): string {
+    const filteredSegments = segments.filter((segment) => segment !== '0')
+    if (filteredSegments.length === 0) {
         return '0'
     }
 
-    return segments.length === 1 ? segments[0] : `(${segments.join(' || ')})`
+    return filteredSegments.length === 1
+        ? filteredSegments[0]
+        : `(${filteredSegments.join(' || ')})`
+}
+
+function combineWithCondition(
+    predicate: number,
+    variable: MDDVariable,
+    start: number,
+    end: number,
+    childExpression: string
+): string {
+    void predicate
+    const intervalCondition = buildIntervalCondition(variable, start, end)
+
+    if (intervalCondition === '1') {
+        return childExpression
+    }
+
+    if (childExpression === '1') {
+        return intervalCondition
+    }
+
+    return `(${intervalCondition} && ${childExpression})`
 }
 
 function buildIntervalCondition(
