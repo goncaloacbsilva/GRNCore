@@ -1,7 +1,10 @@
 import { getSelected, pasteModel } from '@/lib/graph'
-import { InteractionType, type InternalGRNModel } from '@/lib/schema'
+import {
+    InteractionType,
+    type InternalGRNModel,
+    type PersistedAnnotations,
+} from '@/lib/schema'
 import type { ReactFlowInstance, XYPosition } from '@xyflow/react'
-import type { SerializedEditorState } from 'lexical'
 
 import { toast } from 'sonner'
 import { create } from 'zustand'
@@ -11,7 +14,7 @@ export type MenuSheetTab = 'base' | 'style'
 
 interface EditorState {
     modelTitle: string
-    modelAnnotations: SerializedEditorState | null
+    modelAnnotations: PersistedAnnotations | undefined
     annotationsPanelOpen: boolean
     addNodeDialogVisible: boolean
     importModelDialogVisible: boolean
@@ -32,7 +35,7 @@ interface EditorState {
     setApplyingHistory: (value: boolean) => void
     setSnapshotPaused: (value: boolean) => void
     setAnnotationsPanelOpen: (open: boolean) => void
-    setModelAnnotations: (annotations: SerializedEditorState | null) => void
+    setModelAnnotations: (annotations: PersistedAnnotations | undefined) => void
     setModelTitle: (title: string) => void
     setMenuSheetTab: (tab: MenuSheetTab) => void
 
@@ -75,7 +78,7 @@ const initialEditorState: EditorStateSnapshot = {
     isApplyingHistory: false,
     isSnapshotPaused: false,
     annotationsPanelOpen: false,
-    modelAnnotations: null,
+    modelAnnotations: undefined,
     importModelDialogVisible: false,
 }
 

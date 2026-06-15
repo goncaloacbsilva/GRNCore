@@ -6,3 +6,5 @@ export const AnnotationsSchema = z
         references: z.array(z.string()).default([]),
     })
     .optional()
+
+export type PersistedAnnotations = z.infer<typeof AnnotationsSchema>

@@ -8,10 +8,10 @@ import { opfsStateStorage } from '@/lib/persistence'
 import type {
     EditableRegulatoryEdge,
     InternalGRNModel,
+    PersistedAnnotations,
     RegulatoryNodeProperties,
 } from '@/lib/schema'
 import type { Node, Edge, ReactFlowInstance } from '@xyflow/react'
-import type { SerializedEditorState } from 'lexical'
 import diff, { type Difference } from 'microdiff'
 import isEqual from 'lodash/isEqual'
 import { create } from 'zustand'
@@ -53,7 +53,7 @@ interface HistoryState {
     import: (file: File, callback: () => void) => void
     markHydrated: () => void
     setSnapshotTitle: (title: string) => void
-    setSnapshotAnnotations: (annotations: SerializedEditorState | null) => void
+    setSnapshotAnnotations: (annotations: PersistedAnnotations | undefined) => void
 
     takeSnapshot: (
         nodes: Node<RegulatoryNodeProperties>[],
@@ -588,7 +588,7 @@ export const useChangesTracking = create<HistoryState>()(
                 set((state) => ({
                     snapshot: {
                         ...state.snapshot,
-                        annotations: annotations ?? undefined,
+                        annotations,
                     },
                 }))
             },
