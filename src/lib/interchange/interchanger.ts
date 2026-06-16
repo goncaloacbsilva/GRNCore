@@ -56,7 +56,7 @@ export async function exportModel(
 
 export async function importModel(file: File) {
     const format = getInterchangeFormat(file.name)
-    const content = await file.text()
+    const content = await file.arrayBuffer()
 
     const interchanger = REGISTERED_INTERCHANGERS[format]
     const snapshot = await interchanger.import(content)
@@ -68,7 +68,7 @@ export async function importModel(file: File) {
 }
 
 // Some utils
-function download(content: string, filename: string, mimeType: string) {
+function download(content: ArrayBuffer, filename: string, mimeType: string) {
     const blob = new Blob([content], { type: mimeType })
     const url = URL.createObjectURL(blob)
 

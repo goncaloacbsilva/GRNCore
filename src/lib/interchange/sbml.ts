@@ -11,17 +11,17 @@ export class SBMLInterchanger extends Interchanger {
     readonly mimeType = 'application/sbml+xml'
     private readonly sbmlFormat = new SBMLFormat()
 
-    protected async _export(snapshot: InternalGRNModel): Promise<string> {
+    protected async _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
         const outputStreamProvider = new StringStreamProvider()
         const model = createLogicalModelFromInternalModel(snapshot)
         await this.sbmlFormat.exportToProvider(model, outputStreamProvider)
 
-        return outputStreamProvider.getString()
+        return this.castToArrayBuffer(outputStreamProvider.getString())
     }
 
-    async import(content: string): Promise<InternalGRNModel> {
+    async import(content: ArrayBuffer): Promise<InternalGRNModel> {
         const inputStreamProvider = new StringStreamProvider()
-        inputStreamProvider.setString(content)
+        inputStreamProvider.setString(this.castToString(content))
         const model =
             await this.sbmlFormat.loadFromProvider(inputStreamProvider)
 
