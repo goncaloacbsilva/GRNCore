@@ -35,12 +35,9 @@ export function Annotations() {
                 onEditButtonClick={editingState.toggleEditMode}
                 onOpenChange={setIsOpen}
                 title={annotationTarget.title}
-                widthClassName={annotationTarget.widthClassName}
+                widthClassName="w-170"
             >
-                <AnnotationContent
-                    {...editingState}
-                    hasReferences={annotationTarget.hasSingleSelectedElement}
-                />
+                <AnnotationContent {...editingState} hasReferences={true} />
             </AnnotationCard>
         </div>
     )
