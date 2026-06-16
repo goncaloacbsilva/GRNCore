@@ -2,10 +2,12 @@ import type { InternalGRNModel } from '@/lib/schema'
 import { Interchanger } from './base'
 import { BooleanNetworkInterchanger } from './bnet'
 import { SBMLInterchanger } from './sbml'
+import { GINMLInterchanger } from './ginml'
 
 export const InterchangeFormat = {
     BNET: 'bnet',
     SBML: 'sbml',
+    GINML: 'ginml',
 } as const
 
 export type InterchangeFormat =
@@ -14,6 +16,7 @@ export type InterchangeFormat =
 const REGISTERED_INTERCHANGERS: Record<InterchangeFormat, Interchanger> = {
     [InterchangeFormat.BNET]: new BooleanNetworkInterchanger(),
     [InterchangeFormat.SBML]: new SBMLInterchanger(),
+    [InterchangeFormat.GINML]: new GINMLInterchanger(),
 }
 
 export function getInterchangeFormat(filename: string): InterchangeFormat {
