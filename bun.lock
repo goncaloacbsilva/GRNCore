@@ -634,7 +634,7 @@
 
     "baseline-browser-mapping": ["baseline-browser-mapping@2.10.37", "", { "bin": { "baseline-browser-mapping": "dist/cli.cjs" } }, "sha512-girxaJ7WZssDOFhzCGZTDKoTa1gk6A1TbflaYTpykLJ4UU9Fz9kx1aREM8JCuoVHbL8X8T/mJg7w2oYSq72Oig=="],
 
-    "biolqm-io-ts": ["biolqm-io-ts@github:goncaloacbsilva/bioLQM-io-ts#0a3423f", { "dependencies": { "fast-xml-parser": "^4.5.0", "mddlib-ts": "https://github.com/goncaloacbsilva/mddlib-ts/releases/latest/download/mddlib-ts.tgz" } }, "goncaloacbsilva-bioLQM-io-ts-0a3423f"],
+    "biolqm-io-ts": ["biolqm-io-ts@github:goncaloacbsilva/bioLQM-io-ts#ad8b568", { "dependencies": { "fast-xml-parser": "^4.5.0", "mddlib-ts": "https://github.com/goncaloacbsilva/mddlib-ts/releases/latest/download/mddlib-ts.tgz" } }, "goncaloacbsilva-bioLQM-io-ts-ad8b568"],
 
     "body-parser": ["body-parser@2.2.2", "", { "dependencies": { "bytes": "^3.1.2", "content-type": "^1.0.5", "debug": "^4.4.3", "http-errors": "^2.0.0", "iconv-lite": "^0.7.0", "on-finished": "^2.4.1", "qs": "^6.14.1", "raw-body": "^3.0.1", "type-is": "^2.0.1" } }, "sha512-oP5VkATKlNwcgvxi0vM0p/D3n2C3EReYVX+DNYs5TjZFn/oQt2j+4sVJtSMr18pdRr8wjTcBl6LoV+FUwzPmNA=="],
 

@@ -4,6 +4,7 @@ import {
     InteractionType,
     type EditableRegulatoryEdge,
     type InternalGRNModel,
+    type PersistedAnnotations,
 } from '@/lib/schema'
 import {
     ConnectivityMatrix,
@@ -20,6 +21,8 @@ import {
     VariableEffect,
 } from 'mddlib-ts'
 import { compileRuleExpressionToMdd } from './rule-to-mdd'
+import type { Annotator } from 'biolqm-io-ts'
+import type { SerializedEditorState } from 'lexical'
 
 export function createLogicalModelFromInternalModel(
     snapshot: InternalGRNModel
@@ -43,6 +46,8 @@ export function createLogicalModelFromInternalModel(
         layout.set(nodeInfo, node.position.x, node.position.y, 90, 40)
     }
 
+    applyInternalAnnotationsToLogicalModel(logicalModel, snapshot, nodesById)
+
     return logicalModel
 }
 
@@ -59,6 +64,7 @@ export function createInternalModelFromLogicalModel(
         ...model.getExtraLogicalFunctions(),
     ]
 
+    const annotator = model.getAnnotator()
     const nodes = allComponents.map((component, index) => {
         const layoutInfo = layout?.getInfo(component)
         const functionId = allFunctions[index]
@@ -82,15 +88,20 @@ export function createInternalModelFromLogicalModel(
                               functionId,
                               component
                           ),
-                annotations: undefined,
+                annotations: createPersistedAnnotationsFromAnnotator(
+                    annotator.node(component)
+                ),
             },
         }
     })
 
-    const edges = createInternalModelEdges(model, nodes)
+    const edges = createInternalModelEdges(model, nodes, annotator)
 
     return {
         title,
+        annotations: createPersistedAnnotationsFromAnnotator(
+            annotator.onModel()
+        ),
         nodes,
         edges,
     }
@@ -98,16 +109,24 @@ export function createInternalModelFromLogicalModel(
 
 function createInternalModelEdges(
     model: LogicalModel,
-    nodes: InternalGRNModel['nodes']
+    nodes: InternalGRNModel['nodes'],
+    annotator: Annotator<NodeInfo>
 ) {
     const matrix = new ConnectivityMatrix(model)
     const manager = (model as LogicalModelImpl).getMDDManager()
     const edges: Edge<EditableRegulatoryEdge>[] = []
     const edgesByEndpoints = new Map<string, Edge<EditableRegulatoryEdge>>()
     const nodeIdByComponentId = new Map<string, string>()
+    const componentById = new Map<string, NodeInfo>()
 
     for (const node of nodes) {
         nodeIdByComponentId.set(node.id, node.id)
+    }
+    for (const component of [
+        ...model.getComponents(),
+        ...model.getExtraComponents(),
+    ]) {
+        componentById.set(component.getNodeID(), component)
     }
 
     const getOrCreateEdge = (
@@ -120,13 +139,20 @@ function createInternalModelEdges(
             return existingEdge
         }
 
+        const sourceComponent = componentById.get(sourceId)
+        const targetComponent = componentById.get(targetId)
         const edge: Edge<EditableRegulatoryEdge> = {
             id: `${sourceId}-${targetId}`,
             source: sourceId,
             target: targetId,
             data: {
                 levels: [],
-                annotations: undefined,
+                annotations:
+                    sourceComponent != null && targetComponent != null
+                        ? createPersistedAnnotationsFromAnnotator(
+                              annotator.edge(sourceComponent, targetComponent)
+                          )
+                        : undefined,
             },
         }
         edges.push(edge)
@@ -232,6 +258,168 @@ function createInternalModelEdges(
     }
 
     return edges
+}
+
+function createPersistedAnnotationsFromAnnotator(
+    annotator: Annotator<NodeInfo>
+): PersistedAnnotations | undefined {
+    const notes = annotator.getNotes()
+    const references = (annotator.annotations() ?? [])
+        .flatMap((annotation) => annotation.uris.map((uri) => uri.uri()))
+        .filter((reference, index, array) => array.indexOf(reference) === index)
+
+    if (
+        (notes == null || notes.trim().length === 0) &&
+        references.length === 0
+    ) {
+        return undefined
+    }
+
+    return {
+        unstructured:
+            notes != null && notes.trim().length > 0
+                ? createSerializedEditorStateFromNotes(notes)
+                : undefined,
+        references,
+    }
+}
+
+function createSerializedEditorStateFromNotes(
+    notes: string
+): SerializedEditorState {
+    const lines = notes
+        .split(/\r?\n/u)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+
+    return {
+        root: {
+            children: (lines.length > 0 ? lines : ['']).map((line) => ({
+                children: line.length
+                    ? [
+                          {
+                              detail: 0,
+                              format: 0,
+                              mode: 'normal',
+                              style: '',
+                              text: line,
+                              type: 'text',
+                              version: 1,
+                          },
+                      ]
+                    : [],
+                direction: null,
+                format: '',
+                indent: 0,
+                type: 'paragraph',
+                version: 1,
+                textFormat: 0,
+                textStyle: '',
+            })),
+            direction: null,
+            format: '',
+            indent: 0,
+            type: 'root',
+            version: 1,
+        },
+    } as unknown as SerializedEditorState
+}
+
+function applyInternalAnnotationsToLogicalModel(
+    logicalModel: LogicalModel,
+    snapshot: InternalGRNModel,
+    nodesById: Map<string, NodeInfo>
+) {
+    const annotator = logicalModel.getAnnotator()
+
+    applyPersistedAnnotationsToAnnotator(
+        annotator.onModel(),
+        snapshot.annotations
+    )
+
+    for (const node of snapshot.nodes) {
+        const nodeInfo = nodesById.get(node.id)
+        if (nodeInfo == null) {
+            continue
+        }
+
+        applyPersistedAnnotationsToAnnotator(
+            annotator.node(nodeInfo),
+            node.data.annotations
+        )
+    }
+
+    for (const edge of snapshot.edges) {
+        const sourceInfo = nodesById.get(edge.source)
+        const targetInfo = nodesById.get(edge.target)
+        if (sourceInfo == null || targetInfo == null) {
+            continue
+        }
+
+        applyPersistedAnnotationsToAnnotator(
+            annotator.edge(sourceInfo, targetInfo),
+            edge.data?.annotations
+        )
+    }
+}
+
+function applyPersistedAnnotationsToAnnotator(
+    annotator: Annotator<NodeInfo>,
+    annotations: PersistedAnnotations | undefined
+) {
+    if (annotations == null) {
+        return
+    }
+
+    const notes = extractPlainTextFromSerializedState(
+        annotations.unstructured as SerializedEditorState | null | undefined
+    )
+    if (notes.length > 0) {
+        annotator.setNotes(notes)
+    }
+
+    for (const reference of annotations.references ?? []) {
+        annotator.addURI(reference)
+    }
+}
+
+function extractPlainTextFromSerializedState(
+    state: SerializedEditorState | null | undefined
+): string {
+    if (state == null) {
+        return ''
+    }
+
+    const root = state as unknown as {
+        root?: {
+            children?: unknown[]
+        }
+    }
+
+    const lines = (root.root?.children ?? [])
+        .map((child) => extractTextFromLexicalNode(child))
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+
+    return lines.join('\n')
+}
+
+function extractTextFromLexicalNode(node: unknown): string {
+    if (node == null || typeof node !== 'object') {
+        return ''
+    }
+
+    const candidate = node as {
+        text?: string
+        children?: unknown[]
+    }
+
+    const ownText = candidate.text ?? ''
+    const childrenText = (candidate.children ?? [])
+        .map((child) => extractTextFromLexicalNode(child))
+        .join('')
+
+    return `${ownText}${childrenText}`
 }
 
 function getSemanticEffectsForRegulator(
