@@ -9,6 +9,7 @@ import {
     MenubarTrigger,
 } from '@/components/ui/menubar'
 import { InterchangeFormat } from '@/lib/interchange'
+import { InterchangeFormatDescription } from '@/lib/interchange/interchanger'
 import { useChangesTracking, useEditorStore } from '@/store'
 
 export function FileMenu() {
@@ -16,6 +17,17 @@ export function FileMenu() {
     const setImportDialogOpen = useEditorStore(
         (state) => state.setImportModelDialogVisible
     )
+
+    const getDescription = (format: InterchangeFormat) => {
+        const desc = InterchangeFormatDescription[format].split(' ')
+
+        return (
+            <>
+                {desc.slice(0, -1).join(' ')}
+                <strong>{desc[desc.length - 1]}</strong>
+            </>
+        )
+    }
 
     return (
         <MenubarMenu>
@@ -32,7 +44,7 @@ export function FileMenu() {
                                             onClick={() => exportModel(format)}
                                             key={format}
                                         >
-                                            {format.toUpperCase()}
+                                            {getDescription(format)}
                                         </MenubarItem>
                                     )
                                 )}
