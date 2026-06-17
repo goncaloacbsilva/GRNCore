@@ -10,6 +10,12 @@ export const InterchangeFormat = {
     GINML: 'ginml',
 } as const
 
+export const InterchangeFormatDescription: Record<InterchangeFormat, string> = {
+    bnet: 'BoolNet (.bnet)',
+    sbml: 'SBML-qual (.sbml)',
+    ginml: 'GINsim model-only (.ginml)',
+}
+
 export type InterchangeFormat =
     (typeof InterchangeFormat)[keyof typeof InterchangeFormat]
 

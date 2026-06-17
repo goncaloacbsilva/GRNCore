@@ -18,11 +18,38 @@ import {
     MDDBaseOperators,
     MDDManagerFactory,
     MDDVariableFactory,
+    OverwriteOperator,
     VariableEffect,
 } from 'mddlib-ts'
 import { compileRuleExpressionToMdd } from './rule-to-mdd'
 import type { Annotator } from 'biolqm-io-ts'
 import type { SerializedEditorState } from 'lexical'
+import { regulatoryRuleGrammar } from '@/lib/regulatory-rules/grammar'
+
+const GINML_EDGE_DECLARATIONS = 'ginml:edge-declarations'
+
+type GINMLEdgeDeclaration = {
+    from: string
+    to: string
+    threshold: number
+    sign: string
+}
+
+type RuleExpressionAst =
+    | {
+          type: 'const'
+          value: boolean
+      }
+    | {
+          type: 'literal'
+          name: string
+          value?: number
+          negated: boolean
+      }
+    | {
+          type: 'and' | 'or'
+          children: RuleExpressionAst[]
+      }
 
 export function createLogicalModelFromInternalModel(
     snapshot: InternalGRNModel
@@ -167,6 +194,8 @@ function createInternalModelEdges(
         ...model.getLogicalFunctions(),
         ...model.getExtraLogicalFunctions(),
     ]
+    const ginmlEdgeDeclarations =
+        model.getProperty<GINMLEdgeDeclaration[]>(GINML_EDGE_DECLARATIONS) ?? []
 
     const addSemanticLevels = (
         sourceId: string,
@@ -198,6 +227,32 @@ function createInternalModelEdges(
                         isValid: true,
                     })
                 }
+            }
+        }
+    }
+
+    for (const declaration of ginmlEdgeDeclarations) {
+        if (declaration.threshold <= 0) {
+            continue
+        }
+
+        const levelTypes = getInteractionTypesFromGinmlSign(declaration.sign)
+        for (const levelType of levelTypes) {
+            const edge = getOrCreateEdge(declaration.from, declaration.to)
+            const edgeData = edge.data!
+            const hasLevel = edgeData.levels.some(
+                (level) =>
+                    level.type === levelType &&
+                    level.target === declaration.threshold
+            )
+
+            if (!hasLevel) {
+                edgeData.levels.push({
+                    id: nanoid(),
+                    type: levelType,
+                    target: declaration.threshold,
+                    isValid: true,
+                })
             }
         }
     }
@@ -454,31 +509,62 @@ function getInteractionTypesFromEffect(
     }
 }
 
+function getInteractionTypesFromGinmlSign(sign: string): InteractionType[] {
+    switch (sign) {
+        case 'positive':
+            return [InteractionType.Activation]
+        case 'negative':
+            return [InteractionType.Inhibition]
+        case 'unknown':
+            return [InteractionType.Activation, InteractionType.Inhibition]
+        default:
+            return []
+    }
+}
+
 function createInternalModelRules(
     manager: MDDManager,
     functionId: number,
     nodeInfo: NodeInfo
 ) {
-    const rules = []
+    const thresholdExpressions = []
     const targetCount = nodeInfo.getMax()
 
     for (let target = 1; target <= targetCount; target += 1) {
-        const expression = createRuleExpressionForThreshold(
-            manager,
-            functionId,
-            target
+        const expression = simplifyRuleExpression(
+            createRuleExpressionForThreshold(
+                manager,
+                functionId,
+                target
+            )
         )
 
+        thresholdExpressions.push({
+            target,
+            expression,
+        })
+    }
+
+    const rules = []
+    let previousExpression: string | null = null
+
+    for (let index = thresholdExpressions.length - 1; index >= 0; index -= 1) {
+        const { target, expression } = thresholdExpressions[index]
         if (expression === '0') {
             continue
         }
 
-        rules.push({
+        if (expression === previousExpression) {
+            continue
+        }
+
+        rules.unshift({
             id: nanoid(),
             target,
             expression,
             isValid: true,
         })
+        previousExpression = expression
     }
 
     return rules
@@ -719,6 +805,380 @@ function buildIntervalCondition(
     return `(${variableName}:${start} && !${variableName}:${end + 1})`
 }
 
+function simplifyRuleExpression(expression: string): string {
+    const matchResult = regulatoryRuleGrammar.match(expression.trim(), 'RuleExpr')
+    if (matchResult.failed()) {
+        return expression
+    }
+
+    const ast = buildRuleExpressionAst(matchResult)
+    return serializeRuleExpressionAst(simplifyRuleExpressionAst(ast))
+}
+
+function buildRuleExpressionAst(matchResult: unknown): RuleExpressionAst {
+    interface SemanticNode {
+        toRuleExpressionAst(): RuleExpressionAst
+    }
+
+    interface SemanticNodeWithSource {
+        sourceString: string
+    }
+
+    interface SemanticNodeWithChildren {
+        children: unknown[]
+    }
+
+    const semantics = regulatoryRuleGrammar
+        .createSemantics()
+        .addOperation<RuleExpressionAst>('toRuleExpressionAst', {
+            RuleExpr(expr, _end) {
+                return (expr as unknown as SemanticNode).toRuleExpressionAst()
+            },
+            OrExpr_binary(left, _operator, right) {
+                return {
+                    type: 'or',
+                    children: [
+                        (left as unknown as SemanticNode).toRuleExpressionAst(),
+                        (right as unknown as SemanticNode).toRuleExpressionAst(),
+                    ],
+                }
+            },
+            AndExpr_binary(left, _operator, right) {
+                return {
+                    type: 'and',
+                    children: [
+                        (left as unknown as SemanticNode).toRuleExpressionAst(),
+                        (right as unknown as SemanticNode).toRuleExpressionAst(),
+                    ],
+                }
+            },
+            UnaryExpr(nots, primary) {
+                const primaryAst = (
+                    primary as unknown as SemanticNode
+                ).toRuleExpressionAst()
+                const isNegated =
+                    (
+                        nots as unknown as SemanticNodeWithChildren
+                    ).children.length %
+                        2 ===
+                    1
+
+                if (!isNegated) {
+                    return primaryAst
+                }
+
+                return negateRuleExpressionAst(primaryAst)
+            },
+            Primary_paren(_open, expr, _close) {
+                return (expr as unknown as SemanticNode).toRuleExpressionAst()
+            },
+            Condition(variable, _colon, value) {
+                return {
+                    type: 'literal',
+                    name: (
+                        variable as unknown as SemanticNodeWithSource
+                    ).sourceString,
+                    value: Number(
+                        (value as unknown as SemanticNodeWithSource)
+                            .sourceString
+                    ),
+                    negated: false,
+                }
+            },
+            Var(ident) {
+                return {
+                    type: 'literal',
+                    name: (ident as unknown as SemanticNodeWithSource)
+                        .sourceString,
+                    negated: false,
+                }
+            },
+            Val(value) {
+                return {
+                    type: 'const',
+                    value:
+                        Number(
+                            (value as unknown as SemanticNodeWithSource)
+                                .sourceString
+                        ) !== 0,
+                }
+            },
+        })
+
+    return (semantics(matchResult as never) as SemanticNode).toRuleExpressionAst()
+}
+
+function negateRuleExpressionAst(ast: RuleExpressionAst): RuleExpressionAst {
+    switch (ast.type) {
+        case 'const':
+            return { type: 'const', value: !ast.value }
+        case 'literal':
+            return { ...ast, negated: !ast.negated }
+        case 'and':
+            return {
+                type: 'or',
+                children: ast.children.map((child) =>
+                    negateRuleExpressionAst(child)
+                ),
+            }
+        case 'or':
+            return {
+                type: 'and',
+                children: ast.children.map((child) =>
+                    negateRuleExpressionAst(child)
+                ),
+            }
+    }
+}
+
+function simplifyRuleExpressionAst(ast: RuleExpressionAst): RuleExpressionAst {
+    switch (ast.type) {
+        case 'const':
+        case 'literal':
+            return ast
+        case 'and':
+        case 'or': {
+            const simplifiedChildren = ast.children.map((child) =>
+                simplifyRuleExpressionAst(child)
+            )
+            const flattenedChildren = simplifiedChildren.flatMap((child) =>
+                child.type === ast.type ? child.children : [child]
+            )
+
+            const childrenWithoutIdentities = flattenedChildren.filter((child) =>
+                ast.type === 'and'
+                    ? !(child.type === 'const' && child.value)
+                    : !(child.type === 'const' && !child.value)
+            )
+
+            if (
+                childrenWithoutIdentities.some((child) =>
+                    ast.type === 'and'
+                        ? child.type === 'const' && !child.value
+                        : child.type === 'const' && child.value
+                )
+            ) {
+                return {
+                    type: 'const',
+                    value: ast.type === 'or',
+                }
+            }
+
+            const uniqueChildren = dedupeRuleExpressionAst(childrenWithoutIdentities)
+
+            if (hasComplementaryChildren(uniqueChildren)) {
+                return {
+                    type: 'const',
+                    value: ast.type === 'or',
+                }
+            }
+
+            const normalizedChildren =
+                ast.type === 'or'
+                    ? applyOrLiteralResolution(uniqueChildren)
+                    : applyAndLiteralResolution(uniqueChildren)
+            const absorbedChildren = applyAbsorption(
+                ast.type,
+                normalizedChildren
+            )
+
+            if (absorbedChildren.length === 0) {
+                return {
+                    type: 'const',
+                    value: ast.type === 'and',
+                }
+            }
+
+            if (absorbedChildren.length === 1) {
+                return absorbedChildren[0]
+            }
+
+            return {
+                type: ast.type,
+                children: absorbedChildren,
+            }
+        }
+    }
+}
+
+function dedupeRuleExpressionAst(
+    children: RuleExpressionAst[]
+): RuleExpressionAst[] {
+    const seen = new Set<string>()
+    const result: RuleExpressionAst[] = []
+
+    for (const child of children) {
+        const key = serializeRuleExpressionAst(child)
+        if (seen.has(key)) {
+            continue
+        }
+
+        seen.add(key)
+        result.push(child)
+    }
+
+    return result
+}
+
+function hasComplementaryChildren(children: RuleExpressionAst[]): boolean {
+    const literals = children.filter(
+        (child): child is Extract<RuleExpressionAst, { type: 'literal' }> =>
+            child.type === 'literal'
+    )
+
+    return literals.some((literal) =>
+        literals.some((candidate) => areComplementaryLiterals(literal, candidate))
+    )
+}
+
+function applyOrLiteralResolution(
+    children: RuleExpressionAst[]
+): RuleExpressionAst[] {
+    const literals = children.filter(
+        (child): child is Extract<RuleExpressionAst, { type: 'literal' }> =>
+            child.type === 'literal'
+    )
+
+    return dedupeRuleExpressionAst(
+        children.map((child) => {
+            if (child.type !== 'and') {
+                return child
+            }
+
+            const filteredChildren = child.children.filter(
+                (grandchild) =>
+                    !literals.some(
+                        (literal) =>
+                            grandchild.type === 'literal' &&
+                            areComplementaryLiterals(literal, grandchild)
+                    )
+            )
+
+            if (filteredChildren.length === 0) {
+                return { type: 'const', value: true } satisfies RuleExpressionAst
+            }
+
+            if (filteredChildren.length === 1) {
+                return filteredChildren[0]
+            }
+
+            return { type: 'and', children: filteredChildren } satisfies RuleExpressionAst
+        })
+    )
+}
+
+function applyAndLiteralResolution(
+    children: RuleExpressionAst[]
+): RuleExpressionAst[] {
+    const literals = children.filter(
+        (child): child is Extract<RuleExpressionAst, { type: 'literal' }> =>
+            child.type === 'literal'
+    )
+
+    return dedupeRuleExpressionAst(
+        children.map((child) => {
+            if (child.type !== 'or') {
+                return child
+            }
+
+            const filteredChildren = child.children.filter(
+                (grandchild) =>
+                    !literals.some(
+                        (literal) =>
+                            grandchild.type === 'literal' &&
+                            areComplementaryLiterals(literal, grandchild)
+                    )
+            )
+
+            if (filteredChildren.length === 0) {
+                return { type: 'const', value: false } satisfies RuleExpressionAst
+            }
+
+            if (filteredChildren.length === 1) {
+                return filteredChildren[0]
+            }
+
+            return { type: 'or', children: filteredChildren } satisfies RuleExpressionAst
+        })
+    )
+}
+
+function applyAbsorption(
+    type: 'and' | 'or',
+    children: RuleExpressionAst[]
+): RuleExpressionAst[] {
+    const counterpartType = type === 'and' ? 'or' : 'and'
+
+    return children.filter((child, childIndex) => {
+        if (child.type !== counterpartType) {
+            return true
+        }
+
+        return !children.some((candidate, candidateIndex) => {
+            if (candidateIndex === childIndex) {
+                return false
+            }
+
+            return child.children.some((grandchild) =>
+                areEquivalentRuleExpressions(candidate, grandchild)
+            )
+        })
+    })
+}
+
+function areComplementaryLiterals(
+    left: Extract<RuleExpressionAst, { type: 'literal' }>,
+    right: Extract<RuleExpressionAst, { type: 'literal' }>
+): boolean {
+    return (
+        left.name === right.name &&
+        left.value === right.value &&
+        left.negated !== right.negated
+    )
+}
+
+function areEquivalentRuleExpressions(
+    left: RuleExpressionAst,
+    right: RuleExpressionAst
+): boolean {
+    return serializeRuleExpressionAst(left) === serializeRuleExpressionAst(right)
+}
+
+function serializeRuleExpressionAst(ast: RuleExpressionAst): string {
+    switch (ast.type) {
+        case 'const':
+            return ast.value ? '1' : '0'
+        case 'literal': {
+            const base =
+                ast.value == null ? ast.name : `${ast.name}:${ast.value}`
+            return ast.negated ? `!${base}` : base
+        }
+        case 'and':
+            return serializeRuleExpressionGroup(ast.children, '&&')
+        case 'or':
+            return serializeRuleExpressionGroup(ast.children, '||')
+    }
+}
+
+function serializeRuleExpressionGroup(
+    children: RuleExpressionAst[],
+    operator: '&&' | '||'
+): string {
+    return children
+        .map((child) => {
+            const serialized = serializeRuleExpressionAst(child)
+            if (
+                (operator === '&&' && child.type === 'or') ||
+                (operator === '||' && child.type === 'and')
+            ) {
+                return `(${serialized})`
+            }
+
+            return serialized
+        })
+        .join(` ${operator} `)
+}
+
 export function createLogicalFunctions(
     snapshot: InternalGRNModel,
     manager: MDDManager,
@@ -752,7 +1212,7 @@ export function createLogicalFunctions(
                 nodesById
             )
 
-            functionId = MDDBaseOperators.OVEROPERATOR(rule.target).combine(
+            functionId = OverwriteOperator.getOverwriteAction(rule.target).combine(
                 manager,
                 functionId,
                 predicate
