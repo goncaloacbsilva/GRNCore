@@ -8,7 +8,7 @@ import { GINMLFormat } from 'biolqm-io-ts'
 import { StringStreamProvider } from './bio-lqm-utils/string-stream-provider'
 
 export class GINMLInterchanger extends Interchanger {
-    readonly mimeType = 'application/gxl'
+    mimeType = 'application/gxl'
     private readonly ginmlFormat = new GINMLFormat()
 
     protected async _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {

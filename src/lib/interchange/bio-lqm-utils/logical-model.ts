@@ -70,7 +70,13 @@ export function createLogicalModelFromInternalModel(
         if (nodeInfo == null) {
             continue
         }
-        layout.set(nodeInfo, node.position.x, node.position.y, 90, 40)
+        layout.set(
+            nodeInfo,
+            Math.round(node.position.x),
+            Math.round(node.position.y),
+            90,
+            40
+        )
     }
 
     applyInternalAnnotationsToLogicalModel(logicalModel, snapshot, nodesById)
@@ -196,6 +202,12 @@ function createInternalModelEdges(
     ]
     const ginmlEdgeDeclarations =
         model.getProperty<GINMLEdgeDeclaration[]>(GINML_EDGE_DECLARATIONS) ?? []
+    const ginmlDeclaredThresholds = new Set(
+        ginmlEdgeDeclarations.map(
+            (declaration) =>
+                `${declaration.from}:${declaration.to}:${declaration.threshold}`
+        )
+    )
 
     const addSemanticLevels = (
         sourceId: string,
@@ -209,6 +221,14 @@ function createInternalModelEdges(
             const threshold = index + 1
 
             if (effect === VariableEffect.NONE) {
+                continue
+            }
+
+            if (
+                ginmlDeclaredThresholds.has(
+                    `${sourceId}:${targetId}:${threshold}`
+                )
+            ) {
                 continue
             }
 

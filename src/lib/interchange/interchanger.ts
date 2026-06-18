@@ -3,16 +3,19 @@ import { Interchanger } from './base'
 import { BooleanNetworkInterchanger } from './bnet'
 import { SBMLInterchanger } from './sbml'
 import { GINMLInterchanger } from './ginml'
+import { ZGINMLInterchanger } from './zginml'
 
 export const InterchangeFormat = {
     BNET: 'bnet',
     SBML: 'sbml',
+    ZGINML: 'zginml',
     GINML: 'ginml',
 } as const
 
 export const InterchangeFormatDescription: Record<InterchangeFormat, string> = {
     bnet: 'BoolNet .bnet',
     sbml: 'SBML-qual .sbml',
+    zginml: 'GINsim .zginml',
     ginml: 'GINsim (model-only) .ginml',
 }
 
@@ -22,6 +25,7 @@ export type InterchangeFormat =
 const REGISTERED_INTERCHANGERS: Record<InterchangeFormat, Interchanger> = {
     [InterchangeFormat.BNET]: new BooleanNetworkInterchanger(),
     [InterchangeFormat.SBML]: new SBMLInterchanger(),
+    [InterchangeFormat.ZGINML]: new ZGINMLInterchanger(),
     [InterchangeFormat.GINML]: new GINMLInterchanger(),
 }
 
