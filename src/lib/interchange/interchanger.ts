@@ -2,11 +2,22 @@ import type { InternalGRNModel } from '@/lib/schema'
 import { Interchanger } from './base'
 import { BooleanNetworkInterchanger } from './bnet'
 import { SBMLInterchanger } from './sbml'
+import { GINMLInterchanger } from './ginml'
+import { ZGINMLInterchanger } from './zginml'
 
 export const InterchangeFormat = {
     BNET: 'bnet',
     SBML: 'sbml',
+    ZGINML: 'zginml',
+    GINML: 'ginml',
 } as const
+
+export const InterchangeFormatDescription: Record<InterchangeFormat, string> = {
+    bnet: 'BoolNet .bnet',
+    sbml: 'SBML-qual .sbml',
+    zginml: 'GINsim .zginml',
+    ginml: 'GINsim (model-only) .ginml',
+}
 
 export type InterchangeFormat =
     (typeof InterchangeFormat)[keyof typeof InterchangeFormat]
@@ -14,6 +25,8 @@ export type InterchangeFormat =
 const REGISTERED_INTERCHANGERS: Record<InterchangeFormat, Interchanger> = {
     [InterchangeFormat.BNET]: new BooleanNetworkInterchanger(),
     [InterchangeFormat.SBML]: new SBMLInterchanger(),
+    [InterchangeFormat.ZGINML]: new ZGINMLInterchanger(),
+    [InterchangeFormat.GINML]: new GINMLInterchanger(),
 }
 
 export function getInterchangeFormat(filename: string): InterchangeFormat {
@@ -56,7 +69,7 @@ export async function exportModel(
 
 export async function importModel(file: File) {
     const format = getInterchangeFormat(file.name)
-    const content = await file.text()
+    const content = await file.arrayBuffer()
 
     const interchanger = REGISTERED_INTERCHANGERS[format]
     const snapshot = await interchanger.import(content)
@@ -68,7 +81,7 @@ export async function importModel(file: File) {
 }
 
 // Some utils
-function download(content: string, filename: string, mimeType: string) {
+function download(content: ArrayBuffer, filename: string, mimeType: string) {
     const blob = new Blob([content], { type: mimeType })
     const url = URL.createObjectURL(blob)
 

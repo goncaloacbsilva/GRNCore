@@ -21,7 +21,7 @@ export class BooleanNetworkInterchanger extends Interchanger {
     readonly mimeType = 'text/plain'
     private readonly bnetFormat = new BNetFormat()
 
-    protected async _export(snapshot: InternalGRNModel): Promise<string> {
+    protected async _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
         if (this._isMultiLevelModel(snapshot)) {
             return Promise.reject(
                 new Error(`BoolNet doesn't support multi-level models.`)
@@ -32,12 +32,12 @@ export class BooleanNetworkInterchanger extends Interchanger {
         const model = createLogicalModelFromInternalModel(snapshot)
         await this.bnetFormat.exportToProvider(model, outputStreamProvider)
 
-        return outputStreamProvider.getString()
+        return this.castToArrayBuffer(outputStreamProvider.getString())
     }
 
-    async import(content: string): Promise<InternalGRNModel> {
+    async import(content: ArrayBuffer): Promise<InternalGRNModel> {
         const inputStreamProvider = new StringStreamProvider()
-        inputStreamProvider.setString(content)
+        inputStreamProvider.setString(this.castToString(content))
         const model =
             await this.bnetFormat.loadFromProvider(inputStreamProvider)
 

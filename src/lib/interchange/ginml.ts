@@ -4,17 +4,17 @@ import {
     createInternalModelFromLogicalModel,
     createLogicalModelFromInternalModel,
 } from './bio-lqm-utils'
-import { SBMLFormat } from 'biolqm-io-ts'
+import { GINMLFormat } from 'biolqm-io-ts'
 import { StringStreamProvider } from './bio-lqm-utils/string-stream-provider'
 
-export class SBMLInterchanger extends Interchanger {
-    readonly mimeType = 'application/sbml+xml'
-    private readonly sbmlFormat = new SBMLFormat()
+export class GINMLInterchanger extends Interchanger {
+    mimeType = 'application/gxl'
+    private readonly ginmlFormat = new GINMLFormat()
 
     protected async _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
         const outputStreamProvider = new StringStreamProvider()
         const model = createLogicalModelFromInternalModel(snapshot)
-        await this.sbmlFormat.exportToProvider(model, outputStreamProvider)
+        await this.ginmlFormat.exportToProvider(model, outputStreamProvider)
 
         return this.castToArrayBuffer(outputStreamProvider.getString())
     }
@@ -23,7 +23,7 @@ export class SBMLInterchanger extends Interchanger {
         const inputStreamProvider = new StringStreamProvider()
         inputStreamProvider.setString(this.castToString(content))
         const model =
-            await this.sbmlFormat.loadFromProvider(inputStreamProvider)
+            await this.ginmlFormat.loadFromProvider(inputStreamProvider)
 
         return createInternalModelFromLogicalModel(model)
     }

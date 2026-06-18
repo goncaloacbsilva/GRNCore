@@ -3,13 +3,21 @@ import type { InternalGRNModel } from '@/lib/schema'
 export abstract class Interchanger {
     abstract readonly mimeType: string
 
-    export(snapshot: InternalGRNModel): Promise<string> {
+    export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
         validateModel(snapshot)
         return this._export(snapshot)
     }
 
-    protected abstract _export(snapshot: InternalGRNModel): Promise<string>
-    abstract import(content: string): Promise<InternalGRNModel>
+    protected castToString(data: ArrayBuffer): string {
+        return new TextDecoder().decode(data)
+    }
+
+    protected castToArrayBuffer(data: string): ArrayBuffer {
+        return new TextEncoder().encode(data).buffer
+    }
+
+    protected abstract _export(snapshot: InternalGRNModel): Promise<ArrayBuffer>
+    abstract import(content: ArrayBuffer): Promise<InternalGRNModel>
 }
 
 function validateModel(model: InternalGRNModel): void {

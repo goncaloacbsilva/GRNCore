@@ -67,6 +67,22 @@ export class StringStreamProvider implements StreamProvider {
     }
 
     getString(): string {
+        return new TextDecoder().decode(this.getUint8Array())
+    }
+
+    getArrayBuffer(): ArrayBuffer {
+        const bytes = this.getUint8Array()
+        const copy = new Uint8Array(bytes.length)
+        copy.set(bytes)
+        return copy.buffer
+    }
+
+    setArrayBuffer(content: ArrayBuffer): void {
+        this.buffer = [new Uint8Array(content)]
+        this.closed = false
+    }
+
+    private getUint8Array(): Uint8Array {
         const totalLength = this.buffer.reduce(
             (sum, chunk) => sum + chunk.length,
             0
@@ -79,7 +95,7 @@ export class StringStreamProvider implements StreamProvider {
             offset += chunk.length
         }
 
-        return new TextDecoder().decode(combined)
+        return combined
     }
 
     setString(content: string): void {
