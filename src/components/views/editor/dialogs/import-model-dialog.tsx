@@ -65,7 +65,6 @@ export function ImportModelDialog() {
                     onValueChange={setFiles}
                     onFileValidate={onFileValidate}
                     onFileReject={onFileReject}
-                    accept="application/sbml+xml,.bnet,.zginml,.sbml,.ginml"
                     maxFiles={1}
                     className="w-full max-w-md"
                 >

@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/tooltip'
 import {
     type EditableRegulatoryEdge,
-    RegulatoryNodePropertiesSchema,
+    normalizeRegulatoryNodeProperties,
     type RegulatoryNodeProperties,
     type RegulatoryNodeRule,
 } from '@/lib/schema'
@@ -33,7 +33,7 @@ export function NodeRules({
     variableActivityLevels,
 }: NodeRulesProps) {
     const { updateNode } = useReactFlow<Node<RegulatoryNodeProperties>>()
-    const nodeData = RegulatoryNodePropertiesSchema.parse(node.data)
+    const nodeData = normalizeRegulatoryNodeProperties(node.data)
     const scrollContainerRef = useRef<HTMLDivElement | null>(null)
     const previousRulesLengthRef = useRef(nodeData.rules.length)
 
@@ -95,7 +95,7 @@ export function NodeRules({
             data: {
                 ...currentNode.data,
                 rules: updateRules(
-                    RegulatoryNodePropertiesSchema.parse(currentNode.data).rules
+                    normalizeRegulatoryNodeProperties(currentNode.data).rules
                 ),
             },
         }))

@@ -60,6 +60,8 @@ const RegulatoryNode = ({
     )
     const isToolbarHost = selectedNodeIdsArray[0] === id
     const hasInvalidRules = data.rules.some((rule) => !rule.isValid)
+    const hasInvalidName = data.isValid === false
+    const hasValidationError = hasInvalidName || hasInvalidRules
     const backgroundColor = getRegulatoryNodeBackgroundColor(
         internalNode?.internals.userNode.style
     )
@@ -120,13 +122,17 @@ const RegulatoryNode = ({
                     data.isInputNode && 'border-dashed'
                 )}
             >
-                {hasInvalidRules && (
+                {hasValidationError && (
                     <Tooltip>
                         <div className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold leading-none text-white shadow-sm">
                             <TooltipTrigger>!</TooltipTrigger>
                         </div>
                         <TooltipContent>
-                            This node has invalid rules
+                            {hasInvalidName && hasInvalidRules
+                                ? 'This node has an invalid name and invalid rules'
+                                : hasInvalidName
+                                  ? 'This node has an invalid name'
+                                  : 'This node has invalid rules'}
                         </TooltipContent>
                     </Tooltip>
                 )}

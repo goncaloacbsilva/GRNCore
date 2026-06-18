@@ -2,6 +2,13 @@ import { nanoid } from 'nanoid'
 import * as z from 'zod'
 import { AnnotationsSchema } from './annotations'
 
+export const RegulatoryNodeNameSchema = z
+    .string()
+    .min(1, { error: 'Name must be at least 1 character long' })
+    .max(20, { error: 'Name must be at most 20 characters long' })
+
+export const RegulatoryNodeNameDraftSchema = z.string().default('')
+
 export const RegulatoryNodeRuleSchema = z.object({
     id: z.string(),
 
@@ -23,10 +30,7 @@ export const RegulatoryNodeRuleDraftSchema = z.object({
 
 export const RegulatoryNodePropertiesSchema = z.object({
     // Name of the Gene
-    name: z
-        .string()
-        .min(1, { error: 'Name must be at least 1 character long' })
-        .max(20, { error: 'Name must be at most 20 characters long' }),
+    name: RegulatoryNodeNameDraftSchema,
 
     // Maximum activity level
     activityLevels: z.int().positive().max(9).min(1).default(1),
@@ -37,8 +41,70 @@ export const RegulatoryNodePropertiesSchema = z.object({
     // Logical rules
     rules: z.array(RegulatoryNodeRuleDraftSchema).default([]),
 
+    // Internal validity flag for the current graph context
+    isValid: z.boolean().optional(),
+
     annotations: AnnotationsSchema,
 })
+
+function getSafeValue<T>({
+    schema,
+    value,
+    fallback,
+}: {
+    schema: z.ZodType<T>
+    value: unknown
+    fallback: T
+}) {
+    const parsedValue = schema.safeParse(value)
+
+    return parsedValue.success ? parsedValue.data : fallback
+}
+
+export function normalizeRegulatoryNodeProperties(
+    value: unknown
+): RegulatoryNodeProperties {
+    const parsedValue = RegulatoryNodePropertiesSchema.safeParse(value)
+
+    if (parsedValue.success) {
+        return parsedValue.data
+    }
+
+    const rawValue =
+        value && typeof value === 'object'
+            ? (value as Record<string, unknown>)
+            : {}
+
+    return {
+        // Preserve the raw name so invalid user input remains editable.
+        name: typeof rawValue.name === 'string' ? rawValue.name : '',
+        activityLevels: getSafeValue({
+            schema: RegulatoryNodePropertiesSchema.shape.activityLevels.unwrap(),
+            value: rawValue.activityLevels,
+            fallback: 1,
+        }),
+        isInputNode: getSafeValue({
+            schema: RegulatoryNodePropertiesSchema.shape.isInputNode.unwrap(),
+            value: rawValue.isInputNode,
+            fallback: false,
+        }),
+        rules: getSafeValue({
+            schema: RegulatoryNodePropertiesSchema.shape.rules,
+            value: rawValue.rules,
+            fallback: [],
+        }),
+        isValid: getSafeValue({
+            schema: RegulatoryNodePropertiesSchema.shape.isValid,
+            value: rawValue.isValid,
+            fallback: RegulatoryNodeNameSchema.safeParse(rawValue.name).success,
+        }),
+        annotations: getSafeValue({
+            schema: RegulatoryNodePropertiesSchema.shape.annotations,
+            value: rawValue.annotations,
+            fallback: undefined,
+        }),
+    }
+}
 
 export type RegulatoryNodeProperties = z.infer<
     typeof RegulatoryNodePropertiesSchema

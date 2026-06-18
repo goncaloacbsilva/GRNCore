@@ -16,6 +16,8 @@ interface TextFieldProps {
     orientation?: 'horizontal' | 'vertical'
     showLabel?: boolean
     inputClassName?: string
+    forceInvalid?: boolean
+    forceError?: string
     inputProps?: Omit<
         ComponentProps<typeof Input>,
         'id' | 'name' | 'value' | 'onChange' | 'aria-invalid'
@@ -29,13 +31,22 @@ export function TextField({
     orientation,
     showLabel = true,
     inputClassName,
+    forceInvalid = false,
+    forceError,
     inputProps,
 }: TextFieldProps) {
     const field = useFieldContext<string>()
     const customOnBlur = inputProps?.onBlur
     const { ...restInputProps } = inputProps ?? {}
 
-    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+    const hasFieldValidationError =
+        (field.state.meta.isTouched || field.state.meta.isDirty) &&
+        !field.state.meta.isValid
+    const isInvalid = forceInvalid || hasFieldValidationError
+    const errors =
+        forceInvalid && forceError
+            ? [{ message: forceError }]
+            : field.state.meta.errors
 
     return (
         <Field data-invalid={isInvalid}>
@@ -71,7 +82,7 @@ export function TextField({
                 />
             </div>
             {description && <FieldDescription>{description}</FieldDescription>}
-            {isInvalid && <FieldError errors={field.state.meta.errors} />}
+            {isInvalid && <FieldError errors={errors} />}
         </Field>
     )
 }

@@ -4,6 +4,8 @@ import { FieldGroup } from '@/components/ui/field'
 import { TabsContent } from '@/components/ui/tabs'
 import {
     type EditableRegulatoryEdge,
+    normalizeRegulatoryNodeProperties,
+    RegulatoryNodeNameSchema,
     type RegulatoryNodeProperties,
     RegulatoryNodePropertiesSchema,
 } from '@/lib/schema'
@@ -23,7 +25,7 @@ interface NodeBasePropertiesMenuProps {
 }
 
 const NodeBasePropertiesFormSchema = z.object({
-    name: RegulatoryNodePropertiesSchema.shape.name,
+    name: RegulatoryNodeNameSchema,
     activityLevels:
         RegulatoryNodePropertiesSchema.shape.activityLevels.unwrap(),
     isInputNode: RegulatoryNodePropertiesSchema.shape.isInputNode.unwrap(),
@@ -46,7 +48,7 @@ function getSafeFormValue<T>({
 export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     const { getNode, updateNode } =
         useReactFlow<Node<RegulatoryNodeProperties>>()
-    const nodeData = RegulatoryNodePropertiesSchema.parse(node.data)
+    const nodeData = normalizeRegulatoryNodeProperties(node.data)
     const persistNodeData = useCallback(
         (
             values: Pick<
@@ -122,14 +124,12 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         form.store,
         (state) => state.values.isInputNode
     )
+    const currentName = useFormStore(form.store, (state) => state.values.name)
     const previousIsInputNodeRef = useRef(formValues.isInputNode)
+    const previousNameRef = useRef(formValues.name)
     const currentNodeData: RegulatoryNodeProperties = {
         ...nodeData,
-        name: getSafeFormValue({
-            schema: NodeBasePropertiesFormSchema.shape.name,
-            value: formValues.name,
-            fallback: nodeData.name,
-        }),
+        name: typeof formValues.name === 'string' ? formValues.name : nodeData.name,
         activityLevels: getSafeFormValue({
             schema: NodeBasePropertiesFormSchema.shape.activityLevels,
             value: formValues.activityLevels,
@@ -140,7 +140,16 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
             value: formValues.isInputNode,
             fallback: nodeData.isInputNode,
         }),
+        isValid:
+            typeof formValues.name === 'string'
+                ? NodeBasePropertiesFormSchema.shape.name.safeParse(
+                      formValues.name
+                  ).success
+                : nodeData.isValid,
     }
+    const nameValidationResult = NodeBasePropertiesFormSchema.shape.name.safeParse(
+        currentNodeData.name
+    )
     const incomingNodes = useMemo(
         () =>
             incomingEdges.flatMap((edge) => {
@@ -185,6 +194,32 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         persistNodeData(formValues)
     }, [formValues, isFormTouched, isFormValid, persistNodeData])
 
+    useEffect(() => {
+        const previousName = previousNameRef.current
+        previousNameRef.current = currentName
+
+        if (previousName === currentName || !isFormTouched) {
+            return
+        }
+
+        const nextName = typeof currentName === 'string' ? currentName : ''
+        const isValid = NodeBasePropertiesFormSchema.shape.name.safeParse(
+            nextName
+        ).success
+
+        updateNode(node.id, (currentNode) => ({
+            data: {
+                ...currentNode.data,
+                name: nextName,
+                isValid,
+            },
+            style: {
+                ...currentNode.style,
+                width: getNodeContentMinWidth(nextName),
+            },
+        }))
+    }, [currentName, isFormTouched, node.id, updateNode])
+
     const isAtEdgeTargetBoundary =
         minActivityLevels > baseMinActivityLevels &&
         currentActivityLevels <= minActivityLevels
@@ -201,6 +236,13 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                         <field.TextField
                             label="Name"
                             placeholder=""
+                            forceInvalid={!nameValidationResult.success}
+                            forceError={
+                                nameValidationResult.success
+                                    ? undefined
+                                    : nameValidationResult.error.issues[0]
+                                          ?.message
+                            }
                             inputProps={{
                                 onKeyDown: (event) => {
                                     if (event.key === 'Enter') {
