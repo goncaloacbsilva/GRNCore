@@ -28,7 +28,7 @@ import { regulatoryRuleGrammar } from '@/lib/regulatory-rules/grammar'
 
 const GINML_EDGE_DECLARATIONS = 'ginml:edge-declarations'
 
-type GINMLEdgeDeclaration = {
+interface GINMLEdgeDeclaration {
     from: string
     to: string
     threshold: number
@@ -552,11 +552,7 @@ function createInternalModelRules(
 
     for (let target = 1; target <= targetCount; target += 1) {
         const expression = simplifyRuleExpression(
-            createRuleExpressionForThreshold(
-                manager,
-                functionId,
-                target
-            )
+            createRuleExpressionForThreshold(manager, functionId, target)
         )
 
         thresholdExpressions.push({
@@ -826,7 +822,10 @@ function buildIntervalCondition(
 }
 
 function simplifyRuleExpression(expression: string): string {
-    const matchResult = regulatoryRuleGrammar.match(expression.trim(), 'RuleExpr')
+    const matchResult = regulatoryRuleGrammar.match(
+        expression.trim(),
+        'RuleExpr'
+    )
     if (matchResult.failed()) {
         return expression
     }
@@ -851,6 +850,7 @@ function buildRuleExpressionAst(matchResult: unknown): RuleExpressionAst {
     const semantics = regulatoryRuleGrammar
         .createSemantics()
         .addOperation<RuleExpressionAst>('toRuleExpressionAst', {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             RuleExpr(expr, _end) {
                 return (expr as unknown as SemanticNode).toRuleExpressionAst()
             },
@@ -859,7 +859,9 @@ function buildRuleExpressionAst(matchResult: unknown): RuleExpressionAst {
                     type: 'or',
                     children: [
                         (left as unknown as SemanticNode).toRuleExpressionAst(),
-                        (right as unknown as SemanticNode).toRuleExpressionAst(),
+                        (
+                            right as unknown as SemanticNode
+                        ).toRuleExpressionAst(),
                     ],
                 }
             },
@@ -868,7 +870,9 @@ function buildRuleExpressionAst(matchResult: unknown): RuleExpressionAst {
                     type: 'and',
                     children: [
                         (left as unknown as SemanticNode).toRuleExpressionAst(),
-                        (right as unknown as SemanticNode).toRuleExpressionAst(),
+                        (
+                            right as unknown as SemanticNode
+                        ).toRuleExpressionAst(),
                     ],
                 }
             },
@@ -877,9 +881,8 @@ function buildRuleExpressionAst(matchResult: unknown): RuleExpressionAst {
                     primary as unknown as SemanticNode
                 ).toRuleExpressionAst()
                 const isNegated =
-                    (
-                        nots as unknown as SemanticNodeWithChildren
-                    ).children.length %
+                    (nots as unknown as SemanticNodeWithChildren).children
+                        .length %
                         2 ===
                     1
 
@@ -889,15 +892,15 @@ function buildRuleExpressionAst(matchResult: unknown): RuleExpressionAst {
 
                 return negateRuleExpressionAst(primaryAst)
             },
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             Primary_paren(_open, expr, _close) {
                 return (expr as unknown as SemanticNode).toRuleExpressionAst()
             },
             Condition(variable, _colon, value) {
                 return {
                     type: 'literal',
-                    name: (
-                        variable as unknown as SemanticNodeWithSource
-                    ).sourceString,
+                    name: (variable as unknown as SemanticNodeWithSource)
+                        .sourceString,
                     value: Number(
                         (value as unknown as SemanticNodeWithSource)
                             .sourceString
@@ -925,7 +928,9 @@ function buildRuleExpressionAst(matchResult: unknown): RuleExpressionAst {
             },
         })
 
-    return (semantics(matchResult as never) as SemanticNode).toRuleExpressionAst()
+    return (
+        semantics(matchResult as never) as SemanticNode
+    ).toRuleExpressionAst()
 }
 
 function negateRuleExpressionAst(ast: RuleExpressionAst): RuleExpressionAst {
@@ -965,10 +970,11 @@ function simplifyRuleExpressionAst(ast: RuleExpressionAst): RuleExpressionAst {
                 child.type === ast.type ? child.children : [child]
             )
 
-            const childrenWithoutIdentities = flattenedChildren.filter((child) =>
-                ast.type === 'and'
-                    ? !(child.type === 'const' && child.value)
-                    : !(child.type === 'const' && !child.value)
+            const childrenWithoutIdentities = flattenedChildren.filter(
+                (child) =>
+                    ast.type === 'and'
+                        ? !(child.type === 'const' && child.value)
+                        : !(child.type === 'const' && !child.value)
             )
 
             if (
@@ -984,7 +990,9 @@ function simplifyRuleExpressionAst(ast: RuleExpressionAst): RuleExpressionAst {
                 }
             }
 
-            const uniqueChildren = dedupeRuleExpressionAst(childrenWithoutIdentities)
+            const uniqueChildren = dedupeRuleExpressionAst(
+                childrenWithoutIdentities
+            )
 
             if (hasComplementaryChildren(uniqueChildren)) {
                 return {
@@ -1047,7 +1055,9 @@ function hasComplementaryChildren(children: RuleExpressionAst[]): boolean {
     )
 
     return literals.some((literal) =>
-        literals.some((candidate) => areComplementaryLiterals(literal, candidate))
+        literals.some((candidate) =>
+            areComplementaryLiterals(literal, candidate)
+        )
     )
 }
 
@@ -1075,14 +1085,20 @@ function applyOrLiteralResolution(
             )
 
             if (filteredChildren.length === 0) {
-                return { type: 'const', value: true } satisfies RuleExpressionAst
+                return {
+                    type: 'const',
+                    value: true,
+                } satisfies RuleExpressionAst
             }
 
             if (filteredChildren.length === 1) {
                 return filteredChildren[0]
             }
 
-            return { type: 'and', children: filteredChildren } satisfies RuleExpressionAst
+            return {
+                type: 'and',
+                children: filteredChildren,
+            } satisfies RuleExpressionAst
         })
     )
 }
@@ -1111,14 +1127,20 @@ function applyAndLiteralResolution(
             )
 
             if (filteredChildren.length === 0) {
-                return { type: 'const', value: false } satisfies RuleExpressionAst
+                return {
+                    type: 'const',
+                    value: false,
+                } satisfies RuleExpressionAst
             }
 
             if (filteredChildren.length === 1) {
                 return filteredChildren[0]
             }
 
-            return { type: 'or', children: filteredChildren } satisfies RuleExpressionAst
+            return {
+                type: 'or',
+                children: filteredChildren,
+            } satisfies RuleExpressionAst
         })
     )
 }
@@ -1161,7 +1183,9 @@ function areEquivalentRuleExpressions(
     left: RuleExpressionAst,
     right: RuleExpressionAst
 ): boolean {
-    return serializeRuleExpressionAst(left) === serializeRuleExpressionAst(right)
+    return (
+        serializeRuleExpressionAst(left) === serializeRuleExpressionAst(right)
+    )
 }
 
 function serializeRuleExpressionAst(ast: RuleExpressionAst): string {
@@ -1232,11 +1256,9 @@ export function createLogicalFunctions(
                 nodesById
             )
 
-            functionId = OverwriteOperator.getOverwriteAction(rule.target).combine(
-                manager,
-                functionId,
-                predicate
-            )
+            functionId = OverwriteOperator.getOverwriteAction(
+                rule.target
+            ).combine(manager, functionId, predicate)
         }
 
         return functionId
