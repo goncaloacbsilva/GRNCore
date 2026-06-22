@@ -45,10 +45,7 @@ export function normalizeGinmlExpressionSyntax(expression: string): string {
 }
 
 export function toGinmlExpressionSyntax(expression: string): string {
-    return expression
-        .replaceAll('&&', '&')
-        .replaceAll('||', '|')
-        .trim()
+    return expression.replaceAll('&&', '&').replaceAll('||', '|').trim()
 }
 
 export function rewriteExpressionIdentifiers(
@@ -130,7 +127,10 @@ function materializeRuleSet(
             const expressions =
                 activeInteractionExpressionsByTarget.get(rawRule.target) ?? []
             expressions.push(expression)
-            activeInteractionExpressionsByTarget.set(rawRule.target, expressions)
+            activeInteractionExpressionsByTarget.set(
+                rawRule.target,
+                expressions
+            )
             continue
         }
 
@@ -200,7 +200,8 @@ export function collectRawRulesFromNode(nodeRecord: Record<string, unknown>) {
             parameterRecord?.['@_val'],
             'GINML parameter rule is missing its target level.'
         )
-        const rawActiveInteractions = parameterRecord?.['@_idActiveInteractions']
+        const rawActiveInteractions =
+            parameterRecord?.['@_idActiveInteractions']
         const activeInteractions =
             typeof rawActiveInteractions === 'string'
                 ? rawActiveInteractions.trim()
@@ -265,7 +266,8 @@ function materializeInteractionReference(
     formattedNameById: Map<string, string>,
     edgeByInteractionKey: Map<string, Edge<EditableRegulatoryEdge>>
 ): string {
-    const [sourceId, resolvedTargetId, thresholdToken] = interactionId.split(':')
+    const [sourceId, resolvedTargetId, thresholdToken] =
+        interactionId.split(':')
     const threshold = Number(thresholdToken)
 
     if (
@@ -290,7 +292,9 @@ function materializeInteractionReference(
         )
     }
 
-    const level = edge.data.levels.find((candidate) => candidate.target === threshold)
+    const level = edge.data.levels.find(
+        (candidate) => candidate.target === threshold
+    )
 
     if (!level) {
         throw new Error(
@@ -338,7 +342,7 @@ function parseRequiredInteger(value: unknown, errorMessage: string): number {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
-    if (value && typeof value === "object" && !Array.isArray(value)) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
         return value as Record<string, unknown>
     }
 

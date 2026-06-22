@@ -18,37 +18,44 @@ export function createEdgesFromGinml(
     nodesById: Map<string, Node<RegulatoryNodeProperties>>
 ) {
     const edgeRecords = toArray(graphRecord.edge)
-    const edges: Edge<EditableRegulatoryEdge>[] = edgeRecords.map((edgeEntry) => {
-        const edgeRecord = asRecord(edgeEntry) ?? {}
-        const sourceId = getAttribute(edgeRecord, 'from')
-        const targetId = getAttribute(edgeRecord, 'to')
-        const edgeId =
-            getAttribute(edgeRecord, 'id') ??
-            `${sourceId ?? 'unknown'}:${targetId ?? 'unknown'}`
+    const edges: Edge<EditableRegulatoryEdge>[] = edgeRecords.map(
+        (edgeEntry) => {
+            const edgeRecord = asRecord(edgeEntry) ?? {}
+            const sourceId = getAttribute(edgeRecord, 'from')
+            const targetId = getAttribute(edgeRecord, 'to')
+            const edgeId =
+                getAttribute(edgeRecord, 'id') ??
+                `${sourceId ?? 'unknown'}:${targetId ?? 'unknown'}`
 
-        if (!sourceId || !targetId) {
-            throw new Error('GINML edge is missing its source or target.')
+            if (!sourceId || !targetId) {
+                throw new Error('GINML edge is missing its source or target.')
+            }
+
+            if (!nodesById.has(sourceId) || !nodesById.has(targetId)) {
+                throw new Error(
+                    `GINML edge "${edgeId}" references an unknown node.`
+                )
+            }
+
+            const levels = parseEdgeLevels(edgeRecord, edgeId)
+
+            return {
+                id: edgeId,
+                source: sourceId,
+                target: targetId,
+                data: {
+                    levels: levels.map((level) => ({
+                        ...level,
+                        isValid: isLevelWithinRange(
+                            level.target,
+                            nodesById.get(sourceId)
+                        ),
+                    })),
+                    annotations: parseGinmlAnnotations(edgeRecord.annotation),
+                },
+            }
         }
-
-        if (!nodesById.has(sourceId) || !nodesById.has(targetId)) {
-            throw new Error(`GINML edge "${edgeId}" references an unknown node.`)
-        }
-
-        const levels = parseEdgeLevels(edgeRecord, edgeId)
-
-        return {
-            id: edgeId,
-            source: sourceId,
-            target: targetId,
-            data: {
-                levels: levels.map((level) => ({
-                    ...level,
-                    isValid: isLevelWithinRange(level.target, nodesById.get(sourceId)),
-                })),
-                annotations: parseGinmlAnnotations(edgeRecord.annotation),
-            },
-        }
-    })
+    )
 
     return edges
 }

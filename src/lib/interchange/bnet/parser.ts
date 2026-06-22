@@ -16,7 +16,9 @@ interface ParsedBNetRow {
     expression: string
 }
 
-export function parseBNetModel(content: string): Omit<InternalGRNModel, 'title'> {
+export function parseBNetModel(
+    content: string
+): Omit<InternalGRNModel, 'title'> {
     const rows = parseRows(content)
     const nodeMap = new Map<string, Node<RegulatoryNodeProperties>>()
 
@@ -88,9 +90,11 @@ function isHeaderLine(line: string): boolean {
         .split(',')
         .map((value) => value.trim().toLowerCase())
 
-    return normalized.length === 2 &&
+    return (
+        normalized.length === 2 &&
         normalized[0] === 'targets' &&
         normalized[1] === 'factors'
+    )
 }
 
 function parseRow(line: string): ParsedBNetRow {
@@ -198,7 +202,9 @@ function validateNodes(
     return nodes.map((node) => {
         const incomingEdges = edges.filter((edge) => edge.target === node.id)
         const incomingNodes = incomingEdges
-            .map((edge) => nodes.find((candidate) => candidate.id === edge.source))
+            .map((edge) =>
+                nodes.find((candidate) => candidate.id === edge.source)
+            )
             .filter((candidate): candidate is Node<RegulatoryNodeProperties> =>
                 Boolean(candidate)
             )

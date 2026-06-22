@@ -117,16 +117,20 @@ describe('SBMLInterchanger', () => {
 </sbml>`)
 
         const nodeC = model.nodes.find((node) => node.id === 'C')
-        expect(nodeC?.data.rules.map((rule) => ({
-            target: rule.target,
-            expression: rule.expression,
-        }))).toEqual([{ target: 1, expression: 'A || B' }])
+        expect(
+            nodeC?.data.rules.map((rule) => ({
+                target: rule.target,
+                expression: rule.expression,
+            }))
+        ).toEqual([{ target: 1, expression: 'A || B' }])
     })
 
     it('exports an internal model with SBML namespaces, layout, rules, and annotations', () => {
         const xml = exportSbmlModel(createRoundTripModel())
 
-        expect(xml).toContain('xmlns:qual="http://www.sbml.org/sbml/level3/version1/qual/version1"')
+        expect(xml).toContain(
+            'xmlns:qual="http://www.sbml.org/sbml/level3/version1/qual/version1"'
+        )
         expect(xml).toContain('xmlns:grn="https://grn-core.dev/ns/sbml/v1"')
         expect(xml).toContain('<layout:generalGlyph')
         expect(xml).toContain('<qual:listOfQualitativeSpecies>')

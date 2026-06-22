@@ -6,7 +6,9 @@ export class GINMLInterchanger extends Interchanger {
     readonly mimeType = 'application/gxl'
 
     protected _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
-        return Promise.resolve(this.castToArrayBuffer(exportGinmlModel(snapshot)))
+        return Promise.resolve(
+            this.castToArrayBuffer(exportGinmlModel(snapshot))
+        )
     }
 
     import(content: ArrayBuffer): Promise<InternalGRNModel> {

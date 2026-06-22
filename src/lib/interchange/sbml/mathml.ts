@@ -1,4 +1,7 @@
-import { formatRuleIdentifier, parseRuleIdentifierToken } from '@/lib/regulatory-rules/identifiers'
+import {
+    formatRuleIdentifier,
+    parseRuleIdentifierToken,
+} from '@/lib/regulatory-rules/identifiers'
 import { regulatoryRuleGrammar } from '@/lib/regulatory-rules/grammar'
 import type * as ohm from 'ohm-js'
 import { asRecord, ensureArray, getNodeText, type XmlRecord } from './xml'
@@ -182,7 +185,8 @@ function parseComparisonNode(
     }
 
     const variableIdentifier = ciValue.trim()
-    const variableName = nodeNameById.get(variableIdentifier) ?? variableIdentifier
+    const variableName =
+        nodeNameById.get(variableIdentifier) ?? variableIdentifier
     const numericValue = Number(cnValue.trim())
 
     if (!Number.isInteger(numericValue)) {
@@ -227,8 +231,7 @@ function renderRuleAst(ast: RuleAst, parentPrecedence = 0): string {
                 : `${formatRuleIdentifier(ast.name)}:${ast.value}`
         case 'not': {
             const operand = renderRuleAst(ast.operand, 3)
-            const value =
-                ast.operand.kind === 'var' ? operand : `(${operand})`
+            const value = ast.operand.kind === 'var' ? operand : `(${operand})`
             return `!${value}`
         }
         case 'and': {
@@ -340,7 +343,10 @@ function extractApplyChildren(applyNode: XmlRecord): unknown[] {
     return childEntries.flatMap(([, value]) => ensureArray(value))
 }
 
-function getFirstTagText(record: XmlRecord, tagName: string): string | undefined {
+function getFirstTagText(
+    record: XmlRecord,
+    tagName: string
+): string | undefined {
     const values = ensureArray(record[tagName])
     const [firstValue] = values
 

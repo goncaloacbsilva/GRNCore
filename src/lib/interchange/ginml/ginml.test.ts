@@ -35,7 +35,9 @@ function summarizeModel(model: InternalGRNModel) {
                     })),
             })),
         edges: [...model.edges]
-            .sort((left, right) => String(left.id).localeCompare(String(right.id)))
+            .sort((left, right) =>
+                String(left.id).localeCompare(String(right.id))
+            )
             .map((edge) => ({
                 id: String(edge.id),
                 source: edge.source,
@@ -130,7 +132,9 @@ describe('GINMLInterchanger', () => {
         const model = importGinmlModel(ACTIVE_INTERACTIONS_GINML)
         const xml = exportGinmlModel(model)
 
-        expect(xml).toContain('<!DOCTYPE gxl SYSTEM "http://ginsim.org/GINML_2_2.dtd">')
+        expect(xml).toContain(
+            '<!DOCTYPE gxl SYSTEM "http://ginsim.org/GINML_2_2.dtd">'
+        )
         expect(xml).toContain('<graph class="regulatory"')
         expect(xml).toContain('nodeorder="A B C"')
         expect(xml).toContain('<value val="1">')
@@ -154,13 +158,13 @@ describe('GINMLInterchanger', () => {
         const reimported = importGinmlModel(exportGinmlModel(imported))
 
         expect(
-            reimported.nodes.find((node) => node.id === 'C')?.data.rules.map((rule) => ({
-                target: rule.target,
-                expression: rule.expression,
-            }))
-        ).toEqual([
-            { target: 1, expression: 'B:1 || A:1 || (A:1 && B:1)' },
-        ])
+            reimported.nodes
+                .find((node) => node.id === 'C')
+                ?.data.rules.map((rule) => ({
+                    target: rule.target,
+                    expression: rule.expression,
+                }))
+        ).toEqual([{ target: 1, expression: 'B:1 || A:1 || (A:1 && B:1)' }])
     })
 
     it('rejects malformed structures and unresolved active interactions', () => {
@@ -179,7 +183,10 @@ describe('GINMLInterchanger', () => {
         ).toThrow(/Unable to resolve GINML active interaction/)
         expect(() =>
             importGinmlModel(
-                DIRECT_GINML.replace('effects="1:positive 2:positive"', 'effects="x:positive"')
+                DIRECT_GINML.replace(
+                    'effects="1:positive 2:positive"',
+                    'effects="x:positive"'
+                )
             )
         ).toThrow(/invalid effects threshold/i)
     })

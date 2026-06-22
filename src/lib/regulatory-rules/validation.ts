@@ -52,7 +52,9 @@ function buildIncomingEdgeConstraints(
                 currentConstraint.negativeMaxThreshold ?? 0,
                 level.target
             )
-            ;(currentConstraint.negativeThresholds ??= new Set()).add(level.target)
+            ;(currentConstraint.negativeThresholds ??= new Set()).add(
+                level.target
+            )
         })
 
         sourceAliases.forEach((alias) => {

@@ -64,7 +64,9 @@ export function importSbmlModel(xml: string): InternalGRNModel {
     }
 
     if (transitions.length === 0) {
-        throw new Error('SBML document does not contain qualitative transitions.')
+        throw new Error(
+            'SBML document does not contain qualitative transitions.'
+        )
     }
 
     const positionsByReference = parseLayoutPositions(model)
@@ -95,7 +97,9 @@ export function importSbmlModel(xml: string): InternalGRNModel {
         const targetSpeciesId = getAttribute(output, 'qual:qualitativeSpecies')
 
         if (!targetSpeciesId || !nodesById.has(targetSpeciesId)) {
-            throw new Error('SBML transition references an unknown output species.')
+            throw new Error(
+                'SBML transition references an unknown output species.'
+            )
         }
 
         const inputs = ensureArray(
@@ -104,9 +108,13 @@ export function importSbmlModel(xml: string): InternalGRNModel {
 
         inputs.forEach((inputValue) => {
             const input = asRecord(inputValue) ?? {}
-            const sourceSpeciesId = getAttribute(input, 'qual:qualitativeSpecies')
+            const sourceSpeciesId = getAttribute(
+                input,
+                'qual:qualitativeSpecies'
+            )
             const sign = getAttribute(input, 'qual:sign') ?? 'positive'
-            const threshold = getNumberAttribute(input, 'qual:thresholdLevel') ?? 1
+            const threshold =
+                getNumberAttribute(input, 'qual:thresholdLevel') ?? 1
 
             if (!sourceSpeciesId || !nodesById.has(sourceSpeciesId)) {
                 throw new Error(
@@ -158,14 +166,19 @@ export function importSbmlModel(xml: string): InternalGRNModel {
         })
 
         const functionTerms = ensureArray(
-            asRecord(transition['qual:listOfFunctionTerms'])?.['qual:functionTerm']
+            asRecord(transition['qual:listOfFunctionTerms'])?.[
+                'qual:functionTerm'
+            ]
         )
 
         const rulesByLevel = new Map<number, string[]>()
 
         functionTerms.forEach((functionTermValue) => {
             const functionTerm = asRecord(functionTermValue) ?? {}
-            const resultLevel = getNumberAttribute(functionTerm, 'qual:resultLevel')
+            const resultLevel = getNumberAttribute(
+                functionTerm,
+                'qual:resultLevel'
+            )
 
             if (resultLevel === undefined) {
                 throw new Error('SBML function term is missing a result level.')
@@ -226,7 +239,8 @@ export function importSbmlModel(xml: string): InternalGRNModel {
                         incomingEdges
                     ),
                 })),
-                isValid: RegulatoryNodeNameSchema.safeParse(node.data.name).success,
+                isValid: RegulatoryNodeNameSchema.safeParse(node.data.name)
+                    .success,
             },
         }
     })
@@ -398,7 +412,9 @@ function buildLayoutEntry(nodes: InternalGRNModel['nodes']): XmlRecord {
                             },
                             'layout:dimensions': {
                                 '@_layout:width': String(SBML_LAYOUT.nodeWidth),
-                                '@_layout:height': String(SBML_LAYOUT.nodeHeight),
+                                '@_layout:height': String(
+                                    SBML_LAYOUT.nodeHeight
+                                ),
                             },
                         },
                     })),
@@ -502,8 +518,7 @@ function buildTransitionsEntry(model: InternalGRNModel): XmlRecord {
                                               rule.target
                                           ),
                                           math: {
-                                              '@_xmlns':
-                                                  SBML_NAMESPACES.mathml,
+                                              '@_xmlns': SBML_NAMESPACES.mathml,
                                               ...buildExpressionMathMl(
                                                   rule.expression,
                                                   activityLevelsByName,

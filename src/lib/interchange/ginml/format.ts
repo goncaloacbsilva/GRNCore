@@ -9,11 +9,7 @@ import {
     buildGinmlAnnotationObject,
     parseGinmlAnnotations,
 } from './annotations'
-import {
-    GINML_DEFAULTS,
-    GINML_DOCTYPE,
-    GINML_NAMESPACES,
-} from './constants'
+import { GINML_DEFAULTS, GINML_DOCTYPE, GINML_NAMESPACES } from './constants'
 import { createEdgesFromGinml } from './edges'
 import {
     collectRawRulesFromNode,
@@ -48,7 +44,10 @@ export function importGinmlModel(xml: string): InternalGRNModel {
 
     const nodeDescriptors = createNodeDescriptors(graph)
     const nodesById = new Map(
-        nodeDescriptors.map((descriptor) => [descriptor.node.id, descriptor.node])
+        nodeDescriptors.map((descriptor) => [
+            descriptor.node.id,
+            descriptor.node,
+        ])
     )
     const edges = createEdgesFromGinml(graph, nodesById)
     const nodes = nodeDescriptors.map((descriptor) =>
@@ -123,8 +122,10 @@ function createNodeDescriptors(graph: XmlRecord): RawNodeDescriptor[] {
                 },
                 data: {
                     name,
-                    activityLevels: getNumberAttribute(nodeRecord, 'maxvalue') ?? 1,
-                    isInputNode: getBooleanAttribute(nodeRecord, 'input') ?? false,
+                    activityLevels:
+                        getNumberAttribute(nodeRecord, 'maxvalue') ?? 1,
+                    isInputNode:
+                        getBooleanAttribute(nodeRecord, 'input') ?? false,
                     isValid: RegulatoryNodeNameSchema.safeParse(name).success,
                     annotations: parseGinmlAnnotations(nodeRecord.annotation),
                     rules: [],
@@ -248,7 +249,9 @@ function buildNodeObject(
 }
 
 function buildEdgeObject(edge: Edge<EditableRegulatoryEdge>): XmlRecord {
-    const levels = [...edge.data.levels].sort((left, right) => left.target - right.target)
+    const levels = [...edge.data.levels].sort(
+        (left, right) => left.target - right.target
+    )
     const edgeRecord: XmlRecord = {
         '@_id': String(edge.id),
         '@_from': String(edge.source),

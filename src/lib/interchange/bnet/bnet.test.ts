@@ -49,12 +49,12 @@ describe('BooleanNetworkInterchanger', () => {
         const gal80 = model.nodes.find((node) => node.id === 'Gal80')
 
         expect(gal80?.data.rules[0]?.expression).toBe('!gal')
-        expect(model.nodes.every((node) => node.data.activityLevels === 1)).toBe(
-            true
-        )
-        expect(model.nodes.every((node) => node.data.annotations === undefined)).toBe(
-            true
-        )
+        expect(
+            model.nodes.every((node) => node.data.activityLevels === 1)
+        ).toBe(true)
+        expect(
+            model.nodes.every((node) => node.data.annotations === undefined)
+        ).toBe(true)
         expect(
             model.nodes.every(
                 (node) =>

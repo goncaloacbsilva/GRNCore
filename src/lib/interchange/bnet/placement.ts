@@ -1,6 +1,4 @@
-import {
-    findNextNodePosition,
-} from '@/components/views/editor/graph/utils/node-placement'
+import { findNextNodePosition } from '@/components/views/editor/graph/utils/node-placement'
 import { getNodeContentMinWidth } from '@/components/views/editor/graph/utils/node-size'
 import type { RegulatoryNodeProperties } from '@/lib/schema'
 import type { Node } from '@xyflow/react'

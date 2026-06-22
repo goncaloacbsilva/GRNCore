@@ -1,8 +1,5 @@
 import type * as monaco from 'monaco-editor'
-import {
-    formatRuleIdentifier,
-    isSimpleRuleIdentifier,
-} from './identifiers'
+import { formatRuleIdentifier, isSimpleRuleIdentifier } from './identifiers'
 
 export const RULE_LANGUAGE_ID = 'regulatory-rule'
 export const RULE_THEME_ID = 'regulatory-rule-theme'

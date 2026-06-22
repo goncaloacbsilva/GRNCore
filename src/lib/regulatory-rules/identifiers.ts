@@ -13,14 +13,8 @@ export function formatRuleIdentifier(value: string): string {
 }
 
 export function parseRuleIdentifierToken(token: string): string {
-    if (
-        token.length >= 2 &&
-        token.startsWith('"') &&
-        token.endsWith('"')
-    ) {
-        return token
-            .slice(1, -1)
-            .replace(/\\(.)/g, '$1')
+    if (token.length >= 2 && token.startsWith('"') && token.endsWith('"')) {
+        return token.slice(1, -1).replace(/\\(.)/g, '$1')
     }
 
     return token

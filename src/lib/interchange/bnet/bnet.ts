@@ -6,7 +6,9 @@ export class BooleanNetworkInterchanger extends Interchanger {
     readonly mimeType = 'text/plain'
 
     protected _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
-        return Promise.resolve(this.castToArrayBuffer(exportBNetModel(snapshot)))
+        return Promise.resolve(
+            this.castToArrayBuffer(exportBNetModel(snapshot))
+        )
     }
 
     import(content: ArrayBuffer): Promise<InternalGRNModel> {
