@@ -5,7 +5,7 @@ import { AnnotationsSchema } from './annotations'
 export const RegulatoryNodeNameSchema = z
     .string()
     .min(1, { error: 'Name must be at least 1 character long' })
-    .max(20, { error: 'Name must be at most 20 characters long' })
+    .max(60, { error: 'Name must be at most 60 characters long' })
 
 export const RegulatoryNodeNameDraftSchema = z.string().default('')
 

@@ -145,11 +145,18 @@ export function Graph({ model }: GraphProps) {
             const incomingNodes = incomingNodesByTargetId.get(node.id) ?? []
             const incomingEdges = incomingEdgesByTargetId.get(node.id) ?? []
             const nextRules = node.data.rules.map((rule) => {
-                const isValid = isRegulatoryRuleExpressionValid(
-                    rule.expression,
-                    incomingNodes,
-                    incomingEdges
+                const hasTargetConflict = node.data.rules.some(
+                    (currentRule) =>
+                        currentRule.id !== rule.id &&
+                        currentRule.target === rule.target
                 )
+                const isValid =
+                    !hasTargetConflict &&
+                    isRegulatoryRuleExpressionValid(
+                        rule.expression,
+                        incomingNodes,
+                        incomingEdges
+                    )
 
                 return rule.isValid === isValid ? rule : { ...rule, isValid }
             })

@@ -10,30 +10,39 @@ import { getExpressionReferences, getExpressionVars } from './semantics'
 interface IncomingEdgeConstraint {
     positiveMaxThreshold?: number
     negativeMaxThreshold?: number
+    positiveThresholds?: Set<number>
+    negativeThresholds?: Set<number>
 }
 
 function buildIncomingEdgeConstraints(
     incomingNodes: Node<RegulatoryNodeProperties>[],
     incomingEdges: Edge<EditableRegulatoryEdge>[]
 ) {
-    const nodeNameById = new Map(
-        incomingNodes.map((node) => [node.id, node.data.name])
+    const nodeAliasesById = new Map(
+        incomingNodes.map((node) => [
+            node.id,
+            Array.from(new Set([node.id, node.data.name])),
+        ])
     )
     const constraints = new Map<string, IncomingEdgeConstraint>()
 
     incomingEdges.forEach((edge) => {
-        const sourceName = nodeNameById.get(edge.source)
+        const sourceAliases = nodeAliasesById.get(edge.source)
 
-        if (!sourceName) {
+        if (!sourceAliases || sourceAliases.length === 0) {
             return
         }
 
-        const currentConstraint = constraints.get(sourceName) ?? {}
+        const currentConstraint =
+            constraints.get(sourceAliases[0] ?? edge.source) ?? {}
 
         edge.data?.levels.forEach((level) => {
             if (level.type === InteractionType.Activation) {
                 currentConstraint.positiveMaxThreshold = Math.max(
                     currentConstraint.positiveMaxThreshold ?? 0,
+                    level.target
+                )
+                ;(currentConstraint.positiveThresholds ??= new Set()).add(
                     level.target
                 )
                 return
@@ -43,9 +52,14 @@ function buildIncomingEdgeConstraints(
                 currentConstraint.negativeMaxThreshold ?? 0,
                 level.target
             )
+            ;(currentConstraint.negativeThresholds ??= new Set()).add(
+                level.target
+            )
         })
 
-        constraints.set(sourceName, currentConstraint)
+        sourceAliases.forEach((alias) => {
+            constraints.set(alias, currentConstraint)
+        })
     })
 
     return constraints
@@ -73,9 +87,11 @@ export function validateRegulatoryRuleExpression(
 
     const expressionVars = getExpressionVars(matchResult)
     const expressionReferences = getExpressionReferences(matchResult)
-    const incomingNodeActivityLevels = new Map(
-        incomingNodes.map((node) => [node.data.name, node.data.activityLevels])
-    )
+    const incomingNodeActivityLevels = new Map<string, number>()
+    incomingNodes.forEach((node) => {
+        incomingNodeActivityLevels.set(node.id, node.data.activityLevels)
+        incomingNodeActivityLevels.set(node.data.name, node.data.activityLevels)
+    })
     const incomingEdgeConstraints = buildIncomingEdgeConstraints(
         incomingNodes,
         incomingEdges
@@ -130,6 +146,14 @@ export function validateRegulatoryRuleExpression(
             }
 
             if (value === undefined) {
+                const thresholds = negated
+                    ? constraint.negativeThresholds
+                    : constraint.positiveThresholds
+
+                if ((thresholds?.size ?? 0) === 1) {
+                    return false
+                }
+
                 return activityLevels > 1
             }
 

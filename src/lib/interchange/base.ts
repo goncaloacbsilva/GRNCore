@@ -1,7 +1,7 @@
 import type { InternalGRNModel } from '@/lib/schema'
 
 export abstract class Interchanger {
-    abstract readonly mimeType: string
+    abstract mimeType: string
 
     export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
         validateModel(snapshot)

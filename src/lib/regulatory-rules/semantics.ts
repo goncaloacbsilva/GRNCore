@@ -1,5 +1,6 @@
 import type * as ohm from 'ohm-js'
 import { regulatoryRuleGrammar } from './grammar'
+import { parseRuleIdentifierToken } from './identifiers'
 
 export interface ExpressionVar {
     name: string
@@ -27,13 +28,13 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
         Condition(variable, _colon, value) {
             return [
                 {
-                    name: variable.sourceString,
+                    name: parseRuleIdentifierToken(variable.sourceString),
                     value: Number(value.sourceString),
                 },
             ]
         },
         Var(ident) {
-            return [{ name: ident.sourceString }]
+            return [{ name: parseRuleIdentifierToken(ident.sourceString) }]
         },
         _iter(...children: ohm.Node[]) {
             return children.flatMap((child) =>
@@ -109,7 +110,7 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
 
             return [
                 {
-                    name: variable.sourceString,
+                    name: parseRuleIdentifierToken(variable.sourceString),
                     value: Number(value.sourceString),
                     negated,
                 },
@@ -122,7 +123,7 @@ const regulatoryRuleSemantics = regulatoryRuleGrammar
 
             return [
                 {
-                    name: ident.sourceString,
+                    name: parseRuleIdentifierToken(ident.sourceString),
                     negated,
                 },
             ]

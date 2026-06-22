@@ -20,8 +20,13 @@ RegulatoryRule {
   Not = "!"
 
   Var = ident
+      | quotedIdent
   Val = digit
 
   ident = (letter | "_") identRest*
   identRest = letter | digit | "_"
+  quotedIdent = "\"" quotedChar* "\""
+  quotedChar = escapedChar
+             | ~"\"" any
+  escapedChar = "\\" any
 }

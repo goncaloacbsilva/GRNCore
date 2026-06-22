@@ -253,7 +253,7 @@ export function MenuSheet() {
                     >
                         <button
                             type="button"
-                            className="flex w-full cursor-pointer items-center rounded-sm px-2 py-1 text-left text-sm font-medium hover:bg-accent"
+                            className="flex w-full items-center rounded-sm px-2 py-1 text-left text-sm font-medium hover:bg-accent"
                             onClick={() => handleSheetOpenChange(!isSheetOpen)}
                             aria-expanded={isSheetOpen}
                             aria-label={
