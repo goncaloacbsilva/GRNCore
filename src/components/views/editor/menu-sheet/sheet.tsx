@@ -69,21 +69,29 @@ export function MenuSheet() {
 
     useEffect(() => {
         if (selectedElements > 0) {
-            setRenderedSelection({
-                nodes: selectedNodes,
-                edges: selectedEdges,
-            })
-
             if (hadSelectionRef.current) {
-                setIsSheetMounted(true)
-                setIsSheetVisible(true)
-                return
+                const updateTimeout = window.setTimeout(() => {
+                    setRenderedSelection({
+                        nodes: selectedNodes,
+                        edges: selectedEdges,
+                    })
+                    setIsSheetMounted(true)
+                    setIsSheetVisible(true)
+                }, 0)
+
+                return () => {
+                    window.clearTimeout(updateTimeout)
+                }
             }
 
             hadSelectionRef.current = true
             let animationFrame = 0
             let nestedAnimationFrame = 0
             const mountTimeout = window.setTimeout(() => {
+                setRenderedSelection({
+                    nodes: selectedNodes,
+                    edges: selectedEdges,
+                })
                 setIsSheetMounted(true)
                 setIsSheetVisible(false)
 
