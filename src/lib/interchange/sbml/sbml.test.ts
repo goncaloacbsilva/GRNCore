@@ -33,8 +33,8 @@ function summarizeModel(model: InternalGRNModel) {
                 id: edge.id,
                 source: edge.source,
                 target: edge.target,
-                references: edge.data.annotations?.references ?? [],
-                levels: [...edge.data.levels]
+                references: edge.data?.annotations?.references ?? [],
+                levels: [...(edge.data?.levels ?? [])]
                     .sort((left, right) => left.target - right.target)
                     .map((level) => ({
                         type: level.type,
@@ -69,7 +69,7 @@ describe('SBMLInterchanger', () => {
         expect(spi1Node?.data.rules.map((rule) => rule.expression)).toEqual([
             '"Retinoic Acid":1 && "Retinoic Acid Receptor" && !"PML::RARA fusion protein"',
         ])
-        expect(raEdge?.data.annotations?.references).toEqual([
+        expect(raEdge?.data?.annotations?.references).toEqual([
             'https://example.org/edge/ra-spi1',
         ])
     })

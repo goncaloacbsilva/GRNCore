@@ -249,7 +249,8 @@ function buildNodeObject(
 }
 
 function buildEdgeObject(edge: Edge<EditableRegulatoryEdge>): XmlRecord {
-    const levels = [...edge.data.levels].sort(
+    const edgeData = edge.data
+    const levels = [...(edgeData?.levels ?? [])].sort(
         (left, right) => left.target - right.target
     )
     const edgeRecord: XmlRecord = {
@@ -275,7 +276,7 @@ function buildEdgeObject(edge: Edge<EditableRegulatoryEdge>): XmlRecord {
             .join(' ')
     }
 
-    const annotation = buildGinmlAnnotationObject(edge.data.annotations)
+    const annotation = buildGinmlAnnotationObject(edgeData?.annotations)
     const edgeVisualsettingAttributes: Record<string, string> = {
         '@_anchor':
             edge.source === edge.target

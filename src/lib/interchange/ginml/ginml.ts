@@ -3,7 +3,7 @@ import { Interchanger } from '../base'
 import { exportGinmlModel, importGinmlModel } from './format'
 
 export class GINMLInterchanger extends Interchanger {
-    readonly mimeType = 'application/gxl'
+    mimeType = 'application/gxl'
 
     protected _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
         return Promise.resolve(

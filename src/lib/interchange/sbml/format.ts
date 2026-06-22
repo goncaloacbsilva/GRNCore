@@ -153,14 +153,20 @@ export function importSbmlModel(xml: string): InternalGRNModel {
                 return
             }
 
-            currentEdge.data.levels.push({
+            const currentEdgeData = currentEdge.data
+
+            if (!currentEdgeData) {
+                return
+            }
+
+            currentEdgeData.levels.push({
                 id: nanoid(),
                 type: interactionType,
                 target: threshold,
                 isValid: true,
             })
-            currentEdge.data.annotations = mergeAnnotations(
-                currentEdge.data.annotations,
+            currentEdgeData.annotations = mergeAnnotations(
+                currentEdgeData.annotations,
                 inputAnnotations
             )
         })
@@ -355,8 +361,13 @@ function normalizeImportedEdge(
 ): MutableEdge {
     const sourceNode = nodesById.get(edge.source)
     const seenPairs = new Set<string>()
+    const edgeData = edge.data
 
-    edge.data.levels = edge.data.levels.map((level) => {
+    if (!edgeData) {
+        return edge
+    }
+
+    edgeData.levels = edgeData.levels.map((level) => {
         const pairKey = `${level.type}:${level.target}`
         const isWithinSourceRange =
             level.target <= (sourceNode?.data.activityLevels ?? 0)
@@ -465,8 +476,10 @@ function buildTransitionsEntry(model: InternalGRNModel): XmlRecord {
                     ...(incomingEdges.length > 0
                         ? {
                               'qual:listOfInputs': {
-                                  'qual:input': incomingEdges.flatMap((edge) =>
-                                      edge.data.levels.map((level, index) => {
+                                  'qual:input': incomingEdges.flatMap((edge) => {
+                                      const edgeLevels = edge.data?.levels ?? []
+
+                                      return edgeLevels.map((level, index) => {
                                           const inputMetaid = `_grn_edge_${sanitizeIdentifier(
                                               edge.id
                                           )}_${index + 1}`
@@ -485,16 +498,14 @@ function buildTransitionsEntry(model: InternalGRNModel): XmlRecord {
                                               '@_qual:thresholdLevel': String(
                                                   level.target
                                               ),
-                                              ...buildNotesEntry(
-                                                  edge.data.annotations
-                                              ),
+                                              ...buildNotesEntry(edge.data?.annotations),
                                               ...buildAnnotationEntry(
-                                                  edge.data.annotations,
+                                                  edge.data?.annotations,
                                                   inputMetaid
                                               ),
                                           }
                                       })
-                                  ),
+                                  }),
                               },
                           }
                         : {}),

@@ -54,7 +54,8 @@ export function parseSbmlAnnotations({
     }
 
     return {
-        ...(unstructured ? { unstructured } : {}),
+        unstructured:
+            unstructured ?? createPlainTextEditorState(''),
         references: mergedReferences,
     }
 }
@@ -85,9 +86,7 @@ export function mergeAnnotations(
     }
 
     return {
-        ...(mergedText
-            ? { unstructured: createPlainTextEditorState(mergedText) }
-            : {}),
+        unstructured: createPlainTextEditorState(mergedText ?? ''),
         references: mergedReferences,
     }
 }

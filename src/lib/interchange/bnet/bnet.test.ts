@@ -28,7 +28,7 @@ function summarizeModel(model: InternalGRNModel) {
             .map((edge) => ({
                 source: edge.source,
                 target: edge.target,
-                levels: [...edge.data.levels]
+                levels: [...(edge.data?.levels ?? [])]
                     .sort((left, right) => left.type.localeCompare(right.type))
                     .map((level) => ({
                         type: level.type,
@@ -77,19 +77,19 @@ describe('BooleanNetworkInterchanger', () => {
             (edge) => edge.source === 'gal' && edge.target === 'Mixed'
         )
 
-        expect(ash1Edge?.data.levels).toEqual([
+        expect(ash1Edge?.data?.levels).toEqual([
             expect.objectContaining({
                 type: 'activation',
                 target: 1,
             }),
         ])
-        expect(gal80Edge?.data.levels).toEqual([
+        expect(gal80Edge?.data?.levels).toEqual([
             expect.objectContaining({
                 type: 'inhibition',
                 target: 1,
             }),
         ])
-        expect(mixedEdge?.data.levels).toEqual(
+        expect(mixedEdge?.data?.levels).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
                     type: 'activation',

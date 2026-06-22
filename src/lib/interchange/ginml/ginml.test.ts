@@ -42,8 +42,8 @@ function summarizeModel(model: InternalGRNModel) {
                 id: String(edge.id),
                 source: edge.source,
                 target: edge.target,
-                references: edge.data.annotations?.references ?? [],
-                levels: [...edge.data.levels]
+                references: edge.data?.annotations?.references ?? [],
+                levels: [...(edge.data?.levels ?? [])]
                     .sort((left, right) => left.target - right.target)
                     .map((level) => ({
                         type: level.type,
@@ -77,8 +77,8 @@ describe('GINMLInterchanger', () => {
         expect(c?.data.rules.map((rule) => rule.expression)).toEqual([
             '"Retinoic Acid":1 || !B',
         ])
-        expect(raToC?.data.points).toBeUndefined()
-        expect(raToC?.data.levels).toEqual(
+        expect(raToC?.data?.points).toBeUndefined()
+        expect(raToC?.data?.levels).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ type: 'activation', target: 1 }),
                 expect.objectContaining({ type: 'activation', target: 2 }),

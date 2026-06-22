@@ -175,13 +175,19 @@ function synthesizeEdges(
                     continue
                 }
 
-                const hasLevel = existingEdge.data.levels.some(
+                const existingEdgeData = existingEdge.data
+
+                if (!existingEdgeData) {
+                    continue
+                }
+
+                const hasLevel = existingEdgeData.levels.some(
                     (level) =>
                         level.type === interactionType && level.target === 1
                 )
 
                 if (!hasLevel) {
-                    existingEdge.data.levels.push({
+                    existingEdgeData.levels.push({
                         id: nanoid(),
                         type: interactionType,
                         target: 1,

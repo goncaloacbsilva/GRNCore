@@ -292,7 +292,15 @@ function materializeInteractionReference(
         )
     }
 
-    const level = edge.data.levels.find(
+    const edgeData = edge.data
+
+    if (!edgeData) {
+        throw new Error(
+            `Unable to resolve GINML active interaction "${interactionId}".`
+        )
+    }
+
+    const level = edgeData.levels.find(
         (candidate) => candidate.target === threshold
     )
 
@@ -323,7 +331,12 @@ function buildInteractionEdgeLookup(
     const lookup = new Map<string, Edge<EditableRegulatoryEdge>>()
 
     for (const edge of edges) {
-        for (const level of edge.data.levels) {
+        const edgeData = edge.data
+        if (!edgeData) {
+            continue
+        }
+
+        for (const level of edgeData.levels) {
             lookup.set(`${edge.source}:${edge.target}:${level.target}`, edge)
         }
     }

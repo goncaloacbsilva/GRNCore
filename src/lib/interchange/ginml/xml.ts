@@ -19,7 +19,8 @@ const parser = new XMLParser({
     attributeNamePrefix: '@_',
     parseTagValue: false,
     trimValues: false,
-    isArray: (_name, jpath) => ARRAY_PATHS.has(jpath),
+    isArray: (_name, jpath) =>
+        typeof jpath === 'string' && ARRAY_PATHS.has(jpath),
 })
 
 const builder = new XMLBuilder({
