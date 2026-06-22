@@ -74,6 +74,7 @@ function parseRows(content: string): ParsedBNetRow[] {
         .split('\n')
         .map((line) => line.trim())
         .filter((line) => line.length > 0)
+        .filter((line) => !isCommentLine(line))
 
     if (lines.length === 0) {
         return []
@@ -83,6 +84,10 @@ function parseRows(content: string): ParsedBNetRow[] {
     const dataLines = isHeaderLine(firstLine) ? remainingLines : lines
 
     return dataLines.map(parseRow)
+}
+
+function isCommentLine(line: string): boolean {
+    return line.startsWith('#')
 }
 
 function isHeaderLine(line: string): boolean {

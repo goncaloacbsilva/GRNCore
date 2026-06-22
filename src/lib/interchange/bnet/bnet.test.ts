@@ -130,6 +130,24 @@ describe('BooleanNetworkInterchanger', () => {
         )
     })
 
+    it('ignores hash-prefixed comment lines', () => {
+        const model = importBNetModel(`# Model 2
+# Exported from GRN Core
+# the header targets, factors is mandatory to be importable in the R package BoolNet
+
+targets, factors
+G3, G4
+G4, (G4 & !G3)`)
+
+        expect(model.nodes.map((node) => node.id).sort()).toEqual(['G3', 'G4'])
+        expect(model.nodes.find((node) => node.id === 'G4')?.data.rules).toEqual([
+            expect.objectContaining({
+                target: 1,
+                expression: '(G4 & !G3)',
+            }),
+        ])
+    })
+
     it('keeps invalid expressions and missing references without generating edges', () => {
         const invalidSyntax = importBNetModel('targets, factors\nA, !')
         const missingReference = importBNetModel('targets, factors\nA, B')
