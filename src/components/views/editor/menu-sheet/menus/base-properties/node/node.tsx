@@ -129,7 +129,10 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     const previousNameRef = useRef(formValues.name)
     const currentNodeData: RegulatoryNodeProperties = {
         ...nodeData,
-        name: typeof formValues.name === 'string' ? formValues.name : nodeData.name,
+        name:
+            typeof formValues.name === 'string'
+                ? formValues.name
+                : nodeData.name,
         activityLevels: getSafeFormValue({
             schema: NodeBasePropertiesFormSchema.shape.activityLevels,
             value: formValues.activityLevels,
@@ -147,9 +150,8 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                   ).success
                 : nodeData.isValid,
     }
-    const nameValidationResult = NodeBasePropertiesFormSchema.shape.name.safeParse(
-        currentNodeData.name
-    )
+    const nameValidationResult =
+        NodeBasePropertiesFormSchema.shape.name.safeParse(currentNodeData.name)
     const incomingNodes = useMemo(
         () =>
             incomingEdges.flatMap((edge) => {
@@ -203,9 +205,8 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
         }
 
         const nextName = typeof currentName === 'string' ? currentName : ''
-        const isValid = NodeBasePropertiesFormSchema.shape.name.safeParse(
-            nextName
-        ).success
+        const isValid =
+            NodeBasePropertiesFormSchema.shape.name.safeParse(nextName).success
 
         updateNode(node.id, (currentNode) => ({
             data: {

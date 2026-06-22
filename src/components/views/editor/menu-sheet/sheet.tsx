@@ -1,8 +1,5 @@
 import { useStore, type Edge, type Node } from '@xyflow/react'
-import {
-    Collapsible,
-    CollapsibleContent,
-} from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import anime from 'animejs'
 import { shallow } from 'zustand/shallow'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -268,7 +265,9 @@ export function MenuSheet() {
                             <ChevronDownIcon
                                 size={18}
                                 className={
-                                    isSheetOpen ? 'rotate-180 shrink-0' : 'shrink-0'
+                                    isSheetOpen
+                                        ? 'rotate-180 shrink-0'
+                                        : 'shrink-0'
                                 }
                             />
                             <h3 className="pl-2 font-semibold">
