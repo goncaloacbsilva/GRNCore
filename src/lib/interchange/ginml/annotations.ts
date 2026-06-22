@@ -61,8 +61,7 @@ export function parseGinmlAnnotations(
     }
 
     return {
-        unstructured:
-            unstructured ?? createPlainTextEditorState(''),
+        unstructured: unstructured ?? createPlainTextEditorState(''),
         references: mergedReferences,
     }
 }

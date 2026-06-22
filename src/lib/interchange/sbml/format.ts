@@ -476,36 +476,44 @@ function buildTransitionsEntry(model: InternalGRNModel): XmlRecord {
                     ...(incomingEdges.length > 0
                         ? {
                               'qual:listOfInputs': {
-                                  'qual:input': incomingEdges.flatMap((edge) => {
-                                      const edgeLevels = edge.data?.levels ?? []
+                                  'qual:input': incomingEdges.flatMap(
+                                      (edge) => {
+                                          const edgeLevels =
+                                              edge.data?.levels ?? []
 
-                                      return edgeLevels.map((level, index) => {
-                                          const inputMetaid = `_grn_edge_${sanitizeIdentifier(
-                                              edge.id
-                                          )}_${index + 1}`
+                                          return edgeLevels.map(
+                                              (level, index) => {
+                                                  const inputMetaid = `_grn_edge_${sanitizeIdentifier(
+                                                      edge.id
+                                                  )}_${index + 1}`
 
-                                          return {
-                                              '@_metaid': inputMetaid,
-                                              '@_qual:id': `${sanitizeIdentifier(edge.id)}_in_${index + 1}`,
-                                              '@_qual:qualitativeSpecies':
-                                                  edge.source,
-                                              '@_qual:transitionEffect': 'none',
-                                              '@_qual:sign':
-                                                  level.type ===
-                                                  InteractionType.Inhibition
-                                                      ? 'negative'
-                                                      : 'positive',
-                                              '@_qual:thresholdLevel': String(
-                                                  level.target
-                                              ),
-                                              ...buildNotesEntry(edge.data?.annotations),
-                                              ...buildAnnotationEntry(
-                                                  edge.data?.annotations,
-                                                  inputMetaid
-                                              ),
-                                          }
-                                      })
-                                  }),
+                                                  return {
+                                                      '@_metaid': inputMetaid,
+                                                      '@_qual:id': `${sanitizeIdentifier(edge.id)}_in_${index + 1}`,
+                                                      '@_qual:qualitativeSpecies':
+                                                          edge.source,
+                                                      '@_qual:transitionEffect':
+                                                          'none',
+                                                      '@_qual:sign':
+                                                          level.type ===
+                                                          InteractionType.Inhibition
+                                                              ? 'negative'
+                                                              : 'positive',
+                                                      '@_qual:thresholdLevel':
+                                                          String(level.target),
+                                                      ...buildNotesEntry(
+                                                          edge.data?.annotations
+                                                      ),
+                                                      ...buildAnnotationEntry(
+                                                          edge.data
+                                                              ?.annotations,
+                                                          inputMetaid
+                                                      ),
+                                                  }
+                                              }
+                                          )
+                                      }
+                                  ),
                               },
                           }
                         : {}),
