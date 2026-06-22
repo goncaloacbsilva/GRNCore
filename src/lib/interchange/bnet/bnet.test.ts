@@ -140,7 +140,9 @@ G3, G4
 G4, (G4 & !G3)`)
 
         expect(model.nodes.map((node) => node.id).sort()).toEqual(['G3', 'G4'])
-        expect(model.nodes.find((node) => node.id === 'G4')?.data.rules).toEqual([
+        expect(
+            model.nodes.find((node) => node.id === 'G4')?.data.rules
+        ).toEqual([
             expect.objectContaining({
                 target: 1,
                 expression: '(G4 & !G3)',
