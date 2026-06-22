@@ -3,11 +3,7 @@ import { ChevronUpIcon, PencilIcon, SaveIcon } from 'lucide-react'
 import { twJoin } from 'tailwind-merge'
 
 import { Button } from '@/components/ui/button'
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import {
     Tooltip,
     TooltipContent,
@@ -44,14 +40,25 @@ export function AnnotationCard({
             )}
         >
             <TooltipProvider>
-                <div className="flex h-10 shrink-0 items-center justify-between gap-2 overflow-auto border-b p-1">
-                    <CollapsibleTrigger className="group flex items-center rounded-sm px-2 py-1 text-sm font-medium hover:bg-accent data-[state=open]:bg-accent">
+                <div className="flex h-10 shrink-0 items-center gap-2 overflow-auto border-b p-1">
+                    <button
+                        type="button"
+                        className="flex flex-1 select-none items-center gap-2 rounded-sm px-2 py-1 text-left text-sm font-medium hover:bg-accent"
+                        onClick={() => onOpenChange(!isOpen)}
+                        aria-expanded={isOpen}
+                        aria-label={
+                            isOpen ? `Collapse ${title}` : `Expand ${title}`
+                        }
+                    >
                         <ChevronUpIcon
                             size={18}
-                            className="ml-auto group-data-[state=open]:rotate-180"
+                            className={twJoin(
+                                'shrink-0',
+                                isOpen && 'rotate-180'
+                            )}
                         />
-                        <h3 className="pl-2 font-semibold">{title}</h3>
-                    </CollapsibleTrigger>
+                        <h3 className="font-semibold">{title}</h3>
+                    </button>
                     {isOpen ? (
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -60,7 +67,10 @@ export function AnnotationCard({
                                     variant="ghost"
                                     size="sm"
                                     className="p-2"
-                                    onClick={onEditButtonClick}
+                                    onClick={(event) => {
+                                        event.stopPropagation()
+                                        onEditButtonClick()
+                                    }}
                                     aria-label={
                                         isEditing
                                             ? 'Save annotation details'

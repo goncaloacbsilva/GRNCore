@@ -2,7 +2,6 @@ import { useStore, type Edge, type Node } from '@xyflow/react'
 import {
     Collapsible,
     CollapsibleContent,
-    CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import anime from 'animejs'
 import { shallow } from 'zustand/shallow'
@@ -66,28 +65,43 @@ export function MenuSheet() {
     const animatedContentInnerRef = useRef<HTMLDivElement | null>(null)
     const contentAnimationRef = useRef<ReturnType<typeof anime> | null>(null)
     const hasInitializedContentAnimationRef = useRef(false)
+    const hadSelectionRef = useRef(false)
 
     useEffect(() => {
         if (selectedElements > 0) {
-            let animationFrame = 0
-            const mountTimeout = window.setTimeout(() => {
-                setRenderedSelection({
-                    nodes: selectedNodes,
-                    edges: selectedEdges,
-                })
+            setRenderedSelection({
+                nodes: selectedNodes,
+                edges: selectedEdges,
+            })
+
+            if (hadSelectionRef.current) {
                 setIsSheetMounted(true)
+                setIsSheetVisible(true)
+                return
+            }
+
+            hadSelectionRef.current = true
+            let animationFrame = 0
+            let nestedAnimationFrame = 0
+            const mountTimeout = window.setTimeout(() => {
+                setIsSheetMounted(true)
+                setIsSheetVisible(false)
 
                 animationFrame = requestAnimationFrame(() => {
-                    setIsSheetVisible(true)
+                    nestedAnimationFrame = requestAnimationFrame(() => {
+                        setIsSheetVisible(true)
+                    })
                 })
             }, 0)
 
             return () => {
                 window.clearTimeout(mountTimeout)
                 cancelAnimationFrame(animationFrame)
+                cancelAnimationFrame(nestedAnimationFrame)
             }
         }
 
+        hadSelectionRef.current = false
         const hideTimeout = window.setTimeout(() => {
             setIsSheetVisible(false)
         }, 0)
@@ -232,15 +246,27 @@ export function MenuSheet() {
                             isSheetOpen ? 'border-b' : ''
                         }`}
                     >
-                        <CollapsibleTrigger className="group flex items-center rounded-sm px-2 py-1 text-sm font-medium hover:bg-accent data-[state=open]:bg-accent">
+                        <button
+                            type="button"
+                            className="flex w-full cursor-pointer items-center rounded-sm px-2 py-1 text-left text-sm font-medium hover:bg-accent"
+                            onClick={() => handleSheetOpenChange(!isSheetOpen)}
+                            aria-expanded={isSheetOpen}
+                            aria-label={
+                                isSheetOpen
+                                    ? 'Collapse element properties'
+                                    : 'Expand element properties'
+                            }
+                        >
                             <ChevronDownIcon
                                 size={18}
-                                className="ml-auto group-data-[state=open]:rotate-180"
+                                className={
+                                    isSheetOpen ? 'rotate-180 shrink-0' : 'shrink-0'
+                                }
                             />
                             <h3 className="pl-2 font-semibold">
                                 Element properties
                             </h3>
-                        </CollapsibleTrigger>
+                        </button>
                     </div>
 
                     <CollapsibleContent forceMount className="min-h-0">

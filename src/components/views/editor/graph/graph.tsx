@@ -308,7 +308,7 @@ export function Graph({ model }: GraphProps) {
                 pannable
             /> */}
             <Panel position="bottom-left">
-                <div className="pointer-events-none absolute bottom-2 left-2 flex w-[calc(100vw-2.5rem)] items-end justify-center">
+                <div className="pointer-events-none absolute bottom-0 left-2 flex w-[calc(100vw-2.5rem)] items-end justify-center">
                     <div className="pointer-events-auto absolute bottom-0 left-0">
                         <ZoomControls />
                     </div>
