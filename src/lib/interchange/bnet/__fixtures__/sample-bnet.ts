@@ -1,0 +1,9 @@
+export const SAMPLE_BNET = `targets, factors
+gal,     gal
+Ash1,    gal & Cbf1
+Cbf1,    Ash1
+Gal80,   !gal
+Gal4,    Gal80 & !Swi5
+Swi5,    !Gal4
+Mixed,   gal & !gal
+`
