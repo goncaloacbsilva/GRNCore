@@ -52,7 +52,7 @@ export function parseGinmlAnnotations(
         customAnnotations?.references,
         references
     )
-    const unstructured =
+    const unstructured: unknown =
         customAnnotations?.unstructured ??
         (comment.length > 0 ? createPlainTextEditorState(comment) : undefined)
 
@@ -69,13 +69,14 @@ export function parseGinmlAnnotations(
 export function annotationsToPlainText(
     annotations: PersistedAnnotations | undefined
 ): string {
-    const unstructured = annotations?.unstructured
+    const unstructured: unknown = annotations?.unstructured
 
     if (!unstructured || typeof unstructured !== 'object') {
         return ''
     }
 
-    const rootRecord = asRecord(asRecord(unstructured)?.root)
+    const root = asRecord(unstructured)?.root
+    const rootRecord = asRecord(root)
 
     if (!rootRecord) {
         return ''
@@ -174,7 +175,7 @@ function parseCustomAnnotations(
     annotationRecord: XmlRecord
 ): PersistedAnnotations | undefined {
     const customAnnotation = asRecord(annotationRecord[GINML_ANNOTATIONS_TAG])
-    const payloadNode = customAnnotation?.[GINML_PAYLOAD_TAG]
+    const payloadNode: unknown = customAnnotation?.[GINML_PAYLOAD_TAG]
 
     if (!payloadNode) {
         return undefined
@@ -217,7 +218,7 @@ function collectEditorText(value: unknown): string {
         .join('')
 }
 
-function mergeReferences(...referenceSets: Array<string[] | undefined>): string[] {
+function mergeReferences(...referenceSets: (string[] | undefined)[]): string[] {
     return Array.from(
         new Set(
             referenceSets.flatMap((references) =>

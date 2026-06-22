@@ -5,11 +5,11 @@ import { exportBNetModel, importBNetModel } from './format'
 export class BooleanNetworkInterchanger extends Interchanger {
     readonly mimeType = 'text/plain'
 
-    protected async _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
-        return this.castToArrayBuffer(exportBNetModel(snapshot))
+    protected _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
+        return Promise.resolve(this.castToArrayBuffer(exportBNetModel(snapshot)))
     }
 
-    async import(content: ArrayBuffer): Promise<InternalGRNModel> {
-        return importBNetModel(this.castToString(content))
+    import(content: ArrayBuffer): Promise<InternalGRNModel> {
+        return Promise.resolve(importBNetModel(this.castToString(content)))
     }
 }

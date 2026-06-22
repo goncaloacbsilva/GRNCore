@@ -6,7 +6,6 @@ import {
     ensureArray,
     getAttribute,
     getNodeText,
-    type XmlRecord,
 } from './xml'
 
 const EMPTY_EDITOR_STATE = {
@@ -46,7 +45,7 @@ export function parseSbmlAnnotations({
         customAnnotations?.references,
         references
     )
-    const unstructured =
+    const unstructured: unknown =
         customAnnotations?.unstructured ??
         (noteText.length > 0 ? createPlainTextEditorState(noteText) : undefined)
 
@@ -96,7 +95,7 @@ export function mergeAnnotations(
 export function annotationsToPlainText(
     annotations: PersistedAnnotations | undefined
 ): string {
-    const unstructured = annotations?.unstructured
+    const unstructured: unknown = annotations?.unstructured
 
     if (!unstructured || typeof unstructured !== 'object') {
         return ''
@@ -176,7 +175,7 @@ function parseCustomAnnotations(
 ): PersistedAnnotations | undefined {
     const annotationRecord = asRecord(annotation)
     const customAnnotation = asRecord(annotationRecord?.[GRN_ANNOTATIONS_TAG])
-    const payloadNode = customAnnotation?.[GRN_PAYLOAD_TAG]
+    const payloadNode: unknown = customAnnotation?.[GRN_PAYLOAD_TAG]
 
     if (!payloadNode) {
         return undefined
@@ -266,7 +265,7 @@ function collectEditorText(value: unknown): string {
     return children
 }
 
-function mergeReferences(...referenceSets: Array<string[] | undefined>): string[] {
+function mergeReferences(...referenceSets: (string[] | undefined)[]): string[] {
     return Array.from(
         new Set(
             referenceSets.flatMap((references) =>

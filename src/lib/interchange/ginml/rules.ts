@@ -110,12 +110,12 @@ function materializeRuleSet(
     formattedNameById: Map<string, string>,
     edgeByInteractionKey: Map<string, Edge<EditableRegulatoryEdge>>
 ) {
-    const rules: Array<{
+    const rules: {
         id: string
         target: number
         expression: string
         isValid: boolean
-    }> = []
+    }[] = []
     const activeInteractionExpressionsByTarget = new Map<number, string[]>()
 
     for (const rawRule of rawRules) {
@@ -177,7 +177,9 @@ export function collectRawRulesFromNode(nodeRecord: Record<string, unknown>) {
 
         for (const expEntry of toArray(valueRecord?.exp)) {
             const expRecord = asRecord(expEntry)
-            const expression = String(expRecord?.['@_str'] ?? '').trim()
+            const rawExpression = expRecord?.['@_str']
+            const expression =
+                typeof rawExpression === 'string' ? rawExpression.trim() : ''
 
             if (expression.length === 0) {
                 continue
@@ -198,9 +200,11 @@ export function collectRawRulesFromNode(nodeRecord: Record<string, unknown>) {
             parameterRecord?.['@_val'],
             'GINML parameter rule is missing its target level.'
         )
-        const activeInteractions = String(
-            parameterRecord?.['@_idActiveInteractions'] ?? ''
-        ).trim()
+        const rawActiveInteractions = parameterRecord?.['@_idActiveInteractions']
+        const activeInteractions =
+            typeof rawActiveInteractions === 'string'
+                ? rawActiveInteractions.trim()
+                : ''
 
         if (activeInteractions.length > 0) {
             rawRules.push({

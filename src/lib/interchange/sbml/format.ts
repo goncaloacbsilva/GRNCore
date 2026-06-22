@@ -186,7 +186,7 @@ export function importSbmlModel(xml: string): InternalGRNModel {
                 target,
                 expression:
                     expressions.length === 1
-                        ? expressions[0]!
+                        ? (expressions[0] ?? '')
                         : expressions
                               .map((expression) =>
                                   expression.includes('&&')

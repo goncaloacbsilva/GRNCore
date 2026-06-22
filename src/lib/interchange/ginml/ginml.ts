@@ -5,11 +5,11 @@ import { exportGinmlModel, importGinmlModel } from './format'
 export class GINMLInterchanger extends Interchanger {
     readonly mimeType = 'application/gxl'
 
-    protected async _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
-        return this.castToArrayBuffer(exportGinmlModel(snapshot))
+    protected _export(snapshot: InternalGRNModel): Promise<ArrayBuffer> {
+        return Promise.resolve(this.castToArrayBuffer(exportGinmlModel(snapshot)))
     }
 
-    async import(content: ArrayBuffer): Promise<InternalGRNModel> {
-        return importGinmlModel(this.castToString(content))
+    import(content: ArrayBuffer): Promise<InternalGRNModel> {
+        return Promise.resolve(importGinmlModel(this.castToString(content)))
     }
 }

@@ -1,21 +1,33 @@
 import { formatRuleIdentifier, parseRuleIdentifierToken } from '@/lib/regulatory-rules/identifiers'
 import { regulatoryRuleGrammar } from '@/lib/regulatory-rules/grammar'
+import type * as ohm from 'ohm-js'
 import { asRecord, ensureArray, getNodeText, type XmlRecord } from './xml'
 
-type RuleAst =
-    | {
-          kind: 'var'
-          name: string
-          value?: number
-      }
-    | {
-          kind: 'not'
-          operand: RuleAst
-      }
-    | {
-          kind: 'and' | 'or'
-          operands: RuleAst[]
-      }
+interface VarAst {
+    kind: 'var'
+    name: string
+    value?: number
+}
+
+interface NotAst {
+    kind: 'not'
+    operand: RuleAst
+}
+
+interface LogicAst {
+    kind: 'and' | 'or'
+    operands: RuleAst[]
+}
+
+type RuleAst = VarAst | NotAst | LogicAst
+
+type RuleAstNode = ohm.Node & {
+    toRuleAst(): RuleAst
+}
+
+function toRuleAstNode(node: unknown): RuleAst {
+    return (node as RuleAstNode).toRuleAst()
+}
 
 export function parseMathMlToExpression(
     math: unknown,
@@ -124,7 +136,8 @@ function parseExpressionNode(
 
     if ('apply' in record) {
         if (Array.isArray(record.apply)) {
-            const [firstChild] = record.apply
+            const applyChildren = record.apply as unknown[]
+            const firstChild = applyChildren[0]
 
             if (!firstChild) {
                 throw new Error('MathML apply wrapper is empty.')
@@ -241,7 +254,7 @@ function buildApplyNode(
     switch (ast.kind) {
         case 'var': {
             const activityLevels = activityLevelsByName.get(ast.name) ?? 1
-            const comparison = ast.value === undefined ? 1 : ast.value
+            const comparison = ast.value ?? 1
 
             if (ast.value === undefined && activityLevels === 1) {
                 return buildComparison(
@@ -342,37 +355,40 @@ function buildAst(match: import('ohm-js').MatchResult): RuleAst {
     const semantics = regulatoryRuleGrammar
         .createSemantics()
         .addOperation<RuleAst>('toRuleAst', {
-            RuleExpr(expr, _end) {
-                return expr.toRuleAst()
+            RuleExpr(expr, end) {
+                void end
+                return toRuleAstNode(expr)
             },
             Expr(expr) {
-                return expr.toRuleAst()
+                return toRuleAstNode(expr)
             },
             OrExpr_binary(left, _operator, right) {
                 return {
                     kind: 'or',
-                    operands: [left.toRuleAst(), right.toRuleAst()],
+                    operands: [toRuleAstNode(left), toRuleAstNode(right)],
                 }
             },
             AndExpr_binary(left, _operator, right) {
                 return {
                     kind: 'and',
-                    operands: [left.toRuleAst(), right.toRuleAst()],
+                    operands: [toRuleAstNode(left), toRuleAstNode(right)],
                 }
             },
             UnaryExpr(nots, primary) {
-                const base = primary.toRuleAst()
+                const base = toRuleAstNode(primary)
 
                 return Array.from({ length: nots.children.length }).reduce(
-                    (value) => ({
+                    (value: RuleAst): NotAst => ({
                         kind: 'not',
                         operand: value,
                     }),
                     base
                 )
             },
-            Primary_paren(_open, expr, _close) {
-                return expr.toRuleAst()
+            Primary_paren(open, expr, close) {
+                void open
+                void close
+                return toRuleAstNode(expr)
             },
             Condition(variable, _colon, value) {
                 return {
@@ -394,5 +410,5 @@ function buildAst(match: import('ohm-js').MatchResult): RuleAst {
             },
         })
 
-    return semantics(match).toRuleAst()
+    return (semantics(match) as { toRuleAst(): RuleAst }).toRuleAst()
 }

@@ -256,9 +256,13 @@ function buildEdgeObject(edge: Edge<EditableRegulatoryEdge>): XmlRecord {
     }
 
     if (levels.length === 1) {
-        edgeRecord['@_minvalue'] = String(levels[0]!.target)
+        const firstLevel = levels[0]
+        if (!firstLevel) {
+            return edgeRecord
+        }
+        edgeRecord['@_minvalue'] = String(firstLevel.target)
         edgeRecord['@_sign'] =
-            levels[0]!.type === 'activation' ? 'positive' : 'negative'
+            firstLevel.type === 'activation' ? 'positive' : 'negative'
     } else if (levels.length > 1) {
         edgeRecord['@_effects'] = levels
             .map(

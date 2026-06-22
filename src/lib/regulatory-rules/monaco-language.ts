@@ -6,7 +6,7 @@ import {
 
 export const RULE_LANGUAGE_ID = 'regulatory-rule'
 export const RULE_THEME_ID = 'regulatory-rule-theme'
-const VARIABLE_NAME_PATTERN = String.raw`(?:\"(?:\\.|[^\"])*\"|[A-Za-z_][A-Za-z0-9_]*)`
+const VARIABLE_NAME_PATTERN = String.raw`(?:"(?:\\.|[^"])*"|[A-Za-z_][A-Za-z0-9_]*)`
 const SETUP_STATE_KEY = Symbol.for('grn-core.regulatory-rule-language-setup')
 
 interface RegulatoryRuleSuggestionContext {
@@ -50,7 +50,7 @@ export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
     monacoInstance.languages.setMonarchTokensProvider(RULE_LANGUAGE_ID, {
         tokenizer: {
             root: [
-                [/\"(?:\\.|[^\"])*\"/, 'identifier'],
+                [/"(?:\\.|[^"])*"/, 'identifier'],
                 [/[a-zA-Z_][a-zA-Z0-9_]*/, 'identifier'],
                 [/[0-9]/, 'number'],
                 [/[:]/, 'delimiter'],

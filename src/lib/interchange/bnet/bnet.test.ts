@@ -141,10 +141,19 @@ describe('BooleanNetworkInterchanger', () => {
 
     it('rejects unsupported export cases', () => {
         const multilevelModel = importBNetModel('targets, factors\nA, A')
-        multilevelModel.nodes[0]!.data.activityLevels = 2
+        const multilevelNode = multilevelModel.nodes[0]
+        if (!multilevelNode) {
+            throw new Error('Expected imported BNet model to contain node A.')
+        }
+        multilevelNode.data.activityLevels = 2
 
         const wrongTargetModel = importBNetModel('targets, factors\nA, A')
-        wrongTargetModel.nodes[0]!.data.rules[0]!.target = 2
+        const wrongTargetNode = wrongTargetModel.nodes[0]
+        const wrongTargetRule = wrongTargetNode?.data.rules[0]
+        if (!wrongTargetNode || !wrongTargetRule) {
+            throw new Error('Expected imported BNet model to contain rule A.')
+        }
+        wrongTargetRule.target = 2
 
         expect(() => exportBNetModel(multilevelModel)).toThrow(/multi-level/)
         expect(() => exportBNetModel(wrongTargetModel)).toThrow(
