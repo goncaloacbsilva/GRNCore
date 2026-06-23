@@ -25,11 +25,7 @@ import { toast } from 'sonner'
 import { twMerge } from 'tailwind-merge'
 import { useShallow } from 'zustand/react/shallow'
 
-function AutoOpenFilePicker({
-    open,
-}: {
-    open: boolean
-}) {
+function AutoOpenFilePicker({ open }: { open: boolean }) {
     const { inputRef, disabled } = useFileUploadContext(TRIGGER_NAME)
 
     useEffect(() => {

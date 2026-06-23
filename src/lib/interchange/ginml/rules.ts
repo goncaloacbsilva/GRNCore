@@ -328,7 +328,9 @@ function materializeInteractionReference(
             ? edgeData.levels.length === 1
                 ? edgeData.levels[0]
                 : undefined
-            : edgeData.levels.find((candidate) => candidate.target === threshold)
+            : edgeData.levels.find(
+                  (candidate) => candidate.target === threshold
+              )
 
     if (!level) {
         throw new Error(
