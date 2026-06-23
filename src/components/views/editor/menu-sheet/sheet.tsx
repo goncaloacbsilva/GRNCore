@@ -271,7 +271,14 @@ export function MenuSheet() {
                                 }
                             />
                             <h3 className="pl-2 font-semibold">
-                                Element properties
+                                {renderedSelectedElements > 1 &&
+                                    'Element properties'}
+                                {renderedSelectedElements == 1 &&
+                                    selectedNodes.length == 1 &&
+                                    'Node properties'}
+                                {renderedSelectedElements == 1 &&
+                                    selectedEdges.length == 1 &&
+                                    'Edge properties'}
                             </h3>
                         </button>
                     </div>
@@ -295,21 +302,19 @@ export function MenuSheet() {
                                         </Alert>
                                     )}
                                     <div className="flex flex-row items-center">
-                                        {renderedSelectedElements == 1 && (
-                                            <TabsList className="w-full">
-                                                <>
-                                                    <TabsTrigger value="base">
-                                                        Base Properties
-                                                    </TabsTrigger>
-                                                    {renderedSelection.nodes
-                                                        .length > 0 && (
+                                        {renderedSelectedElements == 1 &&
+                                            selectedNodes.length == 1 && (
+                                                <TabsList className="w-full">
+                                                    <>
+                                                        <TabsTrigger value="base">
+                                                            Base Properties
+                                                        </TabsTrigger>
                                                         <TabsTrigger value="style">
                                                             Style
                                                         </TabsTrigger>
-                                                    )}
-                                                </>
-                                            </TabsList>
-                                        )}
+                                                    </>
+                                                </TabsList>
+                                            )}
                                     </div>
                                 </div>
 
