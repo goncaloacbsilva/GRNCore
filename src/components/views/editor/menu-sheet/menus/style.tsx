@@ -15,7 +15,6 @@ import { useReactFlow, type Edge, type Node } from '@xyflow/react'
 import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useStore as useFormStore } from '@tanstack/react-form'
-import { toast } from 'sonner'
 import {
     DEFAULT_NODE_BACKGROUND_COLOR,
     DEFAULT_NODE_BORDER_COLOR,
