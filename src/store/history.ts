@@ -50,7 +50,7 @@ interface HistoryState {
     getHistoryPosition: () => number
     canHistoryForward: () => boolean
     export: (format: InterchangeFormat) => void
-    import: (file: File, callback: () => void) => void
+    import: (file: File, callback: (error: boolean) => void) => void
     markHydrated: () => void
     setSnapshotTitle: (title: string) => void
     setSnapshotAnnotations: (
@@ -555,15 +555,20 @@ export const useChangesTracking = create<HistoryState>()(
             import: (file, callback) => {
                 toast.promise(
                     async () => {
-                        const importedSnapshot = await importModel(file)
-                        resetDiffHistory(importedSnapshot)
-                        historyBaselinePosition = historyJournal.position
-                        set({
-                            snapshot: cloneSnapshot(importedSnapshot),
-                            baselineVersion: get().baselineVersion + 1,
-                            graphVersion: get().graphVersion + 1,
-                        })
-                        callback()
+                        try {
+                            const importedSnapshot = await importModel(file)
+                            resetDiffHistory(importedSnapshot)
+                            historyBaselinePosition = historyJournal.position
+                            set({
+                                snapshot: cloneSnapshot(importedSnapshot),
+                                baselineVersion: get().baselineVersion + 1,
+                                graphVersion: get().graphVersion + 1,
+                            })
+                            callback(false)
+                        } catch (e) {
+                            callback(true)
+                            throw e
+                        }
                     },
                     {
                         loading: `Importing ${file.name}...`,

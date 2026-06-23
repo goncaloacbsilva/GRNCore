@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -10,17 +11,39 @@ import {
     FileUpload,
     FileUploadDropzone,
     FileUploadItem,
-    FileUploadItemDelete,
     FileUploadItemMetadata,
     FileUploadList,
     FileUploadTrigger,
+    TRIGGER_NAME,
+    useFileUploadContext,
 } from '@/components/ui/file-upload'
 import { getInterchangeFormat } from '@/lib/interchange'
 import { useChangesTracking, useEditorStore } from '@/store'
-import { Upload, X } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { Upload } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { twMerge } from 'tailwind-merge'
 import { useShallow } from 'zustand/react/shallow'
+
+function AutoOpenFilePicker({
+    open,
+}: {
+    open: boolean
+}) {
+    const { inputRef, disabled } = useFileUploadContext(TRIGGER_NAME)
+
+    useEffect(() => {
+        if (!open || disabled) return
+
+        const frame = requestAnimationFrame(() => {
+            inputRef.current?.click()
+        })
+
+        return () => cancelAnimationFrame(frame)
+    }, [disabled, inputRef, open])
+
+    return null
+}
 
 export function ImportModelDialog() {
     const { open, setOpen } = useEditorStore(
@@ -49,8 +72,30 @@ export function ImportModelDialog() {
         })
     }, [])
 
+    const setDialogOpen = (open: boolean) => {
+        setOpen(open)
+        if (!open) {
+            setTimeout(() => setFiles([]), 500)
+        }
+    }
+
+    useEffect(() => {
+        if (files.length > 0) {
+            importModel(files[0], (hasError) => {
+                if (hasError) {
+                    setTimeout(() => setFiles([]), 200)
+                } else {
+                    setTimeout(() => {
+                        setOpen(false)
+                        setTimeout(() => setFiles([]), 500)
+                    }, 500)
+                }
+            })
+        }
+    }, [files, importModel, setOpen])
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={setDialogOpen}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Import Model</DialogTitle>
@@ -69,7 +114,10 @@ export function ImportModelDialog() {
                     maxFiles={1}
                     className="w-full max-w-md"
                 >
-                    <FileUploadDropzone>
+                    <AutoOpenFilePicker open={open && files.length === 0} />
+                    <FileUploadDropzone
+                        className={twMerge(files.length > 0 && 'hidden')}
+                    >
                         <div className="flex flex-col items-center gap-1">
                             <div className="flex items-center justify-center rounded-full border p-2.5">
                                 <Upload className="size-6 text-muted-foreground" />
@@ -95,30 +143,18 @@ export function ImportModelDialog() {
                         {files.map((file) => (
                             <FileUploadItem key={file.name} value={file}>
                                 <FileUploadItemMetadata />
-                                <FileUploadItemDelete asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-7"
-                                    >
-                                        <X />
-                                    </Button>
-                                </FileUploadItemDelete>
+                                <Badge variant="ghost">
+                                    <span className="inline-flex items-center overflow-hidden transition-[width] duration-100 ease-in-out">
+                                        <span className="inline-flex items-center gap-2 animate-in fade-in-0 slide-in-from-bottom-1 duration-100 whitespace-nowrap">
+                                            <span className="size-3.5 shrink-0 rounded-full border-2 border-blue-200 border-t-blue-500 animate-spin" />
+                                            Importing
+                                        </span>
+                                    </span>
+                                </Badge>
                             </FileUploadItem>
                         ))}
                     </FileUploadList>
                 </FileUpload>
-                <Button
-                    hidden={files.length === 0}
-                    onClick={() =>
-                        importModel(files[0], () => {
-                            setFiles([])
-                            setOpen(false)
-                        })
-                    }
-                >
-                    Import Model
-                </Button>
             </DialogContent>
         </Dialog>
     )

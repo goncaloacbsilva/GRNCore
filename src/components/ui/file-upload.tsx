@@ -20,7 +20,7 @@ import { useLazyRef } from '@/hooks/use-lazy-ref'
 
 const ROOT_NAME = 'FileUpload'
 const DROPZONE_NAME = 'FileUploadDropzone'
-const TRIGGER_NAME = 'FileUploadTrigger'
+export const TRIGGER_NAME = 'FileUploadTrigger'
 const LIST_NAME = 'FileUploadList'
 const ITEM_NAME = 'FileUploadItem'
 const ITEM_PREVIEW_NAME = 'FileUploadItemPreview'
@@ -173,7 +173,7 @@ const FileUploadContext = React.createContext<FileUploadContextValue | null>(
     null
 )
 
-function useFileUploadContext(consumerName: string) {
+export function useFileUploadContext(consumerName: string) {
     const context = React.useContext(FileUploadContext)
     if (!context) {
         throw new Error(

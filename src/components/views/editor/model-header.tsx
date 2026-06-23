@@ -13,7 +13,6 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
-import { Spinner } from '@/components/ui/spinner'
 import { usePersistenceStatus } from '@/store'
 import { useChangesTracking, useEditorStore } from '@/store'
 import { useStore as useFormStore } from '@tanstack/react-form'
@@ -35,7 +34,7 @@ function SavingIndicator() {
 
     return (
         <Badge
-            variant={isSaving ? 'secondary' : 'ghost'}
+            variant="ghost"
             className={
                 isSaving ? '' : ' text-black hover:bg-muted transition-all'
             }
@@ -52,7 +51,7 @@ function SavingIndicator() {
                     className="inline-flex items-center gap-1 animate-in fade-in-0 slide-in-from-bottom-1 duration-100 whitespace-nowrap"
                 >
                     {isSaving ? (
-                        <Spinner className="size-3.5 text-blue-500" />
+                        <span className="size-3.5 shrink-0 rounded-full border-2 border-blue-200 border-t-blue-500 animate-spin" />
                     ) : (
                         <CheckIcon className="size-3.5 text-blue-500" />
                     )}
