@@ -1,14 +1,21 @@
 import { useAppForm } from '@/components/forms'
+import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import { TabsContent } from '@/components/ui/tabs'
 import {
     type EditableRegulatoryEdge,
     type RegulatoryNodeProperties,
 } from '@/lib/schema'
-import { useChangesTracking, useEditorStore } from '@/store'
+import {
+    useChangesTracking,
+    useEditorStore,
+    type CustomNodeTheme,
+} from '@/store'
 import { useReactFlow, type Edge, type Node } from '@xyflow/react'
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { PlusIcon, Trash2Icon } from 'lucide-react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useStore as useFormStore } from '@tanstack/react-form'
+import { toast } from 'sonner'
 import {
     DEFAULT_NODE_BACKGROUND_COLOR,
     DEFAULT_NODE_BORDER_COLOR,
@@ -31,6 +38,11 @@ interface NodeThemePreset {
     backgroundColor: string
     borderColor: string
 }
+
+type NodeThemeColors = Pick<
+    NodeThemePreset,
+    'foregroundColor' | 'backgroundColor' | 'borderColor'
+>
 
 const NODE_THEME_PRESETS: NodeThemePreset[] = [
     {
@@ -68,13 +80,6 @@ const NODE_THEME_PRESETS: NodeThemePreset[] = [
         backgroundColor: '#ffe4e6',
         borderColor: '#fb7185',
     },
-    {
-        id: 'slate',
-        label: 'Slate',
-        foregroundColor: '#f8fafc',
-        backgroundColor: '#334155',
-        borderColor: '#0f172a',
-    },
 ]
 
 export function StyleMenu({ node }: StyleMenuProps) {
@@ -82,9 +87,22 @@ export function StyleMenu({ node }: StyleMenuProps) {
         Node<RegulatoryNodeProperties>,
         Edge<EditableRegulatoryEdge>
     >()
-    const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
+    const {
+        setSnapshotPaused,
+        customNodeThemes,
+        addCustomNodeTheme,
+        removeCustomNodeTheme,
+    } = useEditorStore((state) => ({
+        setSnapshotPaused: state.setSnapshotPaused,
+        customNodeThemes: state.customNodeThemes,
+        addCustomNodeTheme: state.addCustomNodeTheme,
+        removeCustomNodeTheme: state.removeCustomNodeTheme,
+    }))
     const beginGroup = useChangesTracking((state) => state.beginGroup)
     const endGroup = useChangesTracking((state) => state.endGroup)
+    const [selectedCustomThemeId, setSelectedCustomThemeId] = useState<
+        string | null
+    >(null)
 
     const form = useAppForm({
         defaultValues: {
@@ -113,11 +131,28 @@ export function StyleMenu({ node }: StyleMenuProps) {
         })
     }
 
-    const applyThemePreset = (preset: NodeThemePreset) => {
+    const applyThemePreset = (preset: NodeThemeColors) => {
         runAsSingleStyleHistoryStep(() => {
             form.setFieldValue('foregroundColor', preset.foregroundColor)
             form.setFieldValue('backgroundColor', preset.backgroundColor)
             form.setFieldValue('borderColor', preset.borderColor)
+        })
+    }
+
+    const applyDefaultThemePreset = (preset: NodeThemeColors) => {
+        setSelectedCustomThemeId(null)
+        applyThemePreset(preset)
+    }
+
+    const saveCustomTheme = () => {
+        addCustomNodeTheme({
+            id:
+                typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                    ? crypto.randomUUID()
+                    : `${Date.now()}`,
+            foregroundColor: formValues.foregroundColor,
+            backgroundColor: formValues.backgroundColor,
+            borderColor: formValues.borderColor,
         })
     }
 
@@ -160,7 +195,15 @@ export function StyleMenu({ node }: StyleMenuProps) {
             <FieldGroup className="gap-5">
                 <ThemePalette
                     presets={NODE_THEME_PRESETS}
-                    onPresetSelect={applyThemePreset}
+                    onPresetSelect={applyDefaultThemePreset}
+                />
+                <CustomThemePalette
+                    selectedThemeId={selectedCustomThemeId}
+                    onThemePick={setSelectedCustomThemeId}
+                    themes={customNodeThemes}
+                    onThemeSave={saveCustomTheme}
+                    onThemeSelect={applyThemePreset}
+                    onThemeDelete={removeCustomNodeTheme}
                 />
                 <form.AppField
                     name="foregroundColor"
@@ -190,7 +233,7 @@ function ThemePalette({
     onPresetSelect,
 }: {
     presets: NodeThemePreset[]
-    onPresetSelect: (preset: NodeThemePreset) => void
+    onPresetSelect: (preset: NodeThemeColors) => void
 }) {
     return (
         <div className="flex flex-col gap-2">
@@ -216,6 +259,93 @@ function ThemePalette({
                     </button>
                 ))}
             </div>
+        </div>
+    )
+}
+
+function CustomThemePalette({
+    selectedThemeId,
+    onThemePick,
+    themes,
+    onThemeSave,
+    onThemeSelect,
+    onThemeDelete,
+}: {
+    selectedThemeId: string | null
+    onThemePick: (themeId: string | null) => void
+    themes: CustomNodeTheme[]
+    onThemeSave: () => void
+    onThemeSelect: (preset: NodeThemeColors) => void
+    onThemeDelete: (themeId: string) => void
+}) {
+    return (
+        <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
+                <h4 className="text-sm font-medium">Custom Themes</h4>
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground flex h-8 w-12 items-center justify-center rounded border-2 border-dashed border-border/70 bg-muted/20 hover:border-border focus:border-ring focus:outline-none"
+                        onClick={onThemeSave}
+                        aria-label="Save current theme"
+                        title="Save current theme"
+                    >
+                        <PlusIcon className="size-4" />
+                    </button>
+                    {themes.map((theme, index) => (
+                        <div key={theme.id} className="relative h-8 w-12">
+                            <button
+                                type="button"
+                                className={`flex h-8 w-12 overflow-hidden rounded border-2 hover:border-border focus:border-ring focus:outline-none ${
+                                    selectedThemeId === theme.id
+                                        ? 'border-ring'
+                                        : 'border-transparent'
+                                }`}
+                                onClick={() => {
+                                    onThemePick(theme.id)
+                                    onThemeSelect(theme)
+                                }}
+                                aria-label={`Select custom theme ${index + 1}`}
+                                title={`Custom theme ${index + 1}`}
+                            >
+                                <span
+                                    className="h-full flex-1"
+                                    style={{
+                                        backgroundColor: theme.backgroundColor,
+                                    }}
+                                />
+                                <span
+                                    className="h-full w-2"
+                                    style={{
+                                        backgroundColor: theme.borderColor,
+                                    }}
+                                />
+                            </button>
+                            {selectedThemeId === theme.id ? (
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="icon-xs"
+                                    className="absolute -top-1 -right-1 z-10 shadow-sm"
+                                    onClick={() => {
+                                        onThemeDelete(theme.id)
+                                        onThemePick(null)
+                                    }}
+                                    aria-label={`Delete custom theme ${index + 1}`}
+                                    title={`Delete custom theme ${index + 1}`}
+                                >
+                                    <Trash2Icon />
+                                </Button>
+                            ) : null}
+                        </div>
+                    ))}
+                </div>
+            </div>
+            {themes.length === 0 ? (
+                <p className="text-muted-foreground text-xs">
+                    Save the current node colors to reuse them later.
+                </p>
+            ) : null}
         </div>
     )
 }
