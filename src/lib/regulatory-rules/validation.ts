@@ -18,23 +18,19 @@ function buildIncomingEdgeConstraints(
     incomingNodes: Node<RegulatoryNodeProperties>[],
     incomingEdges: Edge<EditableRegulatoryEdge>[]
 ) {
-    const nodeAliasesById = new Map(
-        incomingNodes.map((node) => [
-            node.id,
-            Array.from(new Set([node.id, node.data.name])),
-        ])
+    const nodeNamesById = new Map(
+        incomingNodes.map((node) => [node.id, node.data.name])
     )
     const constraints = new Map<string, IncomingEdgeConstraint>()
 
     incomingEdges.forEach((edge) => {
-        const sourceAliases = nodeAliasesById.get(edge.source)
+        const sourceName = nodeNamesById.get(edge.source)
 
-        if (!sourceAliases || sourceAliases.length === 0) {
+        if (!sourceName) {
             return
         }
 
-        const currentConstraint =
-            constraints.get(sourceAliases[0] ?? edge.source) ?? {}
+        const currentConstraint = constraints.get(sourceName) ?? {}
 
         edge.data?.levels.forEach((level) => {
             if (level.type === InteractionType.Activation) {
@@ -57,9 +53,7 @@ function buildIncomingEdgeConstraints(
             )
         })
 
-        sourceAliases.forEach((alias) => {
-            constraints.set(alias, currentConstraint)
-        })
+        constraints.set(sourceName, currentConstraint)
     })
 
     return constraints
@@ -89,7 +83,6 @@ export function validateRegulatoryRuleExpression(
     const expressionReferences = getExpressionReferences(matchResult)
     const incomingNodeActivityLevels = new Map<string, number>()
     incomingNodes.forEach((node) => {
-        incomingNodeActivityLevels.set(node.id, node.data.activityLevels)
         incomingNodeActivityLevels.set(node.data.name, node.data.activityLevels)
     })
     const incomingEdgeConstraints = buildIncomingEdgeConstraints(

@@ -1,5 +1,6 @@
 import type { InternalGRNModel } from '@/lib/schema'
 import { describe, expect, it } from 'vitest'
+import { validateRegulatoryRuleExpression } from '@/lib/regulatory-rules'
 import { ACTIVE_INTERACTIONS_GINML } from './__fixtures__/active-ginml'
 import { DIRECT_GINML } from './__fixtures__/direct-ginml'
 import { exportGinmlModel, importGinmlModel } from './format'
@@ -95,6 +96,37 @@ describe('GINMLInterchanger', () => {
         ])
     })
 
+    it('ignores constitutive parameters when the same level already has explicit rules', () => {
+        const model = importGinmlModel(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gxl SYSTEM "http://ginsim.org/GINML_2_2.dtd">
+<gxl xmlns:xlink="http://www.w3.org/1999/xlink">
+  <graph class="regulatory" id="constitutive_override" nodeorder="A C">
+    <node id="A" name="A" maxvalue="1">
+      <nodevisualsetting x="10" y="10" style=""/>
+    </node>
+    <node id="C" name="C" maxvalue="1">
+      <parameter val="1"/>
+      <value val="1">
+        <exp str="A"/>
+      </value>
+      <nodevisualsetting x="110" y="10" style=""/>
+    </node>
+    <edge id="A:C" from="A" to="C" minvalue="1" sign="positive">
+      <edgevisualsetting anchor="NE" style=""/>
+    </edge>
+  </graph>
+</gxl>`)
+        const node = model.nodes.find((entry) => entry.id === 'C')
+
+        expect(node?.data.rules).toEqual([
+            expect.objectContaining({
+                target: 1,
+                expression: 'A',
+                isValid: true,
+            }),
+        ])
+    })
+
     it('accepts omitted thresholds for multilevel references when only one polarity threshold exists', () => {
         const model = importGinmlModel(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE gxl SYSTEM "http://ginsim.org/GINML_2_2.dtd">
@@ -123,6 +155,65 @@ describe('GINMLInterchanger', () => {
             expect.objectContaining({
                 target: 1,
                 expression: 'DNAdam && !p53',
+                isValid: true,
+            }),
+        ])
+    })
+
+    it('validates rule identifiers against node names rather than node ids', () => {
+        const model = importGinmlModel(DIRECT_GINML)
+        const target = model.nodes.find((entry) => entry.id === 'C')
+        const incomingEdges = model.edges.filter((edge) => edge.target === 'C')
+        const incomingNodes = model.nodes.filter((node) =>
+            incomingEdges.some((edge) => edge.source === node.id)
+        )
+
+        expect(
+            validateRegulatoryRuleExpression(
+                'RA:1 || !B',
+                incomingNodes,
+                incomingEdges
+            )
+        ).toMatch(/Unknown incoming node: RA/)
+        expect(
+            validateRegulatoryRuleExpression(
+                '"Retinoic Acid":1 || !B',
+                incomingNodes,
+                incomingEdges
+            )
+        ).toBeNull()
+        expect(target?.data.rules).toEqual([
+            expect.objectContaining({
+                target: 1,
+                expression: '"Retinoic Acid":1 || !B',
+                isValid: true,
+            }),
+        ])
+    })
+
+    it('resolves two-part active-interaction ids via edge ids when threshold is omitted', () => {
+        const model = importGinmlModel(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gxl SYSTEM "http://ginsim.org/GINML_2_2.dtd">
+<gxl xmlns:xlink="http://www.w3.org/1999/xlink">
+  <graph class="regulatory" id="two_part_fixture" nodeorder="A C">
+    <node id="A" name="A" maxvalue="1">
+      <nodevisualsetting x="10" y="10" style=""/>
+    </node>
+    <node id="C" name="C" maxvalue="1">
+      <parameter val="1" idActiveInteractions="A:C"/>
+      <nodevisualsetting x="110" y="10" style=""/>
+    </node>
+    <edge id="A:C" from="A" to="C" minvalue="1" sign="positive">
+      <edgevisualsetting anchor="NE" style=""/>
+    </edge>
+  </graph>
+</gxl>`)
+        const node = model.nodes.find((entry) => entry.id === 'C')
+
+        expect(node?.data.rules).toEqual([
+            expect.objectContaining({
+                target: 1,
+                expression: 'A:1',
                 isValid: true,
             }),
         ])

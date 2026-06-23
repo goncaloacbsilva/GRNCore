@@ -14,7 +14,6 @@ import { createEdgesFromGinml } from './edges'
 import {
     collectRawRulesFromNode,
     materializeGinmlRules,
-    rewriteExpressionIdentifiers,
     toGinmlExpressionSyntax,
 } from './rules'
 import {
@@ -63,16 +62,13 @@ export function importGinmlModel(xml: string): InternalGRNModel {
 }
 
 export function exportGinmlModel(model: InternalGRNModel): string {
-    const nodeIdByName = new Map(
-        model.nodes.map((node) => [node.data.name, node.id] as const)
-    )
     const graph: XmlRecord = {
         '@_class': 'regulatory',
         '@_id': model.title || 'regulatoryGraph',
         '@_nodeorder': model.nodes.map((node) => node.id).join(' '),
         nodestyle: buildDefaultNodeStyles(),
         edgestyle: buildDefaultEdgeStyles(),
-        node: model.nodes.map((node) => buildNodeObject(node, nodeIdByName)),
+        node: model.nodes.map((node) => buildNodeObject(node)),
         edge: model.edges.map((edge) => buildEdgeObject(edge)),
     }
 
@@ -191,10 +187,7 @@ function buildDefaultEdgeStyles(): XmlRecord[] {
     ]
 }
 
-function buildNodeObject(
-    node: Node<RegulatoryNodeProperties>,
-    nodeIdByName: Map<string, string>
-): XmlRecord {
+function buildNodeObject(node: Node<RegulatoryNodeProperties>): XmlRecord {
     const groupedRules = new Map<number, string[]>()
     for (const rule of node.data.rules) {
         const expressions = groupedRules.get(rule.target) ?? []
@@ -217,9 +210,7 @@ function buildNodeObject(
             values.push({
                 '@_val': String(target),
                 exp: directExpressions.map((expression) => ({
-                    '@_str': toGinmlExpressionSyntax(
-                        rewriteExpressionIdentifiers(expression, nodeIdByName)
-                    ),
+                    '@_str': toGinmlExpressionSyntax(expression),
                 })),
             })
         } else if (literalExpressions.length > 0) {

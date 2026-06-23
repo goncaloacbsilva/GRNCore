@@ -31,7 +31,9 @@ export function exportBNetModel(model: InternalGRNModel): string {
 function validateBooleanModel(model: InternalGRNModel): void {
     for (const node of model.nodes) {
         if (node.data.activityLevels !== 1) {
-            throw new Error(`BoolNet doesn't support multi-level models.`)
+            throw new Error(
+                `Cannot export a multivalued model to a Boolean format`
+            )
         }
 
         const nonEmptyRules = node.data.rules.filter(

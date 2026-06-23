@@ -114,6 +114,16 @@ function materializeRuleSet(
         isValid: boolean
     }[] = []
     const activeInteractionExpressionsByTarget = new Map<number, string[]>()
+    const explicitTargets = new Set(
+        rawRules
+            .filter(
+                (rawRule) =>
+                    rawRule.kind === 'expression' ||
+                    rawRule.kind === 'active-interactions'
+            )
+            .map((rawRule) => rawRule.target)
+    )
+    const seenConstitutiveTargets = new Set<number>()
 
     for (const rawRule of rawRules) {
         if (rawRule.kind === 'active-interactions') {
@@ -132,6 +142,17 @@ function materializeRuleSet(
                 expressions
             )
             continue
+        }
+
+        if (rawRule.kind === 'constitutive') {
+            if (
+                explicitTargets.has(rawRule.target) ||
+                seenConstitutiveTargets.has(rawRule.target)
+            ) {
+                continue
+            }
+
+            seenConstitutiveTargets.add(rawRule.target)
         }
 
         rules.push({
@@ -266,14 +287,13 @@ function materializeInteractionReference(
     formattedNameById: Map<string, string>,
     edgeByInteractionKey: Map<string, Edge<EditableRegulatoryEdge>>
 ): string {
-    const [sourceId, resolvedTargetId, thresholdToken] =
+    const [sourceId, resolvedTargetId, thresholdToken, ...extraParts] =
         interactionId.split(':')
-    const threshold = Number(thresholdToken)
 
     if (
         !sourceId ||
         !resolvedTargetId ||
-        !Number.isInteger(threshold) ||
+        extraParts.length > 0 ||
         resolvedTargetId !== targetNode.id
     ) {
         throw new Error(
@@ -282,9 +302,11 @@ function materializeInteractionReference(
     }
 
     const sourceNode = nodeById.get(sourceId)
-    const edge = edgeByInteractionKey.get(
-        `${sourceId}:${resolvedTargetId}:${threshold}`
-    )
+    const edge = thresholdToken
+        ? edgeByInteractionKey.get(
+              `${sourceId}:${resolvedTargetId}:${Number(thresholdToken)}`
+          )
+        : edgeByInteractionKey.get(`${sourceId}:${resolvedTargetId}`)
 
     if (!sourceNode || !edge) {
         throw new Error(
@@ -300,9 +322,13 @@ function materializeInteractionReference(
         )
     }
 
-    const level = edgeData.levels.find(
-        (candidate) => candidate.target === threshold
-    )
+    const threshold = thresholdToken ? Number(thresholdToken) : undefined
+    const level =
+        threshold === undefined
+            ? edgeData.levels.length === 1
+                ? edgeData.levels[0]
+                : undefined
+            : edgeData.levels.find((candidate) => candidate.target === threshold)
 
     if (!level) {
         throw new Error(
@@ -315,14 +341,14 @@ function materializeInteractionReference(
         formatRuleIdentifier(sourceNode.data.name)
 
     if (level.type === InteractionType.Activation) {
-        return `${formattedName}:${threshold}`
+        return `${formattedName}:${level.target}`
     }
 
-    if (sourceNode.data.activityLevels === 1 && threshold === 1) {
+    if (sourceNode.data.activityLevels === 1 && level.target === 1) {
         return `!${formattedName}`
     }
 
-    return `!${formattedName}:${threshold}`
+    return `!${formattedName}:${level.target}`
 }
 
 function buildInteractionEdgeLookup(
@@ -335,6 +361,8 @@ function buildInteractionEdgeLookup(
         if (!edgeData) {
             continue
         }
+
+        lookup.set(`${edge.source}:${edge.target}`, edge)
 
         for (const level of edgeData.levels) {
             lookup.set(`${edge.source}:${edge.target}:${level.target}`, edge)
