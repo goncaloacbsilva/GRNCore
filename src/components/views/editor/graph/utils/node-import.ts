@@ -33,9 +33,7 @@ export function normalizeRegulatoryNodes(
                     getRegulatoryNodeBackgroundColor(node.style),
                 [NODE_BORDER_COLOR_STYLE_PROPERTY]:
                     getRegulatoryNodeBorderColor(node.style),
-                [NODE_SHAPE_STYLE_PROPERTY]: getRegulatoryNodeShape(
-                    node.style as RegulatoryNodeStyle | undefined
-                ),
+                [NODE_SHAPE_STYLE_PROPERTY]: getRegulatoryNodeShape(node.style),
             } satisfies RegulatoryNodeStyle,
         }
     })

@@ -38,12 +38,12 @@ const RegulatoryNode = ({
     const connection = useConnection()
     const internalNode = useInternalNode<Node<RegulatoryNodeProperties>>(id)
     const contentMinWidth = getNodeContentMinWidth(data.name)
-    const connectModeActive = useEditorStore((state) => state.connectModeEnabled)
+    const connectModeActive = useEditorStore(
+        (state) => state.connectModeEnabled
+    )
     const selectedNodeIdsArray = useStore(
         (state) =>
-            state.nodes
-                .filter((node) => node.selected)
-                .map((node) => node.id),
+            state.nodes.filter((node) => node.selected).map((node) => node.id),
         shallow
     )
 
@@ -70,7 +70,9 @@ const RegulatoryNode = ({
             : connectModeActive
               ? '#e2e8f098'
               : borderColor
-    const nodeShape = getRegulatoryNodeShape(internalNode?.internals.userNode.style)
+    const nodeShape = getRegulatoryNodeShape(
+        internalNode?.internals.userNode.style
+    )
 
     return (
         <>

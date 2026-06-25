@@ -29,7 +29,6 @@ import {
     type RegulatoryNodeShape,
     type RegulatoryNodeStyle,
 } from '../../graph/node-style'
-import { Separator } from '@/components/ui/separator'
 
 interface StyleMenuProps {
     node: Node<RegulatoryNodeProperties>

@@ -243,7 +243,7 @@ function buildDefaultEdgeStyles(): XmlRecord[] {
 }
 
 function buildNodeObject(node: Node<RegulatoryNodeProperties>): XmlRecord {
-    const style = node.style as RegulatoryNodeStyle | undefined
+    const style = node.style
     const groupedRules = new Map<number, string[]>()
     for (const rule of node.data.rules) {
         const expressions = groupedRules.get(rule.target) ?? []
@@ -315,7 +315,9 @@ function buildNodeStyleShapeMap(graph: XmlRecord) {
     return nodeStylesByName
 }
 
-function toRegulatoryNodeShape(style: XmlRecord | undefined): RegulatoryNodeShape {
+function toRegulatoryNodeShape(
+    style: XmlRecord | undefined
+): RegulatoryNodeShape {
     const rawShape = getAttribute(style, 'shape')
 
     switch (rawShape) {

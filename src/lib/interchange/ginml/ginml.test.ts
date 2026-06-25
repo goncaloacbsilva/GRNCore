@@ -259,9 +259,15 @@ describe('GINMLInterchanger', () => {
         expect(xml).toContain('shape="ROUND_RECTANGLE"')
         expect(xml).toContain('name="Ellipse"')
         expect(xml).toContain('shape="ELLIPSE"')
-        expect(xml).toContain('nodevisualsetting x="10" y="10" style="Rectangle"')
-        expect(xml).toContain('nodevisualsetting x="110" y="10" style="RoundedRectangle"')
-        expect(xml).toContain('nodevisualsetting x="75" y="108" style="Ellipse"')
+        expect(xml).toContain(
+            'nodevisualsetting x="10" y="10" style="Rectangle"'
+        )
+        expect(xml).toContain(
+            'nodevisualsetting x="110" y="10" style="RoundedRectangle"'
+        )
+        expect(xml).toContain(
+            'nodevisualsetting x="75" y="108" style="Ellipse"'
+        )
     })
 
     it('imports node shapes from GINML style definitions', () => {
@@ -357,9 +363,9 @@ describe('GINMLInterchanger', () => {
 
         const reimported = importGinmlModel(exportGinmlModel(imported))
 
-        expect(reimported.nodes.map((node) => getRegulatoryNodeShape(node.style))).toEqual(
-            expectedShapes
-        )
+        expect(
+            reimported.nodes.map((node) => getRegulatoryNodeShape(node.style))
+        ).toEqual(expectedShapes)
     })
 
     it('rejects malformed structures and unresolved active interactions', () => {
