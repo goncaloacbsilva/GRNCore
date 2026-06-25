@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo } from 'react'
+import { memo } from 'react'
 import {
     Handle,
     Position,
@@ -7,6 +7,7 @@ import {
     type Node,
     useConnection,
     useInternalNode,
+    useStore,
 } from '@xyflow/react'
 import type { RegulatoryNodeProperties } from '@/lib/schema'
 import { DEFAULT_NODE_HEIGHT } from '../config'
@@ -14,7 +15,7 @@ import { getNodeContentMinWidth } from '../utils'
 import { useEditorStore } from '@/store'
 import { twJoin } from 'tailwind-merge'
 import { NodeToolbar } from './node-toolbar'
-import { useShallow } from 'zustand/react/shallow'
+import { shallow } from 'zustand/shallow'
 import {
     Tooltip,
     TooltipContent,
@@ -26,6 +27,7 @@ import {
     DEFAULT_NODE_FOREGROUND_COLOR,
     getRegulatoryNodeBackgroundColor,
     getRegulatoryNodeBorderColor,
+    getRegulatoryNodeShape,
 } from '../node-style'
 
 const RegulatoryNode = ({
@@ -36,28 +38,19 @@ const RegulatoryNode = ({
     const connection = useConnection()
     const internalNode = useInternalNode<Node<RegulatoryNodeProperties>>(id)
     const contentMinWidth = getNodeContentMinWidth(data.name)
-    const {
-        connectModeActive,
-        pushSelectedNodeId,
-        selectedNodesIds,
-        popSelectedNodeId,
-    } = useEditorStore(
-        useShallow((state) => ({
-            connectModeActive: state.connectModeEnabled,
-            pushSelectedNodeId: state.pushSelectedNodeId,
-            popSelectedNodeId: state.popSelectedNodeId,
-            selectedNodesIds: state.selectedNodesIds,
-        }))
+    const connectModeActive = useEditorStore(
+        (state) => state.connectModeEnabled
+    )
+    const selectedNodeIdsArray = useStore(
+        (state) =>
+            state.nodes.filter((node) => node.selected).map((node) => node.id),
+        shallow
     )
 
     const connectionFromThisNode =
         connection.inProgress && connection.fromNode.id === id
     const connectionToThisNode =
         connection.inProgress && connection.toNode?.id === id
-    const selectedNodeIdsArray = useMemo(
-        () => Array.from(selectedNodesIds),
-        [selectedNodesIds]
-    )
     const isToolbarHost = selectedNodeIdsArray[0] === id
     const hasInvalidRules = data.rules.some((rule) => !rule.isValid)
     const hasInvalidName = data.isValid === false
@@ -77,15 +70,9 @@ const RegulatoryNode = ({
             : connectModeActive
               ? '#e2e8f098'
               : borderColor
-
-    // Track selected node ids
-    useEffect(() => {
-        if (selected) {
-            pushSelectedNodeId(id)
-        } else {
-            popSelectedNodeId(id)
-        }
-    }, [selected, id, pushSelectedNodeId, popSelectedNodeId])
+    const nodeShape = getRegulatoryNodeShape(
+        internalNode?.internals.userNode.style
+    )
 
     return (
         <>
@@ -110,7 +97,10 @@ const RegulatoryNode = ({
                         : undefined,
                 }}
                 className={twJoin(
-                    'relative h-full px-2 py-2 flex flex-col items-center justify-center border-2 rounded-sm text-sm',
+                    'relative h-full px-2 py-2 flex flex-col items-center justify-center border-2 text-sm',
+                    nodeShape === 'rounded-rectangle' && 'rounded-sm',
+                    nodeShape === 'rectangle' && 'rounded-none',
+                    nodeShape === 'ellipse' && 'rounded-[999px]',
                     connectModeActive &&
                         'group connect-mode-node transition-all',
                     connectModeActive &&

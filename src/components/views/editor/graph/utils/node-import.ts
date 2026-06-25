@@ -3,10 +3,12 @@ import type { RegulatoryNodeProperties } from '@/lib/schema'
 import { DEFAULT_NODE_HEIGHT, DEFAULT_NODE_TYPE } from '../config'
 import { getNodeContentMinWidth } from './node-size'
 import {
+    getRegulatoryNodeShape,
     getRegulatoryNodeBackgroundColor,
     getRegulatoryNodeBorderColor,
     NODE_BACKGROUND_COLOR_STYLE_PROPERTY,
     NODE_BORDER_COLOR_STYLE_PROPERTY,
+    NODE_SHAPE_STYLE_PROPERTY,
     type RegulatoryNodeStyle,
 } from '../node-style'
 
@@ -31,6 +33,7 @@ export function normalizeRegulatoryNodes(
                     getRegulatoryNodeBackgroundColor(node.style),
                 [NODE_BORDER_COLOR_STYLE_PROPERTY]:
                     getRegulatoryNodeBorderColor(node.style),
+                [NODE_SHAPE_STYLE_PROPERTY]: getRegulatoryNodeShape(node.style),
             } satisfies RegulatoryNodeStyle,
         }
     })

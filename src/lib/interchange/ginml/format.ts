@@ -26,11 +26,18 @@ import {
     parseXml,
     type XmlRecord,
 } from './xml'
+import {
+    DEFAULT_NODE_SHAPE,
+    NODE_SHAPE_STYLE_PROPERTY,
+    type RegulatoryNodeShape,
+    type RegulatoryNodeStyle,
+} from '@/components/views/editor/graph/node-style'
 
 interface RawNodeDescriptor {
     node: Node<RegulatoryNodeProperties>
     rawRules: ReturnType<typeof collectRawRulesFromNode>
     style?: string
+    shape: RegulatoryNodeShape
 }
 
 export function importGinmlModel(xml: string): InternalGRNModel {
@@ -96,6 +103,8 @@ export function exportGinmlModel(model: InternalGRNModel): string {
 }
 
 function createNodeDescriptors(graph: XmlRecord): RawNodeDescriptor[] {
+    const nodeStylesByName = buildNodeStyleShapeMap(graph)
+    const defaultShape = nodeStylesByName.get('') ?? DEFAULT_NODE_SHAPE
     const nodeRecords = ensureArray(graph.node)
 
     return nodeRecords.map((nodeEntry) => {
@@ -129,6 +138,9 @@ function createNodeDescriptors(graph: XmlRecord): RawNodeDescriptor[] {
             },
             rawRules: collectRawRulesFromNode(nodeRecord),
             style: getAttribute(position, 'style'),
+            shape:
+                nodeStylesByName.get(getAttribute(position, 'style') ?? '') ??
+                defaultShape,
         }
     })
 }
@@ -152,14 +164,33 @@ function materializeNode(
             }),
         },
         ...(descriptor.style !== undefined
-            ? { style: { ginmlStyle: descriptor.style } }
-            : {}),
+            ? {
+                  style: {
+                      ginmlStyle: descriptor.style,
+                      [NODE_SHAPE_STYLE_PROPERTY]: descriptor.shape,
+                  } as RegulatoryNodeStyle,
+              }
+            : {
+                  style: {
+                      [NODE_SHAPE_STYLE_PROPERTY]: descriptor.shape,
+                  } as RegulatoryNodeStyle,
+              }),
     }
 }
 
 function buildDefaultNodeStyles(): XmlRecord[] {
     return [
         {
+            '@_name': 'RoundedRectangle',
+            '@_background': '#ffffff',
+            '@_foreground': '#000000',
+            '@_text': '#000000',
+            '@_shape': 'ROUND_RECTANGLE',
+            '@_width': String(GINML_DEFAULTS.nodeWidth),
+            '@_height': String(GINML_DEFAULTS.nodeHeight),
+        },
+        {
+            '@_name': 'Rectangle',
             '@_background': '#ffffff',
             '@_foreground': '#000000',
             '@_text': '#000000',
@@ -168,9 +199,33 @@ function buildDefaultNodeStyles(): XmlRecord[] {
             '@_height': String(GINML_DEFAULTS.nodeHeight),
         },
         {
-            '@_name': 'Input',
+            '@_name': 'Ellipse',
+            '@_background': '#ffffff',
+            '@_foreground': '#000000',
+            '@_text': '#000000',
+            '@_shape': 'ELLIPSE',
+            '@_width': String(GINML_DEFAULTS.nodeWidth),
+            '@_height': String(GINML_DEFAULTS.nodeHeight),
+        },
+        {
+            '@_name': 'InputRoundedRectangle',
             '@_background': '#99ffff',
             '@_text': '#000000',
+            '@_shape': 'ROUND_RECTANGLE',
+            '@_width': '125',
+        },
+        {
+            '@_name': 'InputRectangle',
+            '@_background': '#99ffff',
+            '@_text': '#000000',
+            '@_shape': 'RECTANGLE',
+            '@_width': '125',
+        },
+        {
+            '@_name': 'InputEllipse',
+            '@_background': '#99ffff',
+            '@_text': '#000000',
+            '@_shape': 'ELLIPSE',
             '@_width': '125',
         },
     ]
@@ -188,6 +243,7 @@ function buildDefaultEdgeStyles(): XmlRecord[] {
 }
 
 function buildNodeObject(node: Node<RegulatoryNodeProperties>): XmlRecord {
+    const style = node.style
     const groupedRules = new Map<number, string[]>()
     for (const rule of node.data.rules) {
         const expressions = groupedRules.get(rule.target) ?? []
@@ -232,11 +288,89 @@ function buildNodeObject(node: Node<RegulatoryNodeProperties>): XmlRecord {
         nodevisualsetting: {
             '@_x': String(node.position.x),
             '@_y': String(node.position.y),
-            '@_style': node.data.isInputNode ? 'Input' : '',
+            '@_style': getGinmlNodeStyleName(
+                getNodeShapeFromStyle(style),
+                node.data.isInputNode
+            ),
         },
     }
 
     return nodeRecord
+}
+
+function buildNodeStyleShapeMap(graph: XmlRecord) {
+    const nodeStyles = ensureArray(graph.nodestyle)
+    const nodeStylesByName = new Map<string, RegulatoryNodeShape>()
+
+    nodeStyles.forEach((entry, index) => {
+        const style = asRecord(entry)
+        if (!style) {
+            return
+        }
+
+        const styleName = getAttribute(style, 'name') ?? (index === 0 ? '' : '')
+        nodeStylesByName.set(styleName, toRegulatoryNodeShape(style))
+    })
+
+    return nodeStylesByName
+}
+
+function toRegulatoryNodeShape(
+    style: XmlRecord | undefined
+): RegulatoryNodeShape {
+    const rawShape = getAttribute(style, 'shape')
+
+    switch (rawShape) {
+        case 'RECTANGLE':
+            return 'rectangle'
+        case 'ELLIPSE':
+            return 'ellipse'
+        case 'ROUND_RECTANGLE':
+            return 'rounded-rectangle'
+        default:
+            return DEFAULT_NODE_SHAPE
+    }
+}
+
+function getNodeShapeFromStyle(
+    style: RegulatoryNodeStyle | undefined
+): RegulatoryNodeShape {
+    const shape = style?.[NODE_SHAPE_STYLE_PROPERTY]
+
+    if (
+        shape === 'rectangle' ||
+        shape === 'rounded-rectangle' ||
+        shape === 'ellipse'
+    ) {
+        return shape
+    }
+
+    return DEFAULT_NODE_SHAPE
+}
+
+function getGinmlNodeStyleName(
+    shape: RegulatoryNodeShape,
+    isInputNode: boolean
+): string {
+    if (isInputNode) {
+        switch (shape) {
+            case 'rectangle':
+                return 'InputRectangle'
+            case 'ellipse':
+                return 'InputEllipse'
+            default:
+                return 'InputRoundedRectangle'
+        }
+    }
+
+    switch (shape) {
+        case 'rectangle':
+            return 'Rectangle'
+        case 'ellipse':
+            return 'Ellipse'
+        default:
+            return 'RoundedRectangle'
+    }
 }
 
 function buildEdgeObject(edge: Edge<EditableRegulatoryEdge>): XmlRecord {
