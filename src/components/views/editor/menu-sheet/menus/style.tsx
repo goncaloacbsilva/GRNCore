@@ -16,15 +16,20 @@ import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useStore as useFormStore } from '@tanstack/react-form'
 import {
+    DEFAULT_NODE_SHAPE,
     DEFAULT_NODE_BACKGROUND_COLOR,
     DEFAULT_NODE_BORDER_COLOR,
     DEFAULT_NODE_FOREGROUND_COLOR,
     getRegulatoryNodeBackgroundColor,
     getRegulatoryNodeBorderColor,
+    getRegulatoryNodeShape,
     NODE_BACKGROUND_COLOR_STYLE_PROPERTY,
     NODE_BORDER_COLOR_STYLE_PROPERTY,
+    NODE_SHAPE_STYLE_PROPERTY,
+    type RegulatoryNodeShape,
     type RegulatoryNodeStyle,
 } from '../../graph/node-style'
+import { Separator } from '@/components/ui/separator'
 
 interface StyleMenuProps {
     node: Node<RegulatoryNodeProperties>
@@ -42,6 +47,11 @@ type NodeThemeColors = Pick<
     NodeThemePreset,
     'foregroundColor' | 'backgroundColor' | 'borderColor'
 >
+
+interface NodeShapeOption {
+    id: RegulatoryNodeShape
+    label: string
+}
 
 const NODE_THEME_PRESETS: NodeThemePreset[] = [
     {
@@ -81,6 +91,12 @@ const NODE_THEME_PRESETS: NodeThemePreset[] = [
     },
 ]
 
+const NODE_SHAPE_OPTIONS: NodeShapeOption[] = [
+    { id: 'rectangle', label: 'Rectangle' },
+    { id: 'rounded-rectangle', label: 'Rounded Rectangle' },
+    { id: 'ellipse', label: 'Ellipse' },
+]
+
 export function StyleMenu({ node }: StyleMenuProps) {
     const { updateNode, getNode, getNodes, getEdges } = useReactFlow<
         Node<RegulatoryNodeProperties>,
@@ -111,6 +127,7 @@ export function StyleMenu({ node }: StyleMenuProps) {
                     : DEFAULT_NODE_FOREGROUND_COLOR,
             backgroundColor: getRegulatoryNodeBackgroundColor(node.style),
             borderColor: getRegulatoryNodeBorderColor(node.style),
+            shape: getRegulatoryNodeShape(node.style as RegulatoryNodeStyle),
         },
     })
 
@@ -141,6 +158,12 @@ export function StyleMenu({ node }: StyleMenuProps) {
     const applyDefaultThemePreset = (preset: NodeThemeColors) => {
         setSelectedCustomThemeId(null)
         applyThemePreset(preset)
+    }
+
+    const applyNodeShape = (shape: RegulatoryNodeShape) => {
+        runAsSingleStyleHistoryStep(() => {
+            form.setFieldValue('shape', shape)
+        })
     }
 
     const saveCustomTheme = () => {
@@ -175,6 +198,7 @@ export function StyleMenu({ node }: StyleMenuProps) {
             color: formValues.foregroundColor,
             [NODE_BACKGROUND_COLOR_STYLE_PROPERTY]: formValues.backgroundColor,
             [NODE_BORDER_COLOR_STYLE_PROPERTY]: formValues.borderColor,
+            [NODE_SHAPE_STYLE_PROPERTY]: formValues.shape,
         } satisfies RegulatoryNodeStyle
 
         if (areStylesEqual(currentNode.style, nextStyle)) {
@@ -192,6 +216,10 @@ export function StyleMenu({ node }: StyleMenuProps) {
             className="px-4 pb-4 flex min-h-0 flex-col gap-5"
         >
             <FieldGroup className="gap-5">
+                <NodeShapePalette
+                    selectedShape={formValues.shape ?? DEFAULT_NODE_SHAPE}
+                    onShapeSelect={applyNodeShape}
+                />
                 <ThemePalette
                     presets={NODE_THEME_PRESETS}
                     onPresetSelect={applyDefaultThemePreset}
@@ -345,6 +373,46 @@ function CustomThemePalette({
                     Save the current node colors to reuse them later.
                 </p>
             ) : null}
+        </div>
+    )
+}
+
+function NodeShapePalette({
+    selectedShape,
+    onShapeSelect,
+}: {
+    selectedShape: RegulatoryNodeShape
+    onShapeSelect: (shape: RegulatoryNodeShape) => void
+}) {
+    return (
+        <div className="flex flex-col gap-2">
+            <h4 className="text-sm font-medium">Shape</h4>
+            <div className="flex flex-wrap gap-2">
+                {NODE_SHAPE_OPTIONS.map((shape) => (
+                    <button
+                        key={shape.id}
+                        type="button"
+                        className={`flex h-10 w-16 items-center justify-center rounded border-2 bg-background transition-colors hover:border-border focus:border-ring focus:outline-none ${
+                            selectedShape === shape.id
+                                ? 'border-border'
+                                : 'border-transparent'
+                        }`}
+                        onClick={() => onShapeSelect(shape.id)}
+                        aria-label={`Select ${shape.label} shape`}
+                        title={shape.label}
+                    >
+                        <span
+                            className={`block h-5 w-9 border-2 border-foreground/70 ${
+                                shape.id === 'rectangle'
+                                    ? 'rounded-none'
+                                    : shape.id === 'rounded-rectangle'
+                                      ? 'rounded-sm'
+                                      : 'rounded-full'
+                            }`}
+                        />
+                    </button>
+                ))}
+            </div>
         </div>
     )
 }

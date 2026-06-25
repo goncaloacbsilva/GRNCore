@@ -1,5 +1,6 @@
 import type { InternalGRNModel } from '@/lib/schema'
 import { describe, expect, it } from 'vitest'
+import { getRegulatoryNodeShape } from '@/components/views/editor/graph/node-style'
 import { validateRegulatoryRuleExpression } from '@/lib/regulatory-rules'
 import { ACTIVE_INTERACTIONS_GINML } from './__fixtures__/active-ginml'
 import { DIRECT_GINML } from './__fixtures__/direct-ginml'
@@ -235,6 +236,86 @@ describe('GINMLInterchanger', () => {
         expect(xml).not.toContain('points=')
     })
 
+    it('exports node shapes to GINML node styles', () => {
+        const model = importGinmlModel(ACTIVE_INTERACTIONS_GINML)
+        model.nodes = model.nodes.map((node, index) => ({
+            ...node,
+            style: {
+                ...node.style,
+                '--grn-node-shape':
+                    index === 0
+                        ? 'rectangle'
+                        : index === 1
+                          ? 'rounded-rectangle'
+                          : 'ellipse',
+            },
+        }))
+
+        const xml = exportGinmlModel(model)
+
+        expect(xml).toContain('name="Rectangle"')
+        expect(xml).toContain('shape="RECTANGLE"')
+        expect(xml).toContain('name="RoundedRectangle"')
+        expect(xml).toContain('shape="ROUND_RECTANGLE"')
+        expect(xml).toContain('name="Ellipse"')
+        expect(xml).toContain('shape="ELLIPSE"')
+        expect(xml).toContain('nodevisualsetting x="10" y="10" style="Rectangle"')
+        expect(xml).toContain('nodevisualsetting x="110" y="10" style="RoundedRectangle"')
+        expect(xml).toContain('nodevisualsetting x="75" y="108" style="Ellipse"')
+    })
+
+    it('imports node shapes from GINML style definitions', () => {
+        const model = importGinmlModel(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gxl SYSTEM "http://ginsim.org/GINML_2_2.dtd">
+<gxl xmlns:xlink="http://www.w3.org/1999/xlink">
+  <graph class="regulatory" id="shape_fixture" nodeorder="A B C">
+    <nodestyle name="RoundedRectangle" shape="ROUND_RECTANGLE" width="120" height="45"/>
+    <nodestyle name="Rectangle" shape="RECTANGLE" width="120" height="45"/>
+    <nodestyle name="Ellipse" shape="ELLIPSE" width="120" height="45"/>
+    <node id="A" name="A" maxvalue="1">
+      <nodevisualsetting x="10" y="10" style="RoundedRectangle"/>
+    </node>
+    <node id="B" name="B" maxvalue="1">
+      <nodevisualsetting x="110" y="10" style="Rectangle"/>
+    </node>
+    <node id="C" name="C" maxvalue="1">
+      <nodevisualsetting x="210" y="10" style="Ellipse"/>
+    </node>
+  </graph>
+</gxl>`)
+
+        expect(
+            model.nodes.map((node) => ({
+                id: node.id,
+                shape: getRegulatoryNodeShape(node.style),
+            }))
+        ).toEqual([
+            { id: 'A', shape: 'rounded-rectangle' },
+            { id: 'B', shape: 'rectangle' },
+            { id: 'C', shape: 'ellipse' },
+        ])
+    })
+
+    it('falls back to rounded-rectangle for missing or unsupported imported shapes', () => {
+        const model = importGinmlModel(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gxl SYSTEM "http://ginsim.org/GINML_2_2.dtd">
+<gxl xmlns:xlink="http://www.w3.org/1999/xlink">
+  <graph class="regulatory" id="shape_fallback_fixture" nodeorder="A B">
+    <nodestyle shape="TRIANGLE" width="120" height="45"/>
+    <node id="A" name="A" maxvalue="1">
+      <nodevisualsetting x="10" y="10" style=""/>
+    </node>
+    <node id="B" name="B" maxvalue="1">
+      <nodevisualsetting x="110" y="10" style="UnknownStyle"/>
+    </node>
+  </graph>
+</gxl>`)
+
+        expect(
+            model.nodes.map((node) => getRegulatoryNodeShape(node.style))
+        ).toEqual(['rounded-rectangle', 'rounded-rectangle'])
+    })
+
     it('round-trips direct-expression GINML through the interchanger', async () => {
         const interchanger = new GINMLInterchanger()
         const imported = await interchanger.import(toArrayBuffer(DIRECT_GINML))
@@ -256,6 +337,29 @@ describe('GINMLInterchanger', () => {
                     expression: rule.expression,
                 }))
         ).toEqual([{ target: 1, expression: 'B:1 || A:1 || (A:1 && B:1)' }])
+    })
+
+    it('round-trips supported node shapes through GINML export and import', () => {
+        const imported = importGinmlModel(ACTIVE_INTERACTIONS_GINML)
+        const expectedShapes = [
+            'rectangle',
+            'rounded-rectangle',
+            'ellipse',
+        ] as const
+
+        imported.nodes = imported.nodes.map((node, index) => ({
+            ...node,
+            style: {
+                ...node.style,
+                '--grn-node-shape': expectedShapes[index],
+            },
+        }))
+
+        const reimported = importGinmlModel(exportGinmlModel(imported))
+
+        expect(reimported.nodes.map((node) => getRegulatoryNodeShape(node.style))).toEqual(
+            expectedShapes
+        )
     })
 
     it('rejects malformed structures and unresolved active interactions', () => {
