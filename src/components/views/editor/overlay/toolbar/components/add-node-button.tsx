@@ -6,6 +6,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useEditorStore } from '@/store'
+import { formatForDisplay } from '@tanstack/react-hotkeys'
 import { CirclePlus } from 'lucide-react'
 import { twJoin } from 'tailwind-merge'
 import { useShallow } from 'zustand/react/shallow'
@@ -42,7 +43,7 @@ export function AddNodeButton() {
             </TooltipTrigger>
             <TooltipContent>
                 <div className="flex items-center gap-2">
-                    Add node <Kbd>⌘ + G</Kbd>
+                    Add node <Kbd>{formatForDisplay('Mod+G')}</Kbd>
                 </div>
             </TooltipContent>
         </Tooltip>

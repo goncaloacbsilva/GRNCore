@@ -7,6 +7,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useElementsActions } from '@/hooks'
+import { formatForDisplay } from '@tanstack/react-hotkeys'
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react'
 import { ClipboardCopy, CopyIcon, TrashIcon } from 'lucide-react'
 import type { PropsWithChildren } from 'react'
@@ -65,7 +66,7 @@ export function NodeToolbar({ id, nodeIds, isVisible }: NodeToolbarProps) {
                 <NodeToolbarButton
                     onClick={deleteAction}
                     description="Delete"
-                    shortcut="←"
+                    shortcut={formatForDisplay('Backspace')}
                 >
                     <TrashIcon />
                 </NodeToolbarButton>
@@ -73,7 +74,7 @@ export function NodeToolbar({ id, nodeIds, isVisible }: NodeToolbarProps) {
                 <NodeToolbarButton
                     onClick={copyAction}
                     description="Copy"
-                    shortcut="⌘ + C"
+                    shortcut={formatForDisplay('Mod+C')}
                 >
                     <ClipboardCopy />
                 </NodeToolbarButton>
@@ -81,7 +82,7 @@ export function NodeToolbar({ id, nodeIds, isVisible }: NodeToolbarProps) {
                 <NodeToolbarButton
                     onClick={duplicateAction}
                     description="Duplicate"
-                    shortcut="⌘ + D"
+                    shortcut={formatForDisplay('Mod+D')}
                 >
                     <CopyIcon />
                 </NodeToolbarButton>

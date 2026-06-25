@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/menubar'
 import { useElementsActions, useHistory } from '@/hooks'
 import { useChangesTracking } from '@/store'
+import { formatForDisplay } from '@tanstack/react-hotkeys'
 
 export function EditMenu() {
     const { copyAction, pasteAction, cutAction } = useElementsActions()
@@ -34,23 +35,37 @@ export function EditMenu() {
             <MenubarContent>
                 <MenubarGroup>
                     <MenubarItem disabled={!canUndo} onClick={() => undo()}>
-                        Undo <MenubarShortcut>⌘Z</MenubarShortcut>
+                        Undo{' '}
+                        <MenubarShortcut>
+                            {formatForDisplay('Mod+Z')}
+                        </MenubarShortcut>
                     </MenubarItem>
                     <MenubarItem disabled={!canRedo} onClick={() => redo()}>
-                        Redo <MenubarShortcut>⇧⌘Z</MenubarShortcut>
+                        Redo{' '}
+                        <MenubarShortcut>
+                            {formatForDisplay('Mod+Shift+Z')}
+                        </MenubarShortcut>
                     </MenubarItem>
                 </MenubarGroup>
                 <MenubarSeparator />
                 <MenubarGroup>
                     <MenubarItem onSelect={cutAction}>
                         Cut
-                        <MenubarShortcut>⌘+X</MenubarShortcut>
+                        <MenubarShortcut>
+                            {formatForDisplay('Mod+X')}
+                        </MenubarShortcut>
                     </MenubarItem>
                     <MenubarItem onSelect={copyAction}>
-                        Copy <MenubarShortcut>⌘+C</MenubarShortcut>
+                        Copy{' '}
+                        <MenubarShortcut>
+                            {formatForDisplay('Mod+C')}
+                        </MenubarShortcut>
                     </MenubarItem>
                     <MenubarItem onSelect={pasteAction}>
-                        Paste <MenubarShortcut>⌘+V</MenubarShortcut>
+                        Paste{' '}
+                        <MenubarShortcut>
+                            {formatForDisplay('Mod+V')}
+                        </MenubarShortcut>
                     </MenubarItem>
                 </MenubarGroup>
             </MenubarContent>

@@ -6,6 +6,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useEditorStore } from '@/store'
+import { formatForDisplay } from '@tanstack/react-hotkeys'
 import { MousePointerClick } from 'lucide-react'
 import { twJoin } from 'tailwind-merge'
 import { useShallow } from 'zustand/react/shallow'
@@ -39,7 +40,7 @@ export function AddEdgeToggle() {
             </TooltipTrigger>
             <TooltipContent>
                 <div className="flex items-center gap-2">
-                    Toggle connect mode <Kbd>⌘ + E</Kbd>
+                    Toggle connect mode <Kbd>{formatForDisplay('Mod+E')}</Kbd>
                 </div>
             </TooltipContent>
         </Tooltip>

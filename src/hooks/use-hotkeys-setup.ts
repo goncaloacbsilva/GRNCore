@@ -61,7 +61,7 @@ export function useHotkeysSetup() {
     useHotkeys(
         [
             {
-                hotkey: 'Mod+0',
+                hotkey: 'R',
                 callback: () => resetZoom(),
             },
             {
