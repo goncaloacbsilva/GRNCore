@@ -62,7 +62,7 @@ function SavingIndicator() {
     )
 }
 
-export function ModelHeader() {
+export function EditorHeader() {
     const modelTitle = useEditorStore((state) => state.modelTitle)
     const setModelTitle = useEditorStore((state) => state.setModelTitle)
     const setSnapshotTitle = useChangesTracking(

@@ -16,12 +16,24 @@ import { CreateModelButton } from './create-model'
 import { NavMain } from './nav-main'
 import { Button } from '@/components/ui/button'
 import { useEffect } from 'react'
+import { useMatches } from '@tanstack/react-router'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const context = useSidebar()
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => context.setOpen(false), [])
+
+    const forceExpand = useMatches({
+        select: (matches) =>
+            matches.some((m) => m.staticData?.expandedNavbar === true),
+    })
+
+    useEffect(() => {
+        if (forceExpand) {
+            context.setOpen(true)
+        }
+    }, [context, forceExpand])
 
     return (
         <Sidebar collapsible="icon" externalContext={context} {...props}>
@@ -34,17 +46,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarContent>
             <SidebarRail asChild>
                 <div className="flex h-full items-center justify-center">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="ml-4 h-14 w-4 rounded-bl-none rounded-tl-none"
-                    >
-                        <ChevronRight
-                            className={
-                                context.state === 'expanded' ? 'rotate-180' : ''
-                            }
-                        />
-                    </Button>
+                    {!forceExpand && (
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="ml-4 h-14 w-4 rounded-bl-none rounded-tl-none"
+                        >
+                            <ChevronRight
+                                className={
+                                    context.state === 'expanded'
+                                        ? 'rotate-180'
+                                        : ''
+                                }
+                            />
+                        </Button>
+                    )}
                 </div>
             </SidebarRail>
         </Sidebar>

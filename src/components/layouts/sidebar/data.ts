@@ -10,12 +10,12 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         items: [
             {
                 title: 'Local',
-                url: '#',
+                url: '/models/local',
                 icon: HardDrive,
             },
             {
                 title: 'Community',
-                url: '#',
+                url: '/models/community',
                 icon: UsersRound,
             },
         ],
