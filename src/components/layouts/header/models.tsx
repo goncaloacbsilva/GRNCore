@@ -1,7 +1,6 @@
 import {
     Breadcrumb,
     BreadcrumbItem,
-    BreadcrumbLink,
     BreadcrumbList,
 } from '@/components/ui/breadcrumb'
 import { useMatches } from '@tanstack/react-router'
