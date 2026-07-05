@@ -1,4 +1,4 @@
-import { importModel } from '@/lib/interchange'
+import { getInterchangeFormat, importModel } from '@/lib/interchange'
 import { createLocalModel } from '@/lib/persistence'
 import type { ModelMetadata } from '@/lib/schema'
 import { create } from 'zustand'
@@ -27,7 +27,9 @@ export const useLocalModelImportStore = create<LocalModelImportState>()(
         setOnImported: (onImported) => set(() => ({ onImported })),
         importFile: async (file) => {
             const snapshot = await importModel(file)
-            const metadata = await createLocalModel(snapshot)
+            const metadata = await createLocalModel(snapshot, {
+                sourceFormat: getInterchangeFormat(file.name),
+            })
 
             get().onImported?.(metadata)
             return metadata

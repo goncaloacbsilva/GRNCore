@@ -27,7 +27,7 @@ function RouteComponent() {
             data-route-transition-root="true"
             className="flex h-full w-full flex-col"
         >
-            <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+            <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
                 <ModelsHeader />
             </header>
             <div className="relative min-h-0 flex-1 w-full">

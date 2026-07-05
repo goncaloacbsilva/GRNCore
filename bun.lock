@@ -22,6 +22,7 @@
         "@tanstack/react-hotkeys": "^0.10.0",
         "@tanstack/react-router": "^1.170.17",
         "@xyflow/react": "^12.10.1",
+        "@yaireo/relative-time": "^1.1.0",
         "animejs": "^3.2.2",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -651,6 +652,8 @@
     "@xyflow/react": ["@xyflow/react@12.11.0", "", { "dependencies": { "@xyflow/system": "0.0.77", "classcat": "^5.0.3", "zustand": "^4.4.0" }, "peerDependencies": { "@types/react": ">=17", "@types/react-dom": ">=17", "react": ">=17", "react-dom": ">=17" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-na4IO33FSs2OS72hASgZDmTYwFAkef7Z74uBUVrong3ARmQQHfnRUVaCFn1kTt5LbS6pK03TbYjCPGLjLFfziA=="],
 
     "@xyflow/system": ["@xyflow/system@0.0.77", "", { "dependencies": { "@types/d3-drag": "^3.0.7", "@types/d3-interpolate": "^3.0.4", "@types/d3-selection": "^3.0.10", "@types/d3-transition": "^3.0.8", "@types/d3-zoom": "^3.0.8", "d3-drag": "^3.0.0", "d3-interpolate": "^3.0.1", "d3-selection": "^3.0.0", "d3-zoom": "^3.0.0" } }, "sha512-qCDCMCQAAgUu8yHnhloHG9F5mwPX5E+Wl8McpYIOPSSXfzFJJoZcwOcsDiAjitVKIg2de1WmJbCHfpcvxprsgg=="],
+
+    "@yaireo/relative-time": ["@yaireo/relative-time@1.1.0", "", {}, "sha512-3XXsDpeKARlMUlGw7pBn+2cihakH0UQMr0m7hD/aZnQEJ+4Ele8IR/FzKlGzM9R+mfU7cbpyzL1PLGPTOBBiUg=="],
 
     "accepts": ["accepts@2.0.0", "", { "dependencies": { "mime-types": "^3.0.0", "negotiator": "^1.0.0" } }, "sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng=="],
 

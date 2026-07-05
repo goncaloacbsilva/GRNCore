@@ -3,9 +3,11 @@ import type {
     InternalGRNModel,
     ModelMetadataDetails,
     ModelMetadata,
+    ModelMetadataTag,
     PersistedAnnotations,
 } from '@/lib/schema'
 import { normalizeModelMetadataDetails } from '@/lib/schema'
+import { InterchangeFormat } from '@/lib/interchange'
 import { usePersistenceStatus } from '@/store/persistence'
 import type { SerializedEditorState } from 'lexical'
 import {
@@ -88,6 +90,18 @@ const parseJson = <T>(value: string, fallback: T): T => {
     }
 }
 
+const normalizeMetadataItem = (
+    item: Omit<ModelMetadata, 'lastChangedAt'> & {
+        lastChangedAt?: number
+    }
+): ModelMetadata => ({
+    ...item,
+    lastChangedAt: item.lastChangedAt ?? 0,
+})
+
+const sortModelsByLastChangedAt = (items: ModelMetadata[]): ModelMetadata[] =>
+    [...items].sort((left, right) => right.lastChangedAt - left.lastChangedAt)
+
 const readMetadataList = async (): Promise<ModelMetadata[]> => {
     if (!isOPFSAvailable()) {
         return []
@@ -100,7 +114,11 @@ const readMetadataList = async (): Promise<ModelMetadata[]> => {
         return []
     }
 
-    return parseJson<ModelMetadata[]>(await metadataFile.text(), [])
+    const parsedItems = parseJson<
+        (Omit<ModelMetadata, 'lastChangedAt'> & { lastChangedAt?: number })[]
+    >(await metadataFile.text(), [])
+
+    return sortModelsByLastChangedAt(parsedItems.map(normalizeMetadataItem))
 }
 
 const writeMetadataList = async (items: ModelMetadata[]) => {
@@ -108,7 +126,10 @@ const writeMetadataList = async (items: ModelMetadata[]) => {
         return
     }
 
-    await write(METADATA_FILE_PATH, JSON.stringify(items, null, 2))
+    await write(
+        METADATA_FILE_PATH,
+        JSON.stringify(sortModelsByLastChangedAt(items), null, 2)
+    )
 }
 
 const annotationsToDescription = (
@@ -183,16 +204,75 @@ const EMPTY_SERIALIZED_EDITOR_STATE = {
     },
 } as unknown as SerializedEditorState
 
+const INTERCHANGE_FORMAT_SOURCE_TAGS: Partial<
+    Record<InterchangeFormat, ModelMetadataTag>
+> = {
+    [InterchangeFormat.BNET]: 'BNET',
+    [InterchangeFormat.SBML]: 'SBML-qual',
+    [InterchangeFormat.GINML]: 'GINML',
+    [InterchangeFormat.ZGINML]: 'GINML',
+}
+
+const hasTextualAnnotationContent = (
+    annotations: PersistedAnnotations | undefined
+): boolean => annotationsToDescription(annotations).length > 0
+
+const hasAnnotationReferences = (
+    annotations: PersistedAnnotations | undefined
+): boolean => (annotations?.references?.length ?? 0) > 0
+
+const hasAnnotations = (
+    annotations: PersistedAnnotations | undefined
+): boolean =>
+    hasTextualAnnotationContent(annotations) || hasAnnotationReferences(annotations)
+
+const inferMetadataTags = ({
+    snapshot,
+    sourceFormat,
+}: {
+    snapshot: InternalGRNModel
+    sourceFormat?: InterchangeFormat
+}): ModelMetadataTag[] => {
+    const tags: ModelMetadataTag[] = []
+    const sourceTag = sourceFormat
+        ? INTERCHANGE_FORMAT_SOURCE_TAGS[sourceFormat]
+        : 'GRNCore'
+
+    if (sourceTag) {
+        tags.push(sourceTag)
+    }
+
+    const hasModelAnnotations = hasAnnotations(snapshot.annotations)
+    const hasNodeAnnotations = snapshot.nodes.some((node) =>
+        hasAnnotations(node.data.annotations)
+    )
+    const hasEdgeAnnotations = snapshot.edges.some((edge) =>
+        hasAnnotations(edge.data?.annotations)
+    )
+
+    if (hasModelAnnotations || hasNodeAnnotations || hasEdgeAnnotations) {
+        tags.push('Annotated')
+    }
+
+    return [...new Set(tags)]
+}
+
 const createMetadataFromSnapshot = (
     id: string,
-    snapshot: InternalGRNModel
-): ModelMetadata => ({
-    id,
-    title: snapshot.title,
-    description: annotationsToDescription(snapshot.annotations),
-    author: 'Unknown Author',
-    tags: [],
-})
+    snapshot: InternalGRNModel,
+    sourceFormat?: InterchangeFormat
+): ModelMetadata => {
+    const now = Date.now()
+
+    return {
+        id,
+        title: snapshot.title,
+        description: annotationsToDescription(snapshot.annotations),
+        author: 'Unknown Author',
+        tags: inferMetadataTags({ snapshot, sourceFormat }),
+        lastChangedAt: now,
+    }
+}
 
 const updateMetadataForSnapshot = (
     metadata: ModelMetadata,
@@ -201,6 +281,7 @@ const updateMetadataForSnapshot = (
     ...metadata,
     title: snapshot.title,
     description: annotationsToDescription(snapshot.annotations),
+    lastChangedAt: Date.now(),
 })
 
 export interface UpdateLocalModelDetailsInput extends ModelMetadataDetails {
@@ -251,7 +332,8 @@ export async function getLocalModelSnapshot(
 }
 
 export async function createLocalModel(
-    snapshot: InternalGRNModel
+    snapshot: InternalGRNModel,
+    options?: { sourceFormat?: InterchangeFormat }
 ): Promise<ModelMetadata> {
     if (!isOPFSAvailable()) {
         throw new Error('OPFS is not available in this environment.')
@@ -259,7 +341,11 @@ export async function createLocalModel(
 
     return enqueuePersistenceWrite(async () => {
         const modelId = crypto.randomUUID()
-        const metadata = createMetadataFromSnapshot(modelId, snapshot)
+        const metadata = createMetadataFromSnapshot(
+            modelId,
+            snapshot,
+            options?.sourceFormat
+        )
         const items = await readMetadataList()
 
         await writeSnapshotFile(modelId, snapshot)
@@ -358,6 +444,7 @@ export async function updateLocalModelDetails(
                 description: annotationsToDescription(nextSnapshot.annotations),
                 author: normalizedDetails.author,
                 tags: normalizedDetails.tags,
+                lastChangedAt: Date.now(),
             }
 
             await writeSnapshotFile(modelId, nextSnapshot)

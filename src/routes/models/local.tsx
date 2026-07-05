@@ -10,7 +10,12 @@ import {
 } from '@/components/ui/empty'
 import { deleteLocalModel, listLocalModels } from '@/lib/persistence'
 import type { ModelMetadata } from '@/lib/schema'
-import { useLocalModelImportStore, useModelsFiltersStore } from '@/store'
+import {
+    MODEL_SORT_OPTIONS,
+    type ModelsSortOption,
+    useLocalModelImportStore,
+    useModelsFiltersStore,
+} from '@/store'
 import { createFileRoute } from '@tanstack/react-router'
 import { SearchXIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -40,15 +45,35 @@ interface LocalModelsContentProps {
     initialItems: ModelMetadata[]
 }
 
+const sortModels = (items: ModelMetadata[], sortBy: ModelsSortOption) =>
+    [...items].sort((left, right) => {
+        switch (sortBy) {
+            case MODEL_SORT_OPTIONS.LastChangedAsc:
+                return left.lastChangedAt - right.lastChangedAt
+            case MODEL_SORT_OPTIONS.TitleAsc:
+                return left.title.localeCompare(right.title, undefined, {
+                    sensitivity: 'base',
+                })
+            case MODEL_SORT_OPTIONS.TitleDesc:
+                return right.title.localeCompare(left.title, undefined, {
+                    sensitivity: 'base',
+                })
+            case MODEL_SORT_OPTIONS.LastChangedDesc:
+            default:
+                return right.lastChangedAt - left.lastChangedAt
+        }
+    })
+
 function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
     const [items, setItems] = useState(initialItems)
     const setOnImported = useLocalModelImportStore(
         (state) => state.setOnImported
     )
-    const { query, selectedTags } = useModelsFiltersStore(
+    const { query, selectedTags, sortBy } = useModelsFiltersStore(
         useShallow((state) => ({
             query: state.query,
             selectedTags: state.selectedTags,
+            sortBy: state.sortBy,
         }))
     )
 
@@ -80,19 +105,22 @@ function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
     const filteredItems = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase()
 
-        return items.filter((item) => {
-            const matchesQuery =
-                normalizedQuery.length === 0 ||
-                item.title.toLowerCase().includes(normalizedQuery) ||
-                item.description.toLowerCase().includes(normalizedQuery)
+        return sortModels(
+            items.filter((item) => {
+                const matchesQuery =
+                    normalizedQuery.length === 0 ||
+                    item.title.toLowerCase().includes(normalizedQuery) ||
+                    item.description.toLowerCase().includes(normalizedQuery)
 
-            const matchesTags =
-                selectedTags.length === 0 ||
-                selectedTags.every((tag) => item.tags.includes(tag))
+                const matchesTags =
+                    selectedTags.length === 0 ||
+                    selectedTags.every((tag) => item.tags.includes(tag))
 
-            return matchesQuery && matchesTags
-        })
-    }, [items, query, selectedTags])
+                return matchesQuery && matchesTags
+            }),
+            sortBy
+        )
+    }, [items, query, selectedTags, sortBy])
 
     return (
         <>
