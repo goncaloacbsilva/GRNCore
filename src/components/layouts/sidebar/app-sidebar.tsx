@@ -13,10 +13,15 @@ import {
 import { Logo } from './logo'
 import { NAVIGATION_ITEMS } from './data'
 import { CreateModelButton } from './create-model'
+import { ImportModelButton } from './import-model'
 import { NavMain } from './nav-main'
 import { Button } from '@/components/ui/button'
 import { useEffect } from 'react'
 import { useMatches } from '@tanstack/react-router'
+
+interface SidebarRouteStaticData {
+    expandedNavbar?: boolean
+}
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const context = useSidebar()
@@ -26,7 +31,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     const forceExpand = useMatches({
         select: (matches) =>
-            matches.some((m) => m.staticData?.expandedNavbar === true),
+            matches.some(
+                (m) =>
+                    (m.staticData as SidebarRouteStaticData | undefined)
+                        ?.expandedNavbar === true
+            ),
     })
 
     useEffect(() => {
@@ -39,7 +48,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <Sidebar collapsible="icon" externalContext={context} {...props}>
             <SidebarHeader className="flex flex-col gap-6">
                 <Logo />
-                <CreateModelButton context={context} />
+                <div className="flex flex-col gap-2">
+                    <CreateModelButton context={context} />
+                    <ImportModelButton context={context} />
+                </div>
             </SidebarHeader>
             <SidebarContent>
                 <NavMain items={NAVIGATION_ITEMS} />

@@ -1,7 +1,6 @@
 import {
     Breadcrumb,
     BreadcrumbItem,
-    BreadcrumbLink,
     BreadcrumbList,
     BreadcrumbPage,
     BreadcrumbSeparator,
@@ -18,6 +17,7 @@ import { useChangesTracking, useEditorStore } from '@/store'
 import { useStore as useFormStore } from '@tanstack/react-form'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { CheckIcon } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 
 function SavingIndicator() {
     const isSaving = usePersistenceStatus((state) => state.isSaving)
@@ -95,7 +95,12 @@ export function EditorHeader() {
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
-                        <BreadcrumbLink>Local Models</BreadcrumbLink>
+                        <Link
+                            className="hover:text-primary transition-all"
+                            to="/models/local"
+                        >
+                            Local Models
+                        </Link>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>

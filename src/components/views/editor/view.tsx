@@ -34,6 +34,7 @@ export function EditorView() {
                     <AddNodeDialog />
                     <MenuSheet />
                     <ImportModelDialog />
+                    <ImportModelDialog mode="local-models" />
                 </div>
             </div>
         </ReactFlowProvider>

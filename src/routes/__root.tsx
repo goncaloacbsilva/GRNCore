@@ -8,6 +8,7 @@ export const Route = createRootRoute({
     component: RootComponent,
     beforeLoad: ({ location }) => {
         if (location.pathname === '/') {
+            // eslint-disable-next-line @typescript-eslint/only-throw-error
             throw redirect({ to: '/models/local', replace: true })
         }
     },
