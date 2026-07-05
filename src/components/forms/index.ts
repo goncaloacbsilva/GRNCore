@@ -5,6 +5,7 @@ import {
     ColorPickerField,
     NumberField,
     RuleEditorField,
+    TagsField,
     TextField,
 } from './field-components'
 
@@ -17,6 +18,7 @@ export const { useAppForm } = createFormHook({
         CheckboxField,
         RuleEditorField,
         ColorPickerField,
+        TagsField,
     },
     formComponents: {},
 })

@@ -15,6 +15,7 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
+import { Link } from '@tanstack/react-router'
 
 export interface NavigationItem {
     title: string
@@ -53,12 +54,15 @@ export function NavMain({ items }: { items: NavigationItem[] }) {
                                     {item.items?.map((subItem) => (
                                         <SidebarMenuSubItem key={subItem.title}>
                                             <SidebarMenuSubButton asChild>
-                                                <a href={subItem.url}>
+                                                <Link
+                                                    to={subItem.url}
+                                                    className="data-[status=active]:bg-accent data-[status=active]:text-accent-foreground data-[status=active]:font-semibold hover:underline font-light transition-all duration-200"
+                                                >
                                                     {subItem.icon && (
                                                         <subItem.icon />
                                                     )}
                                                     <span>{subItem.title}</span>
-                                                </a>
+                                                </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
                                     ))}

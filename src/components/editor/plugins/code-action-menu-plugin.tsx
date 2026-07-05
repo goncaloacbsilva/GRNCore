@@ -3,7 +3,6 @@ import { type JSX, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { $isCodeNode, CodeNode } from '@lexical/code-core'
-import { getCodeLanguageOptions } from '@lexical/code-shiki'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { $getNearestNodeFromDOMNode, isHTMLElement } from 'lexical'
 
@@ -11,6 +10,25 @@ import { useDebounce } from '@/components/editor/editor-hooks/use-debounce'
 import { CopyButton } from '@/components/editor/editor-ui/code-button'
 
 const CODE_PADDING = 8
+const CODE_LANGUAGE_FRIENDLY_NAME_MAP: Record<string, string> = {
+    c: 'C',
+    clike: 'C-like',
+    cpp: 'C++',
+    css: 'CSS',
+    html: 'HTML',
+    java: 'Java',
+    js: 'JavaScript',
+    markdown: 'Markdown',
+    objc: 'Objective-C',
+    plain: 'Plain Text',
+    powershell: 'PowerShell',
+    py: 'Python',
+    rust: 'Rust',
+    sql: 'SQL',
+    swift: 'Swift',
+    typescript: 'TypeScript',
+    xml: 'XML',
+}
 
 interface Position {
     top: string
@@ -124,9 +142,7 @@ function CodeActionMenuContainer({
         )
     }, [editor])
 
-    const codeFriendlyName = getCodeLanguageOptions().find(
-        ([key]) => key === lang
-    )?.[1]
+    const codeFriendlyName = CODE_LANGUAGE_FRIENDLY_NAME_MAP[lang] ?? lang
 
     return (
         <>

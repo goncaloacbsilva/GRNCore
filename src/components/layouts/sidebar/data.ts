@@ -1,4 +1,4 @@
-import { Dna, HardDrive, UsersRound } from 'lucide-react'
+import { Dna, HardDrive } from 'lucide-react'
 import type { NavigationItem } from './nav-main'
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
@@ -10,14 +10,14 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         items: [
             {
                 title: 'Local',
-                url: '#',
+                url: '/models/local',
                 icon: HardDrive,
             },
-            {
+            /* {
                 title: 'Community',
-                url: '#',
+                url: '/models/community',
                 icon: UsersRound,
-            },
+            }, */
         ],
     },
 ]

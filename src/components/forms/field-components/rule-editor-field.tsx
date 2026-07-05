@@ -1,5 +1,5 @@
 import Editor, { loader } from '@monaco-editor/react'
-import * as monaco from 'monaco-editor'
+import monaco from '@/lib/monaco/rule-editor-monaco'
 import { useEffect, useId, useState } from 'react'
 import {
     Field,

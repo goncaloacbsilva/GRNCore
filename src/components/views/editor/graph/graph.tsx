@@ -75,7 +75,7 @@ export function Graph({ model }: GraphProps) {
         setNodes(normalizedNodes)
         setEdges(model.edges)
         setModelAnnotations(model.annotations)
-        resetHistory(normalizedNodes, model.edges)
+        resetHistory(normalizedNodes, model.edges, { persist: false })
 
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {

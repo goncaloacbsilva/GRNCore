@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
@@ -13,6 +14,10 @@ const githubPagesBase =
 export default defineConfig({
     base: githubPagesBase,
     plugins: [
+        tanstackRouter({
+            target: 'react',
+            autoCodeSplitting: true,
+        }),
         react({
             babel: {
                 plugins: [['babel-plugin-react-compiler']],
@@ -29,7 +34,9 @@ export default defineConfig({
         __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
     },
     build: {
-        chunkSizeWarningLimit: 800,
+        // Monaco remains a deliberately isolated vendor chunk even after
+        // trimming unused language workers from the bundle.
+        chunkSizeWarningLimit: 3000,
         rollupOptions: {
             output: {
                 manualChunks(id) {
