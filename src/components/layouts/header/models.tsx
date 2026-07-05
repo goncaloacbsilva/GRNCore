@@ -29,10 +29,7 @@ export function ModelsHeader() {
                                 )?.getTitle
                         )
                         .map((m) => (
-                            <BreadcrumbItem
-                                key={m.id}
-                                className="text-primary"
-                            >
+                            <BreadcrumbItem key={m.id} className="text-primary">
                                 {(
                                     m.staticData as ModelsRouteStaticData
                                 ).getTitle?.()}
