@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
     Item,
     ItemContent,
@@ -21,15 +21,42 @@ export interface ModelItemProps {
 
 export function ModelItem({ item, onDelete, onEdit }: ModelItemProps) {
     const [isExpanded, setIsExpanded] = useState(false)
+    const [hasOverflow, setHasOverflow] = useState(false)
+    const descriptionRef = useRef<HTMLParagraphElement | null>(null)
+
+    useEffect(() => {
+        const description = descriptionRef.current
+
+        if (!description) {
+            return
+        }
+
+        const updateOverflow = () => {
+            setHasOverflow(description.scrollHeight > description.clientHeight)
+        }
+
+        updateOverflow()
+
+        const resizeObserver = new ResizeObserver(() => {
+            updateOverflow()
+        })
+
+        resizeObserver.observe(description)
+
+        return () => {
+            resizeObserver.disconnect()
+        }
+    }, [item.description])
 
     return (
         <div className="flex w-full flex-col gap-6">
-            <Item variant="outline">
+            <Item variant="outline" className="hover:bg-[#f9fafbc9]">
                 <ItemContent>
                     <ItemTitle className="font-semibold">
                         {item.title || 'Untitled model'}
                     </ItemTitle>
                     <ItemDescription
+                        ref={descriptionRef}
                         className={twJoin(
                             'mt-2',
                             isExpanded
@@ -39,15 +66,16 @@ export function ModelItem({ item, onDelete, onEdit }: ModelItemProps) {
                     >
                         {item.description || 'No description provided'}
                     </ItemDescription>
-                    <Button
-                        hidden={item.description?.length < 100}
-                        variant="link"
-                        size="sm"
-                        className="h-auto w-fit px-0"
-                        onClick={() => setIsExpanded((value) => !value)}
-                    >
-                        {isExpanded ? 'Read Less' : 'Read More'}
-                    </Button>
+                    {hasOverflow || isExpanded ? (
+                        <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto w-fit px-0"
+                            onClick={() => setIsExpanded((value) => !value)}
+                        >
+                            {isExpanded ? 'Read Less' : 'Read More'}
+                        </Button>
+                    ) : null}
                     <div className="mt-4 flex flex-row justify-between">
                         <ModelItemAuthor item={item} />
                         <ModelItemMenu

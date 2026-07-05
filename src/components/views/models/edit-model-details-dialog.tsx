@@ -76,7 +76,9 @@ export function EditModelDetailsDialog({
 
                 onSave(updatedItem)
                 onOpenChange(false)
-                toast.success('Model details updated')
+                toast.success('Model details updated', {
+                    position: 'top-right',
+                })
             } catch (error) {
                 toast.error('Failed to update model details', {
                     description:
