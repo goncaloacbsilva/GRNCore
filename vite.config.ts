@@ -3,12 +3,28 @@ import react from '@vitejs/plugin-react'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import fs from 'fs'
 
 const repositoryName = process.env.GITHUB_REPOSITORY?.split('/')[1]
 const githubPagesBase =
     process.env.GITHUB_ACTIONS === 'true' && repositoryName
         ? `/${repositoryName}/`
         : '/'
+
+function githubPagesSpaFallback() {
+    return {
+        name: 'github-pages-spa-fallback',
+        closeBundle() {
+            const distDirectory = path.resolve(__dirname, 'dist')
+            const indexHtmlPath = path.join(distDirectory, 'index.html')
+            const notFoundHtmlPath = path.join(distDirectory, '404.html')
+
+            if (!fs.existsSync(indexHtmlPath)) return
+
+            fs.copyFileSync(indexHtmlPath, notFoundHtmlPath)
+        },
+    }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -24,6 +40,7 @@ export default defineConfig({
             },
         }),
         tailwindcss(),
+        githubPagesSpaFallback(),
     ],
     resolve: {
         alias: {
