@@ -30,7 +30,7 @@ export function ModelsSortSelect({
         >
             <SelectTrigger
                 size="default"
-                className="w-50 bg-background"
+                className="w-50 bg-background focus-visible:border-[#2f81ed89] focus-visible:ring-[#2f81ed89]/50"
                 aria-label="Sort models"
             >
                 <SelectValue />

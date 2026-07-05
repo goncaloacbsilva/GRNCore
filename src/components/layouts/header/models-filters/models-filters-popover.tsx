@@ -31,7 +31,10 @@ export function ModelsFiltersPopover({
     return (
         <Popover>
             <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button
+                    variant="outline"
+                    className="gap-2 focus-visible:border-[#2f81ed89] focus-visible:ring-[#2f81ed89]/50"
+                >
                     <FilterIcon className="size-4" />
                     Filters
                     {selectedTags.length > 0 ? (
