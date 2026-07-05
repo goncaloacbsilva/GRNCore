@@ -15,118 +15,118 @@ import { Route as ModelsCommunityRouteImport } from './routes/models/community'
 import { Route as EditModelIdRouteImport } from './routes/edit.$modelId'
 
 const ModelsRouteRoute = ModelsRouteRouteImport.update({
-  id: '/models',
-  path: '/models',
-  getParentRoute: () => rootRouteImport,
+    id: '/models',
+    path: '/models',
+    getParentRoute: () => rootRouteImport,
 } as any)
 const ModelsLocalRoute = ModelsLocalRouteImport.update({
-  id: '/local',
-  path: '/local',
-  getParentRoute: () => ModelsRouteRoute,
+    id: '/local',
+    path: '/local',
+    getParentRoute: () => ModelsRouteRoute,
 } as any)
 const ModelsCommunityRoute = ModelsCommunityRouteImport.update({
-  id: '/community',
-  path: '/community',
-  getParentRoute: () => ModelsRouteRoute,
+    id: '/community',
+    path: '/community',
+    getParentRoute: () => ModelsRouteRoute,
 } as any)
 const EditModelIdRoute = EditModelIdRouteImport.update({
-  id: '/edit/$modelId',
-  path: '/edit/$modelId',
-  getParentRoute: () => rootRouteImport,
+    id: '/edit/$modelId',
+    path: '/edit/$modelId',
+    getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/models': typeof ModelsRouteRouteWithChildren
-  '/edit/$modelId': typeof EditModelIdRoute
-  '/models/community': typeof ModelsCommunityRoute
-  '/models/local': typeof ModelsLocalRoute
+    '/models': typeof ModelsRouteRouteWithChildren
+    '/edit/$modelId': typeof EditModelIdRoute
+    '/models/community': typeof ModelsCommunityRoute
+    '/models/local': typeof ModelsLocalRoute
 }
 export interface FileRoutesByTo {
-  '/models': typeof ModelsRouteRouteWithChildren
-  '/edit/$modelId': typeof EditModelIdRoute
-  '/models/community': typeof ModelsCommunityRoute
-  '/models/local': typeof ModelsLocalRoute
+    '/models': typeof ModelsRouteRouteWithChildren
+    '/edit/$modelId': typeof EditModelIdRoute
+    '/models/community': typeof ModelsCommunityRoute
+    '/models/local': typeof ModelsLocalRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/models': typeof ModelsRouteRouteWithChildren
-  '/edit/$modelId': typeof EditModelIdRoute
-  '/models/community': typeof ModelsCommunityRoute
-  '/models/local': typeof ModelsLocalRoute
+    __root__: typeof rootRouteImport
+    '/models': typeof ModelsRouteRouteWithChildren
+    '/edit/$modelId': typeof EditModelIdRoute
+    '/models/community': typeof ModelsCommunityRoute
+    '/models/local': typeof ModelsLocalRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/models'
-    | '/edit/$modelId'
-    | '/models/community'
-    | '/models/local'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/models' | '/edit/$modelId' | '/models/community' | '/models/local'
-  id:
-    | '__root__'
-    | '/models'
-    | '/edit/$modelId'
-    | '/models/community'
-    | '/models/local'
-  fileRoutesById: FileRoutesById
+    fileRoutesByFullPath: FileRoutesByFullPath
+    fullPaths:
+        | '/models'
+        | '/edit/$modelId'
+        | '/models/community'
+        | '/models/local'
+    fileRoutesByTo: FileRoutesByTo
+    to: '/models' | '/edit/$modelId' | '/models/community' | '/models/local'
+    id:
+        | '__root__'
+        | '/models'
+        | '/edit/$modelId'
+        | '/models/community'
+        | '/models/local'
+    fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  ModelsRouteRoute: typeof ModelsRouteRouteWithChildren
-  EditModelIdRoute: typeof EditModelIdRoute
+    ModelsRouteRoute: typeof ModelsRouteRouteWithChildren
+    EditModelIdRoute: typeof EditModelIdRoute
 }
 
 declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/models': {
-      id: '/models'
-      path: '/models'
-      fullPath: '/models'
-      preLoaderRoute: typeof ModelsRouteRouteImport
-      parentRoute: typeof rootRouteImport
+    interface FileRoutesByPath {
+        '/models': {
+            id: '/models'
+            path: '/models'
+            fullPath: '/models'
+            preLoaderRoute: typeof ModelsRouteRouteImport
+            parentRoute: typeof rootRouteImport
+        }
+        '/models/local': {
+            id: '/models/local'
+            path: '/local'
+            fullPath: '/models/local'
+            preLoaderRoute: typeof ModelsLocalRouteImport
+            parentRoute: typeof ModelsRouteRoute
+        }
+        '/models/community': {
+            id: '/models/community'
+            path: '/community'
+            fullPath: '/models/community'
+            preLoaderRoute: typeof ModelsCommunityRouteImport
+            parentRoute: typeof ModelsRouteRoute
+        }
+        '/edit/$modelId': {
+            id: '/edit/$modelId'
+            path: '/edit/$modelId'
+            fullPath: '/edit/$modelId'
+            preLoaderRoute: typeof EditModelIdRouteImport
+            parentRoute: typeof rootRouteImport
+        }
     }
-    '/models/local': {
-      id: '/models/local'
-      path: '/local'
-      fullPath: '/models/local'
-      preLoaderRoute: typeof ModelsLocalRouteImport
-      parentRoute: typeof ModelsRouteRoute
-    }
-    '/models/community': {
-      id: '/models/community'
-      path: '/community'
-      fullPath: '/models/community'
-      preLoaderRoute: typeof ModelsCommunityRouteImport
-      parentRoute: typeof ModelsRouteRoute
-    }
-    '/edit/$modelId': {
-      id: '/edit/$modelId'
-      path: '/edit/$modelId'
-      fullPath: '/edit/$modelId'
-      preLoaderRoute: typeof EditModelIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
 }
 
 interface ModelsRouteRouteChildren {
-  ModelsCommunityRoute: typeof ModelsCommunityRoute
-  ModelsLocalRoute: typeof ModelsLocalRoute
+    ModelsCommunityRoute: typeof ModelsCommunityRoute
+    ModelsLocalRoute: typeof ModelsLocalRoute
 }
 
 const ModelsRouteRouteChildren: ModelsRouteRouteChildren = {
-  ModelsCommunityRoute: ModelsCommunityRoute,
-  ModelsLocalRoute: ModelsLocalRoute,
+    ModelsCommunityRoute: ModelsCommunityRoute,
+    ModelsLocalRoute: ModelsLocalRoute,
 }
 
 const ModelsRouteRouteWithChildren = ModelsRouteRoute._addFileChildren(
-  ModelsRouteRouteChildren,
+    ModelsRouteRouteChildren
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  ModelsRouteRoute: ModelsRouteRouteWithChildren,
-  EditModelIdRoute: EditModelIdRoute,
+    ModelsRouteRoute: ModelsRouteRouteWithChildren,
+    EditModelIdRoute: EditModelIdRoute,
 }
 export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+    ._addFileChildren(rootRouteChildren)
+    ._addFileTypes<FileRouteTypes>()
