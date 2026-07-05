@@ -31,6 +31,7 @@ import { EditableModePlugin } from './initial-view-mode-plugin'
 
 interface EditorProps {
     isEditing: boolean
+    autoFocus?: boolean
     editorState?: EditorState
     editorSerializedState?: SerializedEditorState
     onChange?: (editorState: EditorState) => void
@@ -61,6 +62,7 @@ function AnnotationHistoryPlugin({ isEditing }: { isEditing: boolean }) {
 
 export function Editor({
     isEditing,
+    autoFocus = true,
     editorState,
     editorSerializedState,
     onChange,
@@ -75,7 +77,7 @@ export function Editor({
             defineExtension({
                 dependencies: [
                     RichTextExtension,
-                    AutoFocusExtension,
+                    ...(autoFocus ? [AutoFocusExtension] : []),
                     configExtension(LinkExtension, {
                         validateUrl,
                         attributes: {
@@ -99,7 +101,7 @@ export function Editor({
                     : editorState,
                 theme: annotationEditorTheme,
             }),
-        [editorState, editorSerializedState]
+        [autoFocus, editorState, editorSerializedState]
     )
 
     return (

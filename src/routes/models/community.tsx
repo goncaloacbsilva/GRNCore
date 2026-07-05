@@ -9,5 +9,11 @@ export const Route = createFileRoute('/models/community')({
 })
 
 function RouteComponent() {
-    return <ModelsList />
+    return (
+        <ModelsList
+            items={[]}
+            onDelete={() => undefined}
+            onEdit={() => undefined}
+        />
+    )
 }

@@ -6,14 +6,21 @@ interface ModelItemAuthorProps {
 }
 
 export function ModelItemAuthor({ item }: ModelItemAuthorProps) {
+    const authorName = item.author.trim() || 'Local'
+    const initials = authorName
+        .split(/\s+/)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('')
+        .slice(0, 2)
+
     return (
         <div className="flex flex-row items-center gap-2">
             <Avatar>
                 <AvatarFallback className="font-semibold text-primary">
-                    JD
+                    {initials}
                 </AvatarFallback>
             </Avatar>
-            <p className="text-sm text-muted-foreground">{item.author}</p>
+            <p className="text-sm text-muted-foreground">{authorName}</p>
         </div>
     )
 }

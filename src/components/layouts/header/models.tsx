@@ -6,6 +6,10 @@ import {
 } from '@/components/ui/breadcrumb'
 import { useMatches } from '@tanstack/react-router'
 
+interface ModelsRouteStaticData {
+    getTitle?: () => string
+}
+
 export function ModelsHeader() {
     const matches = useMatches()
 
@@ -14,11 +18,20 @@ export function ModelsHeader() {
             <Breadcrumb>
                 <BreadcrumbList>
                     {matches
-                        .filter((m) => m.staticData?.getTitle)
+                        .filter(
+                            (m) =>
+                                (
+                                    m.staticData as
+                                        | ModelsRouteStaticData
+                                        | undefined
+                                )?.getTitle
+                        )
                         .map((m) => (
                             <BreadcrumbItem>
                                 <BreadcrumbLink>
-                                    {m.staticData.getTitle()}
+                                    {(
+                                        m.staticData as ModelsRouteStaticData
+                                    ).getTitle?.()}
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
                         ))}

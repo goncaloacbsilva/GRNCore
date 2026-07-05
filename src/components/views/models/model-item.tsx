@@ -15,9 +15,11 @@ import { ModelItemAuthor } from './model-item-author'
 
 export interface ModelItemProps {
     item: ModelMetadata
+    onDelete: (modelId: string) => Promise<void> | void
+    onEdit: (item: ModelMetadata) => Promise<void> | void
 }
 
-export function ModelItem({ item }: ModelItemProps) {
+export function ModelItem({ item, onDelete, onEdit }: ModelItemProps) {
     const [isExpanded, setIsExpanded] = useState(false)
 
     return (
@@ -25,7 +27,7 @@ export function ModelItem({ item }: ModelItemProps) {
             <Item variant="outline">
                 <ItemContent>
                     <ItemTitle className="font-semibold">
-                        {item.title}
+                        {item.title || 'Untitled model'}
                     </ItemTitle>
                     <ItemDescription
                         className={twJoin(
@@ -35,9 +37,10 @@ export function ModelItem({ item }: ModelItemProps) {
                                 : 'text-sm text-wrap'
                         )}
                     >
-                        {item.description}
+                        {item.description || 'No description provided'}
                     </ItemDescription>
                     <Button
+                        hidden={item.description?.length < 100}
                         variant="link"
                         size="sm"
                         className="h-auto w-fit px-0"
@@ -45,9 +48,13 @@ export function ModelItem({ item }: ModelItemProps) {
                     >
                         {isExpanded ? 'Read Less' : 'Read More'}
                     </Button>
-                    <div className="mt-5 flex flex-row justify-between">
+                    <div className="mt-4 flex flex-row justify-between">
                         <ModelItemAuthor item={item} />
-                        <ModelItemMenu item={item} />
+                        <ModelItemMenu
+                            item={item}
+                            onDelete={onDelete}
+                            onEdit={onEdit}
+                        />
                     </div>
                 </ItemContent>
             </Item>

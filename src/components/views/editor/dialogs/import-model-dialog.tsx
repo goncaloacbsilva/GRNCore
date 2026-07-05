@@ -18,7 +18,12 @@ import {
     useFileUploadContext,
 } from '@/components/ui/file-upload'
 import { getInterchangeFormat } from '@/lib/interchange'
-import { useChangesTracking, useEditorStore } from '@/store'
+import {
+    useChangesTracking,
+    useEditorStore,
+    useLocalModelImportStore,
+} from '@/store'
+import { useNavigate } from '@tanstack/react-router'
 import { Upload } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -41,15 +46,46 @@ function AutoOpenFilePicker({ open }: { open: boolean }) {
     return null
 }
 
-export function ImportModelDialog() {
-    const { open, setOpen } = useEditorStore(
+export interface ImportModelDialogProps {
+    mode?: 'editor' | 'local-models'
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+    onImport?: (file: File) => Promise<void>
+}
+
+export function ImportModelDialog({
+    mode = 'editor',
+    open: openProp,
+    onOpenChange,
+    onImport,
+}: ImportModelDialogProps = {}) {
+    const navigate = useNavigate()
+    const { open: editorOpen, setOpen: setEditorOpen } = useEditorStore(
         useShallow((state) => ({
             open: state.importModelDialogVisible,
             setOpen: state.setImportModelDialogVisible,
         }))
     )
-    const importModel = useChangesTracking((state) => state.import)
+    const {
+        open: localModelsOpen,
+        setOpen: setLocalModelsOpen,
+        destination,
+        importFile,
+    } = useLocalModelImportStore(
+        useShallow((state) => ({
+            open: state.open,
+            setOpen: state.setOpen,
+            destination: state.destination,
+            importFile: state.importFile,
+        }))
+    )
+    const importModelToEditor = useChangesTracking((state) => state.import)
     const [files, setFiles] = useState<File[]>([])
+    const fallbackOpen = mode === 'local-models' ? localModelsOpen : editorOpen
+    const fallbackSetOpen =
+        mode === 'local-models' ? setLocalModelsOpen : setEditorOpen
+    const open = openProp ?? fallbackOpen
+    const setOpen = onOpenChange ?? fallbackSetOpen
 
     const onFileValidate = useCallback((file: File): string | null => {
         try {
@@ -77,18 +113,65 @@ export function ImportModelDialog() {
 
     useEffect(() => {
         if (files.length > 0) {
-            importModel(files[0], (hasError) => {
-                if (hasError) {
-                    setTimeout(() => setFiles([]), 200)
-                } else {
+            const [file] = files
+
+            if (!file) {
+                return
+            }
+
+            const handleImport = onImport
+                ? async () => onImport(file)
+                : mode === 'local-models'
+                  ? async () => {
+                        const metadata = await importFile(file)
+
+                        if (destination === 'editor') {
+                            await navigate({
+                                to: '/edit/$modelId',
+                                params: { modelId: metadata.id },
+                            })
+
+                            toast.success(
+                                `Switched to imported model: ${metadata.title ?? 'Untitled model'}`,
+                                {
+                                    position: 'top-right',
+                                }
+                            )
+                        }
+                    }
+                  : () =>
+                        new Promise<void>((resolve, reject) => {
+                            importModelToEditor(file, (hasError) => {
+                                if (hasError) {
+                                    reject(new Error('Import failed'))
+                                    return
+                                }
+
+                                resolve()
+                            })
+                        })
+
+            void handleImport()
+                .then(() => {
                     setTimeout(() => {
                         setOpen(false)
                         setTimeout(() => setFiles([]), 500)
                     }, 500)
-                }
-            })
+                })
+                .catch(() => {
+                    setTimeout(() => setFiles([]), 200)
+                })
         }
-    }, [files, importModel, setOpen])
+    }, [
+        destination,
+        files,
+        importFile,
+        importModelToEditor,
+        mode,
+        navigate,
+        onImport,
+        setOpen,
+    ])
 
     return (
         <Dialog open={open} onOpenChange={setDialogOpen}>
@@ -96,7 +179,7 @@ export function ImportModelDialog() {
                 <DialogHeader>
                     <DialogTitle>Import Model</DialogTitle>
                     <DialogDescription>
-                        Upload a model file to import it into the editor.
+                        Upload a model file to import it into the application.
                         Supported formats are: <br /> BoolNet (.bnet), SBML-Qual
                         (.sbml), GINsim (.zginml, .ginml)
                     </DialogDescription>
