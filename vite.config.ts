@@ -34,7 +34,9 @@ export default defineConfig({
         __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
     },
     build: {
-        chunkSizeWarningLimit: 800,
+        // Monaco remains a deliberately isolated vendor chunk even after
+        // trimming unused language workers from the bundle.
+        chunkSizeWarningLimit: 3000,
         rollupOptions: {
             output: {
                 manualChunks(id) {
