@@ -100,11 +100,10 @@ export function EditorHeader() {
                     <BreadcrumbItem>
                         <button
                             type="button"
-                            className="hover:text-primary transition-all"
+                            className="hover:text-primary hover:cursor-pointer transition-all"
                             onClick={() =>
-                                void navigateWithTransition(
-                                    'back',
-                                    () => navigate({ to: '/models/local' })
+                                void navigateWithTransition('back', () =>
+                                    navigate({ to: '/models/local' })
                                 )
                             }
                         >

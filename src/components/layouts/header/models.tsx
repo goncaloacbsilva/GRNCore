@@ -27,12 +27,10 @@ export function ModelsHeader() {
                                 )?.getTitle
                         )
                         .map((m) => (
-                            <BreadcrumbItem>
-                                <BreadcrumbLink>
-                                    {(
-                                        m.staticData as ModelsRouteStaticData
-                                    ).getTitle?.()}
-                                </BreadcrumbLink>
+                            <BreadcrumbItem className="text-primary">
+                                {(
+                                    m.staticData as ModelsRouteStaticData
+                                ).getTitle?.()}
                             </BreadcrumbItem>
                         ))}
                 </BreadcrumbList>

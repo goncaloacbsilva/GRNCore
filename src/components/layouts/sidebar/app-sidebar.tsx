@@ -39,9 +39,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     })
 
     useEffect(() => {
-        if (forceExpand) {
-            context.setOpen(true)
-        }
+        context.setOpen(forceExpand)
     }, [context, forceExpand])
 
     return (

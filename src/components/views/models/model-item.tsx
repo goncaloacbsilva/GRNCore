@@ -12,6 +12,7 @@ import type { ModelMetadata } from '@/lib/schema'
 import { twJoin } from 'tailwind-merge'
 import { ModelItemMenu } from './model-item-menu'
 import { ModelItemAuthor } from './model-item-author'
+import { ModelItemTags } from './model-item-tags'
 
 export interface ModelItemProps {
     item: ModelMetadata
@@ -52,9 +53,12 @@ export function ModelItem({ item, onDelete, onEdit }: ModelItemProps) {
         <div className="flex w-full flex-col gap-6">
             <Item variant="outline" className="hover:bg-[#f9fafbc9]">
                 <ItemContent>
-                    <ItemTitle className="font-semibold">
-                        {item.title || 'Untitled model'}
-                    </ItemTitle>
+                    <div className="flex flex-row justify-between">
+                        <ItemTitle className="font-semibold">
+                            {item.title || 'Untitled model'}
+                        </ItemTitle>
+                        <ModelItemTags item={item} />
+                    </div>
                     <ItemDescription
                         ref={descriptionRef}
                         className={twJoin(
