@@ -12,12 +12,13 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
+import { usePageTransitionNavigate } from '@/hooks/use-page-transition'
 import { usePersistenceStatus } from '@/store'
 import { useChangesTracking, useEditorStore } from '@/store'
 import { useStore as useFormStore } from '@tanstack/react-form'
+import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { CheckIcon } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
 
 function SavingIndicator() {
     const isSaving = usePersistenceStatus((state) => state.isSaving)
@@ -63,6 +64,8 @@ function SavingIndicator() {
 }
 
 export function EditorHeader() {
+    const navigate = useNavigate()
+    const navigateWithTransition = usePageTransitionNavigate()
     const modelTitle = useEditorStore((state) => state.modelTitle)
     const setModelTitle = useEditorStore((state) => state.setModelTitle)
     const setSnapshotTitle = useChangesTracking(
@@ -95,12 +98,18 @@ export function EditorHeader() {
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
-                        <Link
+                        <button
+                            type="button"
                             className="hover:text-primary transition-all"
-                            to="/models/local"
+                            onClick={() =>
+                                void navigateWithTransition(
+                                    'back',
+                                    () => navigate({ to: '/models/local' })
+                                )
+                            }
                         >
                             Local Models
-                        </Link>
+                        </button>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>

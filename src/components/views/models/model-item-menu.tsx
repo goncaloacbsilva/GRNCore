@@ -8,6 +8,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { ModelMetadata } from '@/lib/schema'
+import { usePageTransitionNavigate } from '@/hooks/use-page-transition'
 import { useChangesTracking } from '@/store'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { EllipsisIcon, PencilIcon, TrashIcon } from 'lucide-react'
@@ -22,6 +23,7 @@ interface ModelItemMenuProps {
 
 export function ModelItemMenu({ item, onDelete, onEdit }: ModelItemMenuProps) {
     const navigate = useNavigate()
+    const navigateWithTransition = usePageTransitionNavigate()
     const location = useLocation()
     const clearLoadedModel = useChangesTracking(
         (state) => state.clearLoadedModel
@@ -43,10 +45,14 @@ export function ModelItemMenu({ item, onDelete, onEdit }: ModelItemMenuProps) {
                 <Button
                     className="cursor-pointer"
                     onClick={() =>
-                        void navigate({
-                            to: '/edit/$modelId',
-                            params: { modelId: item.id },
-                        })
+                        void navigateWithTransition(
+                            'forward',
+                            () =>
+                                navigate({
+                                to: '/edit/$modelId',
+                                params: { modelId: item.id },
+                                })
+                        )
                     }
                 >
                     Open Model

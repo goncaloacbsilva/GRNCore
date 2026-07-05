@@ -17,7 +17,21 @@ export const Route = createFileRoute('/models/local')({
 
 function RouteComponent() {
     const loaderItems = Route.useLoaderData()
-    const [items, setItems] = useState(loaderItems)
+
+    return (
+        <LocalModelsContent
+            key={JSON.stringify(loaderItems)}
+            initialItems={loaderItems}
+        />
+    )
+}
+
+interface LocalModelsContentProps {
+    initialItems: ModelMetadata[]
+}
+
+function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
+    const [items, setItems] = useState(initialItems)
     const setOnImported = useLocalModelImportStore(
         (state) => state.setOnImported
     )
