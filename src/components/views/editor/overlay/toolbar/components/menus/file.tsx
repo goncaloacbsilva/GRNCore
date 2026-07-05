@@ -87,9 +87,9 @@ export function FileMenu() {
                     <DialogHeader>
                         <DialogTitle>Overwrite Current Model?</DialogTitle>
                         <DialogDescription>
-                            Importing from the editor will overwrite the
-                            current model and replace it with the imported one.
-                            This action cannot be undone.
+                            Importing from the editor will overwrite the current
+                            model and replace it with the imported one. This
+                            action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
 

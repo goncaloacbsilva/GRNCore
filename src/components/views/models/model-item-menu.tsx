@@ -45,13 +45,11 @@ export function ModelItemMenu({ item, onDelete, onEdit }: ModelItemMenuProps) {
                 <Button
                     className="cursor-pointer"
                     onClick={() =>
-                        void navigateWithTransition(
-                            'forward',
-                            () =>
-                                navigate({
+                        void navigateWithTransition('forward', () =>
+                            navigate({
                                 to: '/edit/$modelId',
                                 params: { modelId: item.id },
-                                })
+                            })
                         )
                     }
                 >

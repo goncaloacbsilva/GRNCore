@@ -26,8 +26,7 @@ export function ModelsFiltersPopover({
     onReset,
     hasSearchQuery,
 }: ModelsFiltersPopoverProps) {
-    const activeFiltersCount =
-        selectedTags.length + (hasSearchQuery ? 1 : 0)
+    const activeFiltersCount = selectedTags.length + (hasSearchQuery ? 1 : 0)
 
     return (
         <Popover>
@@ -52,9 +51,7 @@ export function ModelsFiltersPopover({
                 <div className="space-y-4">
                     {MODEL_METADATA_TAG_GROUPS.map((group) => (
                         <div key={group.value} className="space-y-2">
-                            <p className="text-sm font-medium">
-                                {group.value}
-                            </p>
+                            <p className="text-sm font-medium">{group.value}</p>
                             <div className="space-y-2">
                                 {group.items.map((tag) => (
                                     <label

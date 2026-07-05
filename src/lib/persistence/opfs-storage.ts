@@ -224,7 +224,8 @@ const hasAnnotationReferences = (
 const hasAnnotations = (
     annotations: PersistedAnnotations | undefined
 ): boolean =>
-    hasTextualAnnotationContent(annotations) || hasAnnotationReferences(annotations)
+    hasTextualAnnotationContent(annotations) ||
+    hasAnnotationReferences(annotations)
 
 const inferMetadataTags = ({
     snapshot,

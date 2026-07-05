@@ -56,9 +56,7 @@ export function usePageTransitionNavigate() {
     }
 }
 
-export function usePageEnterTransition(
-    ref: RefObject<HTMLElement | null>
-) {
+export function usePageEnterTransition(ref: RefObject<HTMLElement | null>) {
     useEffect(() => {
         const target = ref.current
 
