@@ -1,4 +1,5 @@
 export * from './editor'
 export * from './history'
 export * from './local-model-import'
+export * from './models-filters'
 export * from './persistence'

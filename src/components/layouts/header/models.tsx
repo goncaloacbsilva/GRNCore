@@ -3,7 +3,8 @@ import {
     BreadcrumbItem,
     BreadcrumbList,
 } from '@/components/ui/breadcrumb'
-import { useMatches } from '@tanstack/react-router'
+import { ModelsFilters } from './models-filters'
+import { useLocation, useMatches } from '@tanstack/react-router'
 
 interface ModelsRouteStaticData {
     getTitle?: () => string
@@ -11,9 +12,11 @@ interface ModelsRouteStaticData {
 
 export function ModelsHeader() {
     const matches = useMatches()
+    const { pathname } = useLocation()
+    const isLocalModelsRoute = pathname === '/models/local'
 
     return (
-        <div className="flex flex-row items-center justify-center gap-2">
+        <div className="flex w-full items-center justify-between gap-4">
             <Breadcrumb>
                 <BreadcrumbList>
                     {matches
@@ -34,6 +37,7 @@ export function ModelsHeader() {
                         ))}
                 </BreadcrumbList>
             </Breadcrumb>
+            {isLocalModelsRoute ? <ModelsFilters /> : null}
         </div>
     )
 }
