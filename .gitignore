@@ -23,5 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# Ignore Tanstack Router tree
-src/routeTree.gen.ts
+# Ignore generated TanStack Router tree
+/src/routeTree.gen.ts
