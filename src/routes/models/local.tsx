@@ -1,5 +1,6 @@
 import { ModelsList } from '@/components/views/models/models-list'
 import { ImportModelDialog } from '@/components/views/editor/dialogs'
+import { emptySerializedEditorState } from '@/components/views/editor/overlay/annotations/lib/annotation-state'
 import {
     Empty,
     EmptyContent,
@@ -8,11 +9,16 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from '@/components/ui/empty'
-import { deleteLocalModel, listLocalModels } from '@/lib/persistence'
+import {
+    deleteLocalModel,
+    getLocalModelSnapshot,
+    listLocalModels,
+} from '@/lib/persistence'
 import type { ModelMetadata } from '@/lib/schema'
 import {
     MODEL_SORT_OPTIONS,
     type ModelsSortOption,
+    useChangesTracking,
     useLocalModelImportStore,
     useModelsFiltersStore,
 } from '@/store'
@@ -66,6 +72,14 @@ const sortModels = (items: ModelMetadata[], sortBy: ModelsSortOption) =>
 
 function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
     const [items, setItems] = useState(initialItems)
+    const activeModelId = useChangesTracking((state) => state.activeModelId)
+    const autoDeleteEmptyModelId = useChangesTracking(
+        (state) => state.autoDeleteEmptyModelId
+    )
+    const clearLoadedModel = useChangesTracking((state) => state.clearLoadedModel)
+    const markAutoDeleteEmptyModel = useChangesTracking(
+        (state) => state.markAutoDeleteEmptyModel
+    )
     const setOnImported = useLocalModelImportStore(
         (state) => state.setOnImported
     )
@@ -86,6 +100,75 @@ function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
             setOnImported(null)
         }
     }, [setOnImported])
+
+    useEffect(() => {
+        if (!autoDeleteEmptyModelId) {
+            return
+        }
+
+        let cancelled = false
+
+        const isEmptyDraftSnapshot = async () => {
+            const savedSnapshot = await getLocalModelSnapshot(
+                autoDeleteEmptyModelId
+            )
+
+            if (!savedSnapshot) {
+                return false
+            }
+
+            const hasEmptyAnnotations =
+                savedSnapshot.annotations === undefined ||
+                ((savedSnapshot.annotations.references?.length ?? 0) === 0 &&
+                    JSON.stringify(
+                        savedSnapshot.annotations.unstructured ??
+                            emptySerializedEditorState
+                    ) === JSON.stringify(emptySerializedEditorState))
+
+            return (
+                savedSnapshot.nodes.length === 0 &&
+                savedSnapshot.edges.length === 0 &&
+                hasEmptyAnnotations
+            )
+        }
+
+        void isEmptyDraftSnapshot().then((shouldDeleteEmptyDraft) => {
+            if (cancelled) {
+                return
+            }
+
+            if (!shouldDeleteEmptyDraft) {
+                markAutoDeleteEmptyModel(null)
+                return
+            }
+
+            void deleteLocalModel(autoDeleteEmptyModelId).then(() => {
+                if (cancelled) {
+                    return
+                }
+
+                if (activeModelId === autoDeleteEmptyModelId) {
+                    clearLoadedModel()
+                }
+
+                markAutoDeleteEmptyModel(null)
+                setItems((currentItems) =>
+                    currentItems.filter(
+                        (item) => item.id !== autoDeleteEmptyModelId
+                    )
+                )
+            })
+        })
+
+        return () => {
+            cancelled = true
+        }
+    }, [
+        activeModelId,
+        autoDeleteEmptyModelId,
+        clearLoadedModel,
+        markAutoDeleteEmptyModel,
+    ])
 
     const handleDelete = async (modelId: string) => {
         await deleteLocalModel(modelId)

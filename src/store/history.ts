@@ -46,6 +46,7 @@ interface HistoryGroupContext {
 
 interface HistoryState {
     activeModelId: string | null
+    autoDeleteEmptyModelId: string | null
     snapshot: InternalGRNModel
     hasHydrated: boolean
     baselineVersion: number
@@ -57,6 +58,7 @@ interface HistoryState {
     import: (file: File, callback: (error: boolean) => void) => void
     loadModel: (modelId: string, snapshot: InternalGRNModel) => void
     clearLoadedModel: () => void
+    markAutoDeleteEmptyModel: (modelId: string | null) => void
     setSnapshotTitle: (title: string) => void
     setSnapshotAnnotations: (
         annotations: PersistedAnnotations | undefined
@@ -499,6 +501,7 @@ const applySnapshotToInstance = (
 
 export const useChangesTracking = create<HistoryState>()((set, get) => ({
     activeModelId: null,
+    autoDeleteEmptyModelId: null,
     snapshot: createEmptyModelSnapshot(),
     hasHydrated: false,
     baselineVersion: 0,
@@ -582,6 +585,9 @@ export const useChangesTracking = create<HistoryState>()((set, get) => ({
             baselineVersion: state.baselineVersion + 1,
             graphVersion: state.graphVersion + 1,
         }))
+    },
+    markAutoDeleteEmptyModel: (modelId) => {
+        set(() => ({ autoDeleteEmptyModelId: modelId }))
     },
     setSnapshotTitle: (title: string) => {
         const nextSnapshot = {

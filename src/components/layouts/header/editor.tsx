@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
 import { usePageTransitionNavigate } from '@/hooks/use-page-transition'
+import { deleteLocalModel } from '@/lib/persistence'
 import { usePersistenceStatus } from '@/store'
 import { useChangesTracking, useEditorStore } from '@/store'
 import { useStore as useFormStore } from '@tanstack/react-form'
@@ -68,6 +69,15 @@ export function EditorHeader() {
     const navigateWithTransition = usePageTransitionNavigate()
     const modelTitle = useEditorStore((state) => state.modelTitle)
     const setModelTitle = useEditorStore((state) => state.setModelTitle)
+    const activeModelId = useChangesTracking((state) => state.activeModelId)
+    const autoDeleteEmptyModelId = useChangesTracking(
+        (state) => state.autoDeleteEmptyModelId
+    )
+    const clearLoadedModel = useChangesTracking((state) => state.clearLoadedModel)
+    const markAutoDeleteEmptyModel = useChangesTracking(
+        (state) => state.markAutoDeleteEmptyModel
+    )
+    const snapshot = useChangesTracking((state) => state.snapshot)
     const setSnapshotTitle = useChangesTracking(
         (state) => state.setSnapshotTitle
     )
@@ -93,6 +103,26 @@ export function EditorHeader() {
         setIsEditingTitle(false)
     }
 
+    const isEmptyDraft =
+        snapshot.nodes.length === 0 &&
+        snapshot.edges.length === 0 &&
+        snapshot.annotations === undefined
+
+    const handleBackNavigation = async () => {
+        if (
+            activeModelId &&
+            autoDeleteEmptyModelId === activeModelId &&
+            isEmptyDraft
+        ) {
+            await deleteLocalModel(activeModelId)
+            clearLoadedModel()
+        } else {
+            markAutoDeleteEmptyModel(null)
+        }
+
+        await navigate({ to: '/models/local' })
+    }
+
     return (
         <div className="flex w-full items-center">
             <div className="flex min-w-0 items-center gap-2">
@@ -103,8 +133,9 @@ export function EditorHeader() {
                                 type="button"
                                 className="hover:text-primary hover:cursor-pointer transition-all"
                                 onClick={() =>
-                                    void navigateWithTransition('back', () =>
-                                        navigate({ to: '/models/local' })
+                                    void navigateWithTransition(
+                                        'back',
+                                        handleBackNavigation
                                     )
                                 }
                             >
