@@ -1,5 +1,8 @@
-import { ChevronRight, type LucideIcon } from 'lucide-react'
+import { HardDrive, ChevronRight, UsersRound } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
+import { listLocalModels } from '@/lib/persistence'
+import type { ModelMetadata } from '@/lib/schema'
 import {
     Collapsible,
     CollapsibleContent,
@@ -9,68 +12,127 @@ import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
+    SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarMenuSub,
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
-import { Link } from '@tanstack/react-router'
+import { Link, useLocation } from '@tanstack/react-router'
 
-export interface NavigationItem {
-    title: string
-    url: string
-    icon?: LucideIcon
-    isActive?: boolean
-    items?: {
-        title: string
-        url: string
-        icon?: LucideIcon
-    }[]
-}
+export function NavMain() {
+    const { pathname } = useLocation()
+    const [recentModels, setRecentModels] = useState<ModelMetadata[]>([])
+    const [isLocalModelsOpen, setIsLocalModelsOpen] = useState(
+        pathname === '/models/local' || pathname.startsWith('/edit/')
+    )
 
-export function NavMain({ items }: { items: NavigationItem[] }) {
+    const isLocalModelsActive =
+        pathname === '/models/local' || pathname.startsWith('/edit/')
+    const isCommunityModelsActive = pathname === '/models/community'
+
+    useEffect(() => {
+        let isCancelled = false
+
+        void listLocalModels().then((items) => {
+            if (isCancelled) {
+                return
+            }
+
+            setRecentModels(items.slice(0, 5))
+        })
+
+        return () => {
+            isCancelled = true
+        }
+    }, [])
+
+    useEffect(() => {
+        if (isLocalModelsActive) {
+            setIsLocalModelsOpen(true)
+        }
+    }, [isLocalModelsActive])
+
+    const recentModelItems = useMemo(
+        () => recentModels.slice(0, 5),
+        [recentModels]
+    )
+
     return (
         <SidebarGroup>
-            <SidebarGroupLabel>Resources</SidebarGroupLabel>
+            <SidebarGroupLabel>Models</SidebarGroupLabel>
             <SidebarMenu>
-                {items.map((item) => (
-                    <Collapsible
-                        key={item.title}
+                <Collapsible
+                    open={isLocalModelsOpen}
+                    onOpenChange={setIsLocalModelsOpen}
+                    asChild
+                    className="group/collapsible"
+                >
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            tooltip="Local Models"
+                            isActive={isLocalModelsActive}
+                            className="pr-8"
+                        >
+                            <Link to="/models/local">
+                                <HardDrive />
+                                <span>Local</span>
+                            </Link>
+                        </SidebarMenuButton>
+                        <CollapsibleTrigger asChild>
+                            <SidebarMenuAction
+                                aria-label="Toggle local models"
+                                className="cursor-pointer"
+                            >
+                                <ChevronRight className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            </SidebarMenuAction>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <SidebarGroupLabel className="px-2">
+                                Recently edited
+                            </SidebarGroupLabel>
+                            <SidebarMenuSub>
+                                {recentModelItems.map((item) => (
+                                    <SidebarMenuSubItem key={item.id}>
+                                        <SidebarMenuSubButton
+                                            asChild
+                                            isActive={
+                                                pathname === `/edit/${item.id}`
+                                            }
+                                        >
+                                            <Link
+                                                to="/edit/$modelId"
+                                                params={{
+                                                    modelId: item.id,
+                                                }}
+                                                className="flex min-w-0 items-center gap-2"
+                                            >
+                                                <span className="size-1.5 shrink-0 rounded-full bg-[#2F80ED]" />
+                                                <span className="min-w-0 truncate">
+                                                    {item.title}
+                                                </span>
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                ))}
+                            </SidebarMenuSub>
+                        </CollapsibleContent>
+                    </SidebarMenuItem>
+                </Collapsible>
+                <SidebarMenuItem>
+                    <SidebarMenuButton
                         asChild
-                        defaultOpen={item.isActive}
-                        className="group/collapsible"
+                        tooltip="Community Models"
+                        isActive={isCommunityModelsActive}
                     >
-                        <SidebarMenuItem>
-                            <CollapsibleTrigger asChild>
-                                <SidebarMenuButton tooltip={item.title}>
-                                    {item.icon && <item.icon />}
-                                    <span>{item.title}</span>
-                                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                </SidebarMenuButton>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                                <SidebarMenuSub>
-                                    {item.items?.map((subItem) => (
-                                        <SidebarMenuSubItem key={subItem.title}>
-                                            <SidebarMenuSubButton asChild>
-                                                <Link
-                                                    to={subItem.url}
-                                                    className="data-[status=active]:bg-accent data-[status=active]:text-accent-foreground data-[status=active]:font-semibold hover:underline font-light transition-all duration-200"
-                                                >
-                                                    {subItem.icon && (
-                                                        <subItem.icon />
-                                                    )}
-                                                    <span>{subItem.title}</span>
-                                                </Link>
-                                            </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-                                    ))}
-                                </SidebarMenuSub>
-                            </CollapsibleContent>
-                        </SidebarMenuItem>
-                    </Collapsible>
-                ))}
+                        <Link to="/models/community">
+                            <UsersRound />
+                            <span>Community</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
             </SidebarMenu>
         </SidebarGroup>
     )

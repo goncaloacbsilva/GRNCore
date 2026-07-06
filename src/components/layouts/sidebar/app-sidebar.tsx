@@ -11,34 +11,29 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar'
 import { Logo } from './logo'
-import { NAVIGATION_ITEMS } from './data'
 import { CreateModelButton } from './create-model'
 import { ImportModelButton } from './import-model'
 import { NavMain } from './nav-main'
 import { Button } from '@/components/ui/button'
 import { useEffect } from 'react'
-import { useMatches } from '@tanstack/react-router'
-
-interface SidebarRouteStaticData {
-    expandedNavbar?: boolean
-}
+import { useLocation } from '@tanstack/react-router'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const context = useSidebar()
+    const previousForceExpandRef = React.useRef<boolean | null>(null)
+    const { pathname } = useLocation()
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => context.setOpen(false), [])
 
-    const forceExpand = useMatches({
-        select: (matches) =>
-            matches.some(
-                (m) =>
-                    (m.staticData as SidebarRouteStaticData | undefined)
-                        ?.expandedNavbar === true
-            ),
-    })
+    const forceExpand = pathname.startsWith('/models')
 
     useEffect(() => {
+        if (previousForceExpandRef.current === forceExpand) {
+            return
+        }
+
+        previousForceExpandRef.current = forceExpand
         context.setOpen(forceExpand)
     }, [context, forceExpand])
 
@@ -52,7 +47,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
             </SidebarHeader>
             <SidebarContent>
-                <NavMain items={NAVIGATION_ITEMS} />
+                <NavMain />
             </SidebarContent>
             <SidebarRail asChild>
                 <div className="flex h-full items-center justify-center">

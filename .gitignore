@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Ignore Tanstack Router tree
+src/routeTree.gen.ts

@@ -275,6 +275,42 @@ const createMetadataFromSnapshot = (
     }
 }
 
+const UNTITLED_MODEL_PREFIX = 'Untitled model #'
+
+const getNextUntitledModelTitle = (items: ModelMetadata[]): string => {
+    const usedNumbers = new Set(
+        items.flatMap((item) => {
+            const match = item.title.trim().match(/^Untitled model #(\d+)$/)
+            return match ? [Number.parseInt(match[1], 10)] : []
+        })
+    )
+
+    let nextNumber = 1
+    while (usedNumbers.has(nextNumber)) {
+        nextNumber += 1
+    }
+
+    return `${UNTITLED_MODEL_PREFIX}${nextNumber}`
+}
+
+const normalizeSnapshotTitleForCreate = (
+    snapshot: InternalGRNModel,
+    items: ModelMetadata[]
+): InternalGRNModel => {
+    const normalizedTitle = snapshot.title.trim()
+    if (normalizedTitle.length > 0) {
+        return {
+            ...snapshot,
+            title: normalizedTitle,
+        }
+    }
+
+    return {
+        ...snapshot,
+        title: getNextUntitledModelTitle(items),
+    }
+}
+
 const updateMetadataForSnapshot = (
     metadata: ModelMetadata,
     snapshot: InternalGRNModel
@@ -342,14 +378,18 @@ export async function createLocalModel(
 
     return enqueuePersistenceWrite(async () => {
         const modelId = crypto.randomUUID()
+        const items = await readMetadataList()
+        const normalizedSnapshot = normalizeSnapshotTitleForCreate(
+            snapshot,
+            items
+        )
         const metadata = createMetadataFromSnapshot(
             modelId,
-            snapshot,
+            normalizedSnapshot,
             options?.sourceFormat
         )
-        const items = await readMetadataList()
 
-        await writeSnapshotFile(modelId, snapshot)
+        await writeSnapshotFile(modelId, normalizedSnapshot)
         await writeMetadataList([...items, metadata])
 
         return metadata

@@ -94,75 +94,82 @@ export function EditorHeader() {
     }
 
     return (
-        <div className="flex flex-row items-center justify-center gap-2">
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <button
-                            type="button"
-                            className="hover:text-primary hover:cursor-pointer transition-all"
-                            onClick={() =>
-                                void navigateWithTransition('back', () =>
-                                    navigate({ to: '/models/local' })
-                                )
-                            }
-                        >
-                            Local Models
-                        </button>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        {isEditingTitle ? (
-                            <form
-                                onSubmit={(event) => {
-                                    event.preventDefault()
-                                    finishTitleEdit()
-                                }}
+        <div className="flex w-full items-center">
+            <div className="flex min-w-0 items-center gap-2">
+                <Breadcrumb>
+                    <BreadcrumbList>
+                        <BreadcrumbItem>
+                            <button
+                                type="button"
+                                className="hover:text-primary hover:cursor-pointer transition-all"
+                                onClick={() =>
+                                    void navigateWithTransition('back', () =>
+                                        navigate({ to: '/models/local' })
+                                    )
+                                }
                             >
-                                <form.AppField
-                                    name="title"
-                                    children={(field) => (
-                                        <field.TextField
-                                            label="Model title"
-                                            showLabel={false}
-                                            placeholder="Model title"
-                                            inputClassName="h-8 min-w-52 px-2 text-sm text-foreground"
-                                            inputProps={{
-                                                autoFocus: true,
-                                                onBlur: finishTitleEdit,
-                                                onKeyDown: (event) => {
-                                                    if (
-                                                        event.key === 'Escape'
-                                                    ) {
-                                                        form.reset({
-                                                            title: modelTitle,
-                                                        })
-                                                        setIsEditingTitle(false)
-                                                    }
-                                                },
-                                            }}
-                                        />
-                                    )}
-                                />
-                            </form>
-                        ) : (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <BreadcrumbPage
-                                        className="cursor-pointer flex flex-col align-top hover:bg-muted p-2 rounded-sm font-semibold"
-                                        onClick={() => setIsEditingTitle(true)}
-                                    >
-                                        {modelTitle}
-                                    </BreadcrumbPage>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom">
-                                    Press to edit model name
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+                                Local Models
+                            </button>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            {isEditingTitle ? (
+                                <form
+                                    onSubmit={(event) => {
+                                        event.preventDefault()
+                                        finishTitleEdit()
+                                    }}
+                                >
+                                    <form.AppField
+                                        name="title"
+                                        children={(field) => (
+                                            <field.TextField
+                                                label="Model title"
+                                                showLabel={false}
+                                                placeholder="Model title"
+                                                inputClassName="h-8 min-w-52 px-2 text-sm text-foreground"
+                                                inputProps={{
+                                                    autoFocus: true,
+                                                    onBlur: finishTitleEdit,
+                                                    onKeyDown: (event) => {
+                                                        if (
+                                                            event.key ===
+                                                            'Escape'
+                                                        ) {
+                                                            form.reset({
+                                                                title: modelTitle,
+                                                            })
+                                                            setIsEditingTitle(
+                                                                false
+                                                            )
+                                                        }
+                                                    },
+                                                }}
+                                            />
+                                        )}
+                                    />
+                                </form>
+                            ) : (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <BreadcrumbPage
+                                            className="cursor-pointer flex flex-col align-top hover:bg-muted p-2 rounded-sm font-semibold"
+                                            onClick={() =>
+                                                setIsEditingTitle(true)
+                                            }
+                                        >
+                                            {modelTitle}
+                                        </BreadcrumbPage>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom">
+                                        Press to edit model name
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+            </div>
             <SavingIndicator />
         </div>
     )
