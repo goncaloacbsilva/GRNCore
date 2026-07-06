@@ -62,6 +62,10 @@ const finishSaving = () => {
     }, remaining)
 }
 
+const notifyLocalModelsChanged = () => {
+    usePersistenceStatus.getState().bumpLocalModelsVersion()
+}
+
 const enqueuePersistenceWrite = async <T>(
     task: () => Promise<T>
 ): Promise<T> => {
@@ -391,6 +395,7 @@ export async function createLocalModel(
 
         await writeSnapshotFile(modelId, normalizedSnapshot)
         await writeMetadataList([...items, metadata])
+        notifyLocalModelsChanged()
 
         return metadata
     })
@@ -410,6 +415,8 @@ export async function deleteLocalModel(modelId: string): Promise<void> {
         } catch {
             // Ignore missing snapshots so metadata cleanup can still succeed.
         }
+
+        notifyLocalModelsChanged()
     })
 }
 
@@ -494,6 +501,7 @@ export async function updateLocalModelDetails(
                     item.id === modelId ? updatedMetadata : item
                 )
             )
+            notifyLocalModelsChanged()
 
             return updatedMetadata
         })

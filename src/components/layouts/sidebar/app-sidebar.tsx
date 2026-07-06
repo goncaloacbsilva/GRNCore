@@ -15,7 +15,7 @@ import { CreateModelButton } from './create-model'
 import { ImportModelButton } from './import-model'
 import { NavMain } from './nav-main'
 import { Button } from '@/components/ui/button'
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 import { useLocation } from '@tanstack/react-router'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -23,18 +23,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const previousForceExpandRef = React.useRef<boolean | null>(null)
     const { pathname } = useLocation()
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => context.setOpen(false), [])
-
     const forceExpand = pathname.startsWith('/models')
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (previousForceExpandRef.current === forceExpand) {
             return
         }
 
+        if (forceExpand) {
+            context.setOpen(true)
+        } else {
+            context.setOpen(false)
+        }
+
         previousForceExpandRef.current = forceExpand
-        context.setOpen(forceExpand)
     }, [context, forceExpand])
 
     return (
@@ -49,9 +51,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarContent>
                 <NavMain />
             </SidebarContent>
-            <SidebarRail asChild>
-                <div className="flex h-full items-center justify-center">
-                    {!forceExpand && (
+            {!forceExpand ? (
+                <SidebarRail asChild>
+                    <div className="flex h-full items-center justify-center">
                         <Button
                             variant="outline"
                             size="icon"
@@ -65,9 +67,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 }
                             />
                         </Button>
-                    )}
-                </div>
-            </SidebarRail>
+                    </div>
+                </SidebarRail>
+            ) : null}
         </Sidebar>
     )
 }

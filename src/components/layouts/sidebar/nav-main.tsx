@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { listLocalModels } from '@/lib/persistence'
 import type { ModelMetadata } from '@/lib/schema'
+import { usePersistenceStatus } from '@/store'
 import {
     Collapsible,
     CollapsibleContent,
@@ -23,6 +24,9 @@ import { Link, useLocation } from '@tanstack/react-router'
 
 export function NavMain() {
     const { pathname } = useLocation()
+    const localModelsVersion = usePersistenceStatus(
+        (state) => state.localModelsVersion
+    )
     const [recentModels, setRecentModels] = useState<ModelMetadata[]>([])
     const [isLocalModelsOpen, setIsLocalModelsOpen] = useState(
         pathname === '/models/local' || pathname.startsWith('/edit/')
@@ -46,7 +50,7 @@ export function NavMain() {
         return () => {
             isCancelled = true
         }
-    }, [])
+    }, [localModelsVersion])
 
     useEffect(() => {
         if (isLocalModelsActive) {
