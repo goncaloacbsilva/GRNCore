@@ -95,11 +95,13 @@ const parseJson = <T>(value: string, fallback: T): T => {
 }
 
 const normalizeMetadataItem = (
-    item: Omit<ModelMetadata, 'lastChangedAt'> & {
+    item: Omit<ModelMetadata, 'createdAt' | 'lastChangedAt'> & {
+        createdAt?: number
         lastChangedAt?: number
     }
 ): ModelMetadata => ({
     ...item,
+    createdAt: item.createdAt ?? item.lastChangedAt ?? 0,
     lastChangedAt: item.lastChangedAt ?? 0,
 })
 
@@ -275,6 +277,7 @@ const createMetadataFromSnapshot = (
         description: annotationsToDescription(snapshot.annotations),
         author: 'Unknown Author',
         tags: inferMetadataTags({ snapshot, sourceFormat }),
+        createdAt: now,
         lastChangedAt: now,
     }
 }

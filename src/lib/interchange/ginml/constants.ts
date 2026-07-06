@@ -10,8 +10,14 @@ export const GINML_ANNOTATIONS_TAG = 'grn:annotations'
 export const GINML_PAYLOAD_TAG = 'grn:payload'
 
 export const GINML_DEFAULTS = {
-    nodeWidth: 120,
-    nodeHeight: 45,
+    nodeWidth: 45,
+    nodeHeight: 25,
+    inputNodeWidth: 125,
     edgeAnchor: 'NE',
     selfLoopAnchor: 'NW',
+    exportOffsetX: 242,
+    exportOffsetY: 0,
+    exportScaleX: 1.15,
+    exportScaleY: 1,
+    reverseEdgeMidpointYOffset: 0,
 } as const

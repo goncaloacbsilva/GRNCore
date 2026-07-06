@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import RelativeTime from '@yaireo/relative-time'
+import dayjs from 'dayjs'
 import {
     Item,
     ItemContent,
@@ -15,14 +15,12 @@ import { ModelItemMenu } from './model-item-menu'
 import { ModelItemAuthor } from './model-item-author'
 import { ModelItemTags } from './model-item-tags'
 
-const relativeTime = new RelativeTime()
-
-function formatRelativeTimestamp(timestamp: number): string | null {
+function formatTimestamp(timestamp: number): string | null {
     if (timestamp <= 0) {
         return null
     }
 
-    return relativeTime.from(timestamp)
+    return dayjs(timestamp).format('MMM D, YYYY, HH:mm')
 }
 
 export interface ModelItemProps {
@@ -35,14 +33,8 @@ export function ModelItem({ item, onDelete, onEdit }: ModelItemProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const [hasOverflow, setHasOverflow] = useState(false)
     const descriptionRef = useRef<HTMLParagraphElement | null>(null)
-    const relativeLastChangedAt = formatRelativeTimestamp(item.lastChangedAt)
-    const fullLastChangedAt =
-        item.lastChangedAt > 0
-            ? new Intl.DateTimeFormat(undefined, {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-              }).format(new Date(item.lastChangedAt))
-            : null
+    const createdAt = formatTimestamp(item.createdAt)
+    const lastChangedAt = formatTimestamp(item.lastChangedAt)
 
     useEffect(() => {
         const description = descriptionRef.current
@@ -73,18 +65,16 @@ export function ModelItem({ item, onDelete, onEdit }: ModelItemProps) {
             <Item variant="outline" className="hover:bg-[#f9fafbc9]">
                 <ItemContent>
                     <div className="flex flex-row justify-between">
-                        <div className="flex flex-row items-center gap-2">
+                        <div className="flex flex-col gap-1">
                             <ItemTitle className="font-semibold">
                                 {item.title || 'Untitled model'}
                             </ItemTitle>
-                            {relativeLastChangedAt ? (
-                                <p
-                                    className="text-xs font-medium text-gray-400"
-                                    title={fullLastChangedAt ?? undefined}
-                                >
-                                    Updated {relativeLastChangedAt}
-                                </p>
-                            ) : null}
+                            <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xs font-medium text-gray-400">
+                                {createdAt ? <p>Created {createdAt}</p> : null}/
+                                {lastChangedAt ? (
+                                    <p>Updated {lastChangedAt}</p>
+                                ) : null}
+                            </div>
                         </div>
                         <ModelItemTags item={item} />
                     </div>

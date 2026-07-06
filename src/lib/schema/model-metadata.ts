@@ -64,6 +64,7 @@ export const ModelMetadataSchema = z.object({
     description: z.string(),
     author: z.string(),
     tags: z.array(ModelMetadataTagSchema),
+    createdAt: z.number(),
     lastChangedAt: z.number(),
 })
 

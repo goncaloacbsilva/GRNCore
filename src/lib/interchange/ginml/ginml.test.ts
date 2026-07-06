@@ -11,7 +11,11 @@ function toArrayBuffer(value: string): ArrayBuffer {
     return new TextEncoder().encode(value).buffer
 }
 
-function summarizeModel(model: InternalGRNModel) {
+function summarizePortableModel(model: InternalGRNModel) {
+    const nodeNameById = new Map(
+        model.nodes.map((node) => [node.id, node.data.name])
+    )
+
     return {
         title: model.title,
         annotations: {
@@ -19,9 +23,8 @@ function summarizeModel(model: InternalGRNModel) {
             text: extractText(model.annotations?.unstructured),
         },
         nodes: [...model.nodes]
-            .sort((left, right) => left.id.localeCompare(right.id))
+            .sort((left, right) => left.data.name.localeCompare(right.data.name))
             .map((node) => ({
-                id: node.id,
                 name: node.data.name,
                 levels: node.data.activityLevels,
                 isInputNode: node.data.isInputNode,
@@ -41,9 +44,8 @@ function summarizeModel(model: InternalGRNModel) {
                 String(left.id).localeCompare(String(right.id))
             )
             .map((edge) => ({
-                id: String(edge.id),
-                source: edge.source,
-                target: edge.target,
+                source: nodeNameById.get(edge.source) ?? edge.source,
+                target: nodeNameById.get(edge.target) ?? edge.target,
                 references: edge.data?.annotations?.references ?? [],
                 levels: [...(edge.data?.levels ?? [])]
                     .sort((left, right) => left.target - right.target)
@@ -229,11 +231,14 @@ describe('GINMLInterchanger', () => {
         )
         expect(xml).toContain('<graph class="regulatory"')
         expect(xml).toContain('nodeorder="A B C"')
+        expect(xml).toContain('<attr name="display.node" value="name"/>')
         expect(xml).toContain('<value val="1">')
         expect(xml).not.toContain('idActiveInteractions=')
         expect(xml).toContain('<edge id="A:C"')
         expect(xml).toContain('<edgevisualsetting')
         expect(xml).not.toContain('points=')
+        expect(xml).not.toContain('xmlns:grn=')
+        expect(xml).toContain('id="active_fixture"')
     })
 
     it('exports node shapes to GINML node styles', () => {
@@ -253,21 +258,166 @@ describe('GINMLInterchanger', () => {
 
         const xml = exportGinmlModel(model)
 
-        expect(xml).toContain('name="Rectangle"')
+        expect(xml).toContain('<nodestyle background="#ffffff"')
         expect(xml).toContain('shape="RECTANGLE"')
         expect(xml).toContain('name="RoundedRectangle"')
         expect(xml).toContain('shape="ROUND_RECTANGLE"')
         expect(xml).toContain('name="Ellipse"')
         expect(xml).toContain('shape="ELLIPSE"')
         expect(xml).toContain(
-            'nodevisualsetting x="10" y="10" style="Rectangle"'
+            'nodevisualsetting x="254" y="10" style=""'
         )
         expect(xml).toContain(
-            'nodevisualsetting x="110" y="10" style="RoundedRectangle"'
+            'nodevisualsetting x="369" y="10" style="RoundedRectangle"'
         )
         expect(xml).toContain(
-            'nodevisualsetting x="75" y="108" style="Ellipse"'
+            'nodevisualsetting x="328" y="108" style="Ellipse"'
         )
+    })
+
+    it('exports nodes without explicit shape using the default rectangle style', () => {
+        const model = importGinmlModel(ACTIVE_INTERACTIONS_GINML)
+
+        const xml = exportGinmlModel(model)
+
+        expect(xml).toContain('nodevisualsetting x="254" y="10" style=""')
+        expect(xml).toContain('nodevisualsetting x="369" y="10" style=""')
+        expect(xml).toContain('nodevisualsetting x="328" y="108" style=""')
+        expect(xml).not.toContain('name="RoundedRectangle"')
+    })
+
+    it('sanitizes exported GINML identifiers from node names instead of raw internal ids', () => {
+        const model = importGinmlModel(ACTIVE_INTERACTIONS_GINML)
+        const renamedNodeIdByPreviousId = new Map<string, string>()
+        model.nodes = model.nodes.map((node, index) => {
+            const nextId = `${index + 1}-node-${node.id}`
+            renamedNodeIdByPreviousId.set(node.id, nextId)
+
+            return {
+                ...node,
+                id: nextId,
+            }
+        })
+        model.edges = model.edges.map((edge, index) => ({
+            ...edge,
+            id: `${index + 1}-edge-${edge.id}`,
+            source: renamedNodeIdByPreviousId.get(edge.source) ?? edge.source,
+            target: renamedNodeIdByPreviousId.get(edge.target) ?? edge.target,
+        }))
+
+        const xml = exportGinmlModel(model)
+
+        expect(xml).toContain('nodeorder="A B C"')
+        expect(xml).toContain('<node id="A" maxvalue="1">')
+        expect(xml).toContain('<node id="B" maxvalue="1">')
+        expect(xml).toContain('<node id="C" maxvalue="1">')
+        expect(xml).toContain('<edge id="A:C" from="A" to="C"')
+        expect(xml).not.toContain('1-node-')
+        expect(xml).not.toContain('1-edge-')
+    })
+
+    it('exports edge control points in GINML edgevisualsetting', () => {
+        const model = importGinmlModel(ACTIVE_INTERACTIONS_GINML)
+        model.edges = model.edges.map((edge) =>
+            edge.id === 'A:C'
+                ? {
+                      ...edge,
+                      data: {
+                          ...edge.data,
+                          levels: edge.data?.levels ?? [],
+                          points: [
+                              { x: 45.6, y: 189.4, active: true },
+                              { x: 88.9, y: 187.2, active: true },
+                          ],
+                      },
+                  }
+                : edge
+        )
+
+        const xml = exportGinmlModel(model)
+
+        expect(xml).toContain('points="294,189 344,187"')
+    })
+
+    it('adds a higher midpoint hint for reverse edges without explicit points', () => {
+        const model: InternalGRNModel = {
+            title: 'reverse_edge_test',
+            nodes: [
+                {
+                    id: 'left',
+                    position: { x: 160.66666666666666, y: 154.66666666666666 },
+                    data: {
+                        name: 'det',
+                        activityLevels: 1,
+                        isInputNode: false,
+                        isValid: true,
+                        rules: [],
+                    },
+                    style: {
+                        width: 52,
+                        height: 35,
+                    },
+                },
+                {
+                    id: 'right',
+                    position: { x: 347.3333333333333, y: 153.16666666666669 },
+                    data: {
+                        name: 'dfgd',
+                        activityLevels: 1,
+                        isInputNode: false,
+                        isValid: true,
+                        rules: [],
+                    },
+                    style: {
+                        width: 76,
+                        height: 35,
+                    },
+                },
+            ],
+            edges: [
+                {
+                    id: 'right-left',
+                    source: 'right',
+                    target: 'left',
+                    data: {
+                        levels: [
+                            {
+                                id: 'lvl-1',
+                                type: 'inhibition',
+                                target: 1,
+                                isValid: true,
+                            },
+                        ],
+                    },
+                },
+                {
+                    id: 'left-right',
+                    source: 'left',
+                    target: 'right',
+                    data: {
+                        levels: [
+                            {
+                                id: 'lvl-2',
+                                type: 'activation',
+                                target: 1,
+                                isValid: true,
+                            },
+                        ],
+                        points: [
+                            { x: 187.19791666666666, y: 117.890625, active: true },
+                            { x: 386.4088541666667, y: 118.05729166666667, active: true },
+                        ],
+                    },
+                },
+            ],
+        }
+
+        const xml = exportGinmlModel(model)
+
+        expect(xml).toContain(
+            '<edge id="dfgd:det" from="dfgd" to="det" minvalue="1" sign="negative">'
+        )
+        expect(xml).toContain('points="568,171"')
     })
 
     it('imports node shapes from GINML style definitions', () => {
@@ -328,7 +478,9 @@ describe('GINMLInterchanger', () => {
         const exported = await interchanger.export(imported)
         const reimported = await interchanger.import(exported)
 
-        expect(summarizeModel(reimported)).toEqual(summarizeModel(imported))
+        expect(summarizePortableModel(reimported)).toEqual(
+            summarizePortableModel(imported)
+        )
     })
 
     it('round-trips active-interaction GINML with normalized expression export', () => {
@@ -366,6 +518,59 @@ describe('GINMLInterchanger', () => {
         expect(
             reimported.nodes.map((node) => getRegulatoryNodeShape(node.style))
         ).toEqual(expectedShapes)
+    })
+
+    it('exports non-input nodes without rules', () => {
+        const model: InternalGRNModel = {
+            title: 'invalid export #1',
+            nodes: [
+                {
+                    id: 'node-1',
+                    position: { x: 10, y: 20 },
+                    data: {
+                        name: 'A',
+                        activityLevels: 1,
+                        isInputNode: false,
+                        isValid: true,
+                        rules: [],
+                    },
+                },
+            ],
+            edges: [],
+        }
+
+        expect(exportGinmlModel(model)).toContain(
+            '<graph class="regulatory" id="invalid_export_1"'
+        )
+        expect(exportGinmlModel(model)).toContain('<node id="A" maxvalue="1">')
+    })
+
+    it('adjusts exported node positions to preserve centers for resized nodes', () => {
+        const model: InternalGRNModel = {
+            title: 'position_test',
+            nodes: [
+                {
+                    id: 'node-1',
+                    position: { x: 160.66666666666666, y: 154.66666666666666 },
+                    data: {
+                        name: 'det',
+                        activityLevels: 1,
+                        isInputNode: false,
+                        isValid: true,
+                        rules: [],
+                    },
+                    style: {
+                        width: 52,
+                        height: 35,
+                    },
+                },
+            ],
+            edges: [],
+        }
+
+        expect(exportGinmlModel(model)).toContain(
+            'nodevisualsetting x="431" y="160" style=""'
+        )
     })
 
     it('rejects malformed structures and unresolved active interactions', () => {

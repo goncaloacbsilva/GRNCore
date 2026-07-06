@@ -22,10 +22,15 @@ export function ImportModelButton({ context }: ImportModelButtonProps) {
             label="Upload Model"
             className="cursor-pointer"
             onClick={() => {
-                context.setOpen(false)
-                setDestination(
-                    location.pathname.startsWith('/edit/') ? 'editor' : 'list'
-                )
+                const destination = location.pathname.startsWith('/edit/')
+                    ? 'editor'
+                    : 'list'
+
+                if (destination === 'editor') {
+                    context.setOpen(false)
+                }
+
+                setDestination(destination)
                 setOpen(true)
             }}
         />

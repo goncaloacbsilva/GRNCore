@@ -206,9 +206,11 @@ export function EditModelDetailsDialog({
                                 />
                                 <Field className="min-h-0 overflow-hidden border-t pt-5">
                                     <FieldContent className="min-h-0 overflow-hidden">
-                                        <FieldLabel>Description</FieldLabel>
+                                        <FieldLabel>
+                                            Model annotations
+                                        </FieldLabel>
                                         <FieldDescription className="pb-3">
-                                            Edit the model description using the
+                                            Edit the model annotations using the
                                             rich text editor.
                                         </FieldDescription>
                                         <div className="h-[min(36vh,24rem)] min-h-[14rem] overflow-hidden rounded-md border bg-background">

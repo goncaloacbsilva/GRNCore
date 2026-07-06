@@ -1,17 +1,9 @@
 import { Button } from '@/components/ui/button'
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import type { ModelMetadata } from '@/lib/schema'
 import { usePageTransitionNavigate } from '@/hooks/use-page-transition'
 import { useChangesTracking } from '@/store'
 import { useLocation, useNavigate } from '@tanstack/react-router'
-import { EllipsisIcon, PencilIcon, TrashIcon } from 'lucide-react'
+import { PencilIcon, TrashIcon } from 'lucide-react'
 import { useState } from 'react'
 import { EditModelDetailsDialog } from './edit-model-details-dialog'
 
@@ -55,43 +47,24 @@ export function ModelItemMenu({ item, onDelete, onEdit }: ModelItemMenuProps) {
                 >
                     Open Model
                 </Button>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="rounded-full focus-visible:ring-transparent focus-visible:border-"
-                        >
-                            <EllipsisIcon />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem
-                                onSelect={(event) => {
-                                    event.preventDefault()
-                                    setEditDialogOpen(true)
-                                }}
-                            >
-                                <PencilIcon />
-                                Edit Details
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem
-                                variant="destructive"
-                                onSelect={(event) => {
-                                    event.preventDefault()
-                                    void handleDelete()
-                                }}
-                            >
-                                <TrashIcon />
-                                Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="cursor-pointer text-muted-foreground hover:text-foreground"
+                    onClick={() => setEditDialogOpen(true)}
+                >
+                    <PencilIcon />
+                    Edit Details
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="cursor-pointer text-muted-foreground hover:text-destructive"
+                    onClick={() => void handleDelete()}
+                >
+                    <TrashIcon />
+                    Delete
+                </Button>
             </div>
             <EditModelDetailsDialog
                 item={item}
