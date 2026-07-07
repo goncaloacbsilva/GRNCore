@@ -17,7 +17,9 @@ function summarizePortableModel(model: InternalGRNModel) {
         title: model.title,
         modelReferences: model.annotations?.references ?? [],
         nodes: [...model.nodes]
-            .sort((left, right) => left.data.name.localeCompare(right.data.name))
+            .sort((left, right) =>
+                left.data.name.localeCompare(right.data.name)
+            )
             .map((node) => ({
                 name: node.data.name,
                 levels: node.data.activityLevels,

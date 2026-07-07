@@ -73,7 +73,9 @@ export function EditorHeader() {
     const autoDeleteEmptyModelId = useChangesTracking(
         (state) => state.autoDeleteEmptyModelId
     )
-    const clearLoadedModel = useChangesTracking((state) => state.clearLoadedModel)
+    const clearLoadedModel = useChangesTracking(
+        (state) => state.clearLoadedModel
+    )
     const markAutoDeleteEmptyModel = useChangesTracking(
         (state) => state.markAutoDeleteEmptyModel
     )

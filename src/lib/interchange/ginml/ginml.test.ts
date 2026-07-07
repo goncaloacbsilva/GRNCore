@@ -23,7 +23,9 @@ function summarizePortableModel(model: InternalGRNModel) {
             text: extractText(model.annotations?.unstructured),
         },
         nodes: [...model.nodes]
-            .sort((left, right) => left.data.name.localeCompare(right.data.name))
+            .sort((left, right) =>
+                left.data.name.localeCompare(right.data.name)
+            )
             .map((node) => ({
                 name: node.data.name,
                 levels: node.data.activityLevels,
@@ -264,9 +266,7 @@ describe('GINMLInterchanger', () => {
         expect(xml).toContain('shape="ROUND_RECTANGLE"')
         expect(xml).toContain('name="Ellipse"')
         expect(xml).toContain('shape="ELLIPSE"')
-        expect(xml).toContain(
-            'nodevisualsetting x="254" y="10" style=""'
-        )
+        expect(xml).toContain('nodevisualsetting x="254" y="10" style=""')
         expect(xml).toContain(
             'nodevisualsetting x="369" y="10" style="RoundedRectangle"'
         )
@@ -404,8 +404,16 @@ describe('GINMLInterchanger', () => {
                             },
                         ],
                         points: [
-                            { x: 187.19791666666666, y: 117.890625, active: true },
-                            { x: 386.4088541666667, y: 118.05729166666667, active: true },
+                            {
+                                x: 187.19791666666666,
+                                y: 117.890625,
+                                active: true,
+                            },
+                            {
+                                x: 386.4088541666667,
+                                y: 118.05729166666667,
+                                active: true,
+                            },
                         ],
                     },
                 },

@@ -413,17 +413,16 @@ function buildLayoutEntry(
     nodes: InternalGRNModel['nodes'],
     sbmlNodeIdsByInternalId: Map<string, string>
 ): XmlRecord {
-    const maxX =
-        Math.max(
-            ...nodes.map(
-                (node) =>
-                    node.position.x +
-                    (node.data.isInputNode
-                        ? SBML_LAYOUT.inputNodeWidth
-                        : SBML_LAYOUT.nodeWidth)
-            ),
-            0
-        )
+    const maxX = Math.max(
+        ...nodes.map(
+            (node) =>
+                node.position.x +
+                (node.data.isInputNode
+                    ? SBML_LAYOUT.inputNodeWidth
+                    : SBML_LAYOUT.nodeWidth)
+        ),
+        0
+    )
     const maxY =
         Math.max(...nodes.map((node) => node.position.y), 0) +
         SBML_LAYOUT.nodeHeight
@@ -522,93 +521,97 @@ function buildTransitionsEntry(
             'qual:transition': model.nodes
                 .filter((node) => !node.data.isInputNode)
                 .map((node) => {
-                const incomingEdges = model.edges.filter(
-                    (edge) => edge.target === node.id
-                )
+                    const incomingEdges = model.edges.filter(
+                        (edge) => edge.target === node.id
+                    )
 
-                const sbmlNodeId =
-                    sbmlNodeIdsByInternalId.get(node.id) ?? node.id
-                const sanitizedSbmlNodeId = sanitizeIdentifier(sbmlNodeId)
-                const exportedRules = selectExportedSbmlRules(
-                    buildExactLevelRules(node.data.rules)
-                )
+                    const sbmlNodeId =
+                        sbmlNodeIdsByInternalId.get(node.id) ?? node.id
+                    const sanitizedSbmlNodeId = sanitizeIdentifier(sbmlNodeId)
+                    const exportedRules = selectExportedSbmlRules(
+                        buildExactLevelRules(node.data.rules)
+                    )
 
-                return {
-                    '@_qual:id': `tr_${sanitizedSbmlNodeId}_`,
-                    ...(incomingEdges.length > 0
-                        ? {
-                              'qual:listOfInputs': {
-                                  'qual:input': incomingEdges.map(
-                                      (edge, index) => {
-                                          const edgeLevels =
-                                              edge.data?.levels ?? []
-                                          const hasPositive = edgeLevels.some(
-                                              (level) =>
-                                                  level.type ===
-                                                  InteractionType.Activation
-                                          )
-                                          const hasNegative = edgeLevels.some(
-                                              (level) =>
-                                                  level.type ===
-                                                  InteractionType.Inhibition
-                                          )
+                    return {
+                        '@_qual:id': `tr_${sanitizedSbmlNodeId}_`,
+                        ...(incomingEdges.length > 0
+                            ? {
+                                  'qual:listOfInputs': {
+                                      'qual:input': incomingEdges.map(
+                                          (edge, index) => {
+                                              const edgeLevels =
+                                                  edge.data?.levels ?? []
+                                              const hasPositive =
+                                                  edgeLevels.some(
+                                                      (level) =>
+                                                          level.type ===
+                                                          InteractionType.Activation
+                                                  )
+                                              const hasNegative =
+                                                  edgeLevels.some(
+                                                      (level) =>
+                                                          level.type ===
+                                                          InteractionType.Inhibition
+                                                  )
 
-                                          let sign = 'positive'
+                                              let sign = 'positive'
 
-                                          if (hasPositive && hasNegative) {
-                                              sign = 'dual'
-                                          } else if (hasNegative) {
-                                              sign = 'negative'
+                                              if (hasPositive && hasNegative) {
+                                                  sign = 'dual'
+                                              } else if (hasNegative) {
+                                                  sign = 'negative'
+                                              }
+
+                                              return {
+                                                  '@_qual:id': `tr_${sanitizedSbmlNodeId}_in_${index}`,
+                                                  '@_qual:qualitativeSpecies':
+                                                      sbmlNodeIdsByInternalId.get(
+                                                          edge.source
+                                                      ) ?? edge.source,
+                                                  '@_qual:transitionEffect':
+                                                      'none',
+                                                  '@_qual:sign': sign,
+                                              }
                                           }
-
-                                          return {
-                                              '@_qual:id': `tr_${sanitizedSbmlNodeId}_in_${index}`,
-                                              '@_qual:qualitativeSpecies':
-                                                  sbmlNodeIdsByInternalId.get(
-                                                      edge.source
-                                                  ) ?? edge.source,
-                                              '@_qual:transitionEffect':
-                                                  'none',
-                                              '@_qual:sign': sign,
-                                          }
-                                      }
-                                  ),
-                              },
-                          }
-                        : {}),
+                                      ),
+                                  },
+                              }
+                            : {}),
                         'qual:listOfOutputs': {
                             'qual:output': {
                                 '@_qual:id': `tr_${sanitizedSbmlNodeId}_out`,
                                 '@_qual:qualitativeSpecies': sbmlNodeId,
-                            '@_qual:transitionEffect': 'assignmentLevel',
+                                '@_qual:transitionEffect': 'assignmentLevel',
+                            },
                         },
-                    },
-                    'qual:listOfFunctionTerms': {
-                        'qual:defaultTerm': {
-                            '@_qual:resultLevel':
-                                node.data.rules.length === 0 ? '1' : '0',
-                        },
-                        ...(exportedRules.length > 0
-                            ? {
-                                  'qual:functionTerm': exportedRules.map((rule) => ({
-                                          '@_qual:resultLevel': String(
-                                              rule.target
-                                          ),
-                                          math: {
-                                              '@_xmlns': SBML_NAMESPACES.mathml,
-                                              ...buildExpressionMathMl(
-                                                  rule.expression,
-                                                  activityLevelsByName,
-                                                  speciesIdByName
+                        'qual:listOfFunctionTerms': {
+                            'qual:defaultTerm': {
+                                '@_qual:resultLevel':
+                                    node.data.rules.length === 0 ? '1' : '0',
+                            },
+                            ...(exportedRules.length > 0
+                                ? {
+                                      'qual:functionTerm': exportedRules.map(
+                                          (rule) => ({
+                                              '@_qual:resultLevel': String(
+                                                  rule.target
                                               ),
-                                          },
-                                      })
-                                  ),
-                              }
-                            : {}),
-                    },
-                }
-            }),
+                                              math: {
+                                                  '@_xmlns':
+                                                      SBML_NAMESPACES.mathml,
+                                                  ...buildExpressionMathMl(
+                                                      rule.expression,
+                                                      activityLevelsByName,
+                                                      speciesIdByName
+                                                  ),
+                                              },
+                                          })
+                                      ),
+                                  }
+                                : {}),
+                        },
+                    }
+                }),
         },
     }
 }
@@ -618,7 +621,9 @@ function createSbmlNodeIdMap(nodes: InternalGRNModel['nodes']) {
 
     return new Map(
         nodes.map((node) => {
-            const baseId = sanitizeIdentifier(node.data.name || node.id || 'node')
+            const baseId = sanitizeIdentifier(
+                node.data.name || node.id || 'node'
+            )
             let candidate = baseId
             let suffix = 2
 
@@ -636,7 +641,9 @@ function createSbmlNodeIdMap(nodes: InternalGRNModel['nodes']) {
 function buildExactLevelRules(
     rules: InternalGRNModel['nodes'][number]['data']['rules']
 ) {
-    const sortedRules = [...rules].sort((left, right) => left.target - right.target)
+    const sortedRules = [...rules].sort(
+        (left, right) => left.target - right.target
+    )
 
     return sortedRules.map((rule, index) => {
         const higherExpressions = sortedRules
@@ -651,7 +658,7 @@ function buildExactLevelRules(
         const currentExpression = wrapRuleExpression(rule.expression.trim())
         const higherExpression = wrapRuleExpression(
             higherExpressions.length === 1
-                ? higherExpressions[0] ?? ''
+                ? (higherExpressions[0] ?? '')
                 : higherExpressions
                       .map((expression) => wrapRuleExpression(expression))
                       .join(' || ')
@@ -671,7 +678,9 @@ function selectExportedSbmlRules(
         return rules
     }
 
-    const sortedRules = [...rules].sort((left, right) => left.target - right.target)
+    const sortedRules = [...rules].sort(
+        (left, right) => left.target - right.target
+    )
     const [lowestRule] = sortedRules
 
     return lowestRule ? [lowestRule] : []

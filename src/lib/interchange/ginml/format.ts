@@ -83,17 +83,20 @@ export function exportGinmlModel(model: InternalGRNModel): string {
     const hasCustomAnnotations =
         graphAnnotation !== undefined ||
         model.nodes.some(
-            (node) => buildGinmlAnnotationObject(node.data.annotations) !== undefined
+            (node) =>
+                buildGinmlAnnotationObject(node.data.annotations) !== undefined
         ) ||
         model.edges.some(
-            (edge) => buildGinmlAnnotationObject(edge.data?.annotations) !== undefined
+            (edge) =>
+                buildGinmlAnnotationObject(edge.data?.annotations) !== undefined
         )
     const graph: XmlRecord = {
         '@_class': 'regulatory',
         '@_id': graphId,
         '@_nodeorder': model.nodes
             .map(
-                (node) => ginmlNodeIdsByInternalId.get(node.id) ?? String(node.id)
+                (node) =>
+                    ginmlNodeIdsByInternalId.get(node.id) ?? String(node.id)
             )
             .join(' '),
         attr: {
@@ -343,7 +346,10 @@ function buildDefaultEdgeStyles(): XmlRecord[] {
 function buildNodeObject(
     node: Node<RegulatoryNodeProperties>,
     ginmlNodeId: string,
-    layoutTransform: (point: { x: number; y: number }) => { x: number; y: number }
+    layoutTransform: (point: { x: number; y: number }) => {
+        x: number
+        y: number
+    }
 ): XmlRecord {
     const style = node.style
     const groupedRules = new Map<number, string[]>()
@@ -454,7 +460,11 @@ function getGinmlNodeStyleName(
 
     if (
         persistedGinmlStyle !== undefined &&
-        !hasExplicitShapeOverride(explicitShape, persistedGinmlStyle, isInputNode)
+        !hasExplicitShapeOverride(
+            explicitShape,
+            persistedGinmlStyle,
+            isInputNode
+        )
     ) {
         return persistedGinmlStyle
     }
@@ -543,7 +553,10 @@ function hasExplicitShapeOverride(
         return false
     }
 
-    return explicitShape !== inferShapeFromGinmlStyle(persistedGinmlStyle, isInputNode)
+    return (
+        explicitShape !==
+        inferShapeFromGinmlStyle(persistedGinmlStyle, isInputNode)
+    )
 }
 
 function inferShapeFromGinmlStyle(
@@ -570,7 +583,10 @@ function buildEdgeObject(
     edge: Edge<EditableRegulatoryEdge>,
     model: InternalGRNModel,
     ginmlNodeIdsByInternalId: Map<string, string>,
-    layoutTransform: (point: { x: number; y: number }) => { x: number; y: number },
+    layoutTransform: (point: { x: number; y: number }) => {
+        x: number
+        y: number
+    },
     exportedNodeGeometryById: Map<
         string,
         { x: number; y: number; width: number; height: number }
@@ -641,7 +657,10 @@ function buildEdgeObject(
 
 function createExportedNodeGeometryMap(
     model: InternalGRNModel,
-    layoutTransform: (point: { x: number; y: number }) => { x: number; y: number }
+    layoutTransform: (point: { x: number; y: number }) => {
+        x: number
+        y: number
+    }
 ) {
     return new Map(
         model.nodes.map((node) => {
@@ -703,8 +722,7 @@ function createReverseEdgeMidpoint(
 
     return [
         {
-            x:
-                (source.x + source.width / 2 + target.x + target.width / 2) / 2,
+            x: (source.x + source.width / 2 + target.x + target.width / 2) / 2,
             y:
                 (source.y + source.height / 2 + target.y + target.height / 2) /
                     2 +

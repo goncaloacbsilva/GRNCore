@@ -570,10 +570,7 @@ function tryCombineCubes(
     rightCube: Cube,
     activityLevelsByName: Map<string, number>
 ): Cube | null {
-    const variableNames = new Set([
-        ...leftCube.keys(),
-        ...rightCube.keys(),
-    ])
+    const variableNames = new Set([...leftCube.keys(), ...rightCube.keys()])
     let differingVariable: string | null = null
 
     for (const variableName of variableNames) {
@@ -617,10 +614,7 @@ function hasCube(cubes: Cube[], candidate: Cube) {
 }
 
 function cubesEqual(leftCube: Cube, rightCube: Cube) {
-    const variableNames = new Set([
-        ...leftCube.keys(),
-        ...rightCube.keys(),
-    ])
+    const variableNames = new Set([...leftCube.keys(), ...rightCube.keys()])
 
     for (const variableName of variableNames) {
         if (leftCube.get(variableName) !== rightCube.get(variableName)) {
