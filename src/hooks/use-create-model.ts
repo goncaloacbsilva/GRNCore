@@ -14,13 +14,12 @@ export function useCreateModel(options: UseCreateModelOptions = {}) {
 
     const createModel = async () => {
         const metadata = await createLocalModel(createEmptyModelSnapshot())
-        markAutoDeleteEmptyModel(metadata.id)
-
-        await options.onCreated?.()
         await navigate({
             to: '/edit/$modelId',
             params: { modelId: metadata.id },
         })
+        markAutoDeleteEmptyModel(metadata.id)
+        await options.onCreated?.()
     }
 
     return { createModel }
