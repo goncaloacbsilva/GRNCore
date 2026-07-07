@@ -35,6 +35,7 @@ export function NavMain() {
     const isLocalModelsActive =
         pathname === '/models/local' || pathname.startsWith('/edit/')
     const isCommunityModelsActive = pathname === '/models/community'
+    const isLocalModelsExpanded = isLocalModelsActive || isLocalModelsOpen
 
     useEffect(() => {
         let isCancelled = false
@@ -52,12 +53,6 @@ export function NavMain() {
         }
     }, [localModelsVersion])
 
-    useEffect(() => {
-        if (isLocalModelsActive) {
-            setIsLocalModelsOpen(true)
-        }
-    }, [isLocalModelsActive])
-
     const recentModelItems = useMemo(
         () => recentModels.slice(0, 5),
         [recentModels]
@@ -68,7 +63,7 @@ export function NavMain() {
             <SidebarGroupLabel>Models</SidebarGroupLabel>
             <SidebarMenu>
                 <Collapsible
-                    open={isLocalModelsOpen}
+                    open={isLocalModelsExpanded}
                     onOpenChange={setIsLocalModelsOpen}
                     asChild
                     className="group/collapsible"

@@ -285,9 +285,10 @@ const createMetadataFromSnapshot = (
 const UNTITLED_MODEL_PREFIX = 'Untitled model #'
 
 const getNextUntitledModelTitle = (items: ModelMetadata[]): string => {
+    const untitledModelTitlePattern = /^Untitled model #(\d+)$/
     const usedNumbers = new Set(
         items.flatMap((item) => {
-            const match = item.title.trim().match(/^Untitled model #(\d+)$/)
+            const match = untitledModelTitlePattern.exec(item.title.trim())
             return match ? [Number.parseInt(match[1], 10)] : []
         })
     )

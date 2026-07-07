@@ -470,7 +470,7 @@ function enumerateAssignments(
     activityLevelsByName: Map<string, number>
 ): Assignment[] {
     if (variables.length === 0) {
-        return [new Map()]
+        return [new Map<string, number>()]
     }
 
     const [currentVariable, ...remainingVariables] = variables

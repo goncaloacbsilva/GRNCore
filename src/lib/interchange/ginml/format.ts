@@ -471,9 +471,7 @@ function getGinmlNodeStyleName(
         return ''
     }
 
-    const shape = explicitShape as RegulatoryNodeShape
-
-    switch (shape) {
+    switch (explicitShape) {
         case 'rectangle':
             return ''
         case 'ellipse':
@@ -484,8 +482,10 @@ function getGinmlNodeStyleName(
 }
 
 function getPersistedGinmlStyle(style: RegulatoryNodeStyle | undefined) {
-    const value = (style as (RegulatoryNodeStyle & { ginmlStyle?: unknown }) | undefined)
-        ?.ginmlStyle
+    const value: unknown =
+        style && 'ginmlStyle' in style
+            ? Reflect.get(style, 'ginmlStyle')
+            : undefined
 
     return typeof value === 'string' ? value : undefined
 }
