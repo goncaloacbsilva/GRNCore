@@ -10,9 +10,12 @@ export const SBML_NAMESPACES = {
 } as const
 
 export const SBML_LAYOUT = {
-    nodeWidth: 120,
-    nodeHeight: 45,
+    nodeWidth: 45,
+    nodeHeight: 25,
+    inputNodeWidth: 125,
 } as const
+
+export const SBML_DEFAULT_COMPARTMENT_ID = 'comp1'
 
 export const DEFAULT_NODE_POSITION = {
     x: 0,

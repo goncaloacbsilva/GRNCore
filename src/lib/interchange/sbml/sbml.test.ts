@@ -1,4 +1,4 @@
-import type { InternalGRNModel } from '@/lib/schema'
+import { InteractionType, type InternalGRNModel } from '@/lib/schema'
 import { describe, expect, it } from 'vitest'
 import { SAMPLE_SBML } from './__fixtures__/sample-sbml'
 import { exportSbmlModel, importSbmlModel } from './format'
@@ -8,14 +8,17 @@ function toArrayBuffer(value: string): ArrayBuffer {
     return new TextEncoder().encode(value).buffer
 }
 
-function summarizeModel(model: InternalGRNModel) {
+function summarizePortableModel(model: InternalGRNModel) {
+    const nodeNameById = new Map(
+        model.nodes.map((node) => [node.id, node.data.name])
+    )
+
     return {
         title: model.title,
         modelReferences: model.annotations?.references ?? [],
         nodes: [...model.nodes]
-            .sort((left, right) => left.id.localeCompare(right.id))
+            .sort((left, right) => left.data.name.localeCompare(right.data.name))
             .map((node) => ({
-                id: node.id,
                 name: node.data.name,
                 levels: node.data.activityLevels,
                 isInputNode: node.data.isInputNode,
@@ -28,14 +31,30 @@ function summarizeModel(model: InternalGRNModel) {
                     })),
             })),
         edges: [...model.edges]
-            .sort((left, right) => left.id.localeCompare(right.id))
+            .sort((left, right) => {
+                const leftSource = nodeNameById.get(left.source) ?? left.source
+                const rightSource =
+                    nodeNameById.get(right.source) ?? right.source
+                const leftTarget = nodeNameById.get(left.target) ?? left.target
+                const rightTarget =
+                    nodeNameById.get(right.target) ?? right.target
+
+                return `${leftSource}->${leftTarget}`.localeCompare(
+                    `${rightSource}->${rightTarget}`
+                )
+            })
             .map((edge) => ({
-                id: edge.id,
-                source: edge.source,
-                target: edge.target,
+                source: nodeNameById.get(edge.source) ?? edge.source,
+                target: nodeNameById.get(edge.target) ?? edge.target,
                 references: edge.data?.annotations?.references ?? [],
                 levels: [...(edge.data?.levels ?? [])]
-                    .sort((left, right) => left.target - right.target)
+                    .sort((left, right) => {
+                        if (left.target !== right.target) {
+                            return left.target - right.target
+                        }
+
+                        return left.type.localeCompare(right.type)
+                    })
                     .map((level) => ({
                         type: level.type,
                         target: level.target,
@@ -125,20 +144,77 @@ describe('SBMLInterchanger', () => {
         ).toEqual([{ target: 1, expression: 'A || B' }])
     })
 
-    it('exports an internal model with SBML namespaces, layout, rules, and annotations', () => {
+    it('exports an internal model with SBML namespaces, layout, and rules', () => {
         const xml = exportSbmlModel(createRoundTripModel())
 
         expect(xml).toContain(
             'xmlns:qual="http://www.sbml.org/sbml/level3/version1/qual/version1"'
         )
-        expect(xml).toContain('xmlns:grn="https://grn-core.dev/ns/sbml/v1"')
         expect(xml).toContain('<layout:generalGlyph')
         expect(xml).toContain('<qual:listOfQualitativeSpecies>')
         expect(xml).toContain('<qual:listOfTransitions>')
         expect(xml).toContain('<geq/>')
-        expect(xml).toContain('<ci> a_node </ci>')
-        expect(xml).toContain('<rdf:RDF>')
-        expect(xml).toContain('<grn:annotations')
+        expect(xml).toContain('<ci> Node_A </ci>')
+        expect(xml).toContain('<compartment id="comp1" constant="true"/>')
+    })
+
+    it('sanitizes model and species identifiers for SBML export', () => {
+        const xml = exportSbmlModel({
+            title: 'Untitled model #1',
+            nodes: [
+                {
+                    id: '2e22ec32-7168-4718-8d09-7f7e3edd4484',
+                    position: { x: 10, y: 20 },
+                    data: {
+                        name: 'A',
+                        activityLevels: 1,
+                        isInputNode: false,
+                        rules: [],
+                        isValid: true,
+                    },
+                },
+            ],
+            edges: [],
+        })
+
+        expect(xml).toContain('<model id="model_id">')
+        expect(xml).toContain('qual:id="A"')
+        expect(xml).toContain('layout:reference="A"')
+    })
+
+    it('does not export transitions for constant input species', () => {
+        const xml = exportSbmlModel({
+            title: 'input_test',
+            nodes: [
+                {
+                    id: 'input-node',
+                    position: { x: 10, y: 20 },
+                    data: {
+                        name: 'Input',
+                        activityLevels: 1,
+                        isInputNode: true,
+                        rules: [],
+                        isValid: true,
+                    },
+                },
+                {
+                    id: 'target-node',
+                    position: { x: 80, y: 20 },
+                    data: {
+                        name: 'Target',
+                        activityLevels: 1,
+                        isInputNode: false,
+                        rules: [],
+                        isValid: true,
+                    },
+                },
+            ],
+            edges: [],
+        })
+
+        expect(xml).toContain('qual:id="Input"')
+        expect(xml).toContain('qual:constant="true"')
+        expect(xml).not.toContain('tr_Input_')
     })
 
     it('round-trips an internal model through SBML', async () => {
@@ -147,7 +223,19 @@ describe('SBMLInterchanger', () => {
         const exported = await interchanger.export(originalModel)
         const imported = await interchanger.import(exported)
 
-        expect(summarizeModel(imported)).toEqual(summarizeModel(originalModel))
+        expect(summarizePortableModel(imported)).toEqual({
+            ...summarizePortableModel(originalModel),
+            title: 'model_id',
+            modelReferences: [],
+            nodes: summarizePortableModel(originalModel).nodes.map((node) => ({
+                ...node,
+                references: [],
+            })),
+            edges: summarizePortableModel(originalModel).edges.map((edge) => ({
+                ...edge,
+                references: [],
+            })),
+        })
     })
 
     it('round-trips the representative SBML fixture', () => {
@@ -155,7 +243,175 @@ describe('SBMLInterchanger', () => {
         const reexported = exportSbmlModel(imported)
         const reimported = importSbmlModel(reexported)
 
-        expect(summarizeModel(reimported)).toEqual(summarizeModel(imported))
+        expect(summarizePortableModel(reimported)).toEqual({
+            ...summarizePortableModel(imported),
+            title: 'model_id',
+            modelReferences: [],
+            nodes: summarizePortableModel(imported).nodes.map((node) => ({
+                ...node,
+                references: [],
+            })),
+            edges: summarizePortableModel(imported).edges.map((edge) => ({
+                ...edge,
+                references: [],
+            })),
+        })
+    })
+
+    it('round-trips dual-sign interactions on the same edge pair', () => {
+        const model = importSbmlModel(`<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core"
+      xmlns:qual="http://www.sbml.org/sbml/level3/version1/qual/version1"
+      level="3"
+      version="1"
+      qual:required="true">
+  <model id="dual_signs">
+    <qual:listOfQualitativeSpecies>
+      <qual:qualitativeSpecies qual:id="A" qual:name="A" qual:compartment="comp1" qual:constant="false" qual:maxLevel="1"/>
+      <qual:qualitativeSpecies qual:id="B" qual:name="B" qual:compartment="comp1" qual:constant="false" qual:maxLevel="1"/>
+    </qual:listOfQualitativeSpecies>
+    <qual:listOfTransitions>
+      <qual:transition qual:id="tr_B_">
+        <qual:listOfInputs>
+          <qual:input qual:id="tr_B_in_1" qual:qualitativeSpecies="A" qual:transitionEffect="none" qual:sign="positive" qual:thresholdLevel="1"/>
+          <qual:input qual:id="tr_B_in_2" qual:qualitativeSpecies="A" qual:transitionEffect="none" qual:sign="negative" qual:thresholdLevel="1"/>
+        </qual:listOfInputs>
+        <qual:listOfOutputs>
+          <qual:output qual:id="tr_B_out" qual:qualitativeSpecies="B" qual:transitionEffect="assignmentLevel"/>
+        </qual:listOfOutputs>
+        <qual:listOfFunctionTerms>
+          <qual:defaultTerm qual:resultLevel="0"/>
+        </qual:listOfFunctionTerms>
+      </qual:transition>
+    </qual:listOfTransitions>
+  </model>
+</sbml>`)
+
+        const reimported = importSbmlModel(exportSbmlModel(model))
+        const dualEdge = reimported.edges.find((edge) => {
+            const sourceName =
+                reimported.nodes.find((node) => node.id === edge.source)?.data
+                    .name ?? edge.source
+            const targetName =
+                reimported.nodes.find((node) => node.id === edge.target)?.data
+                    .name ?? edge.target
+
+            return sourceName === 'A' && targetName === 'B'
+        })
+
+        expect(dualEdge?.data?.levels).toEqual([
+            expect.objectContaining({
+                type: InteractionType.Activation,
+                target: 1,
+            }),
+            expect.objectContaining({
+                type: InteractionType.Inhibition,
+                target: 1,
+            }),
+        ])
+    })
+
+    it('imports dual-sign edges without explicit thresholds using source max level for activation', () => {
+        const model = importSbmlModel(`<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core"
+      xmlns:qual="http://www.sbml.org/sbml/level3/version1/qual/version1"
+      level="3"
+      version="1"
+      qual:required="true">
+  <model id="dual_inferred_thresholds">
+    <qual:listOfQualitativeSpecies>
+      <qual:qualitativeSpecies qual:id="A" qual:name="A" qual:compartment="comp1" qual:constant="false" qual:maxLevel="2"/>
+      <qual:qualitativeSpecies qual:id="B" qual:name="B" qual:compartment="comp1" qual:constant="false" qual:maxLevel="1"/>
+    </qual:listOfQualitativeSpecies>
+    <qual:listOfTransitions>
+      <qual:transition qual:id="tr_B_">
+        <qual:listOfInputs>
+          <qual:input qual:id="tr_B_in_0" qual:qualitativeSpecies="A" qual:transitionEffect="none" qual:sign="dual"/>
+        </qual:listOfInputs>
+        <qual:listOfOutputs>
+          <qual:output qual:id="tr_B_out" qual:qualitativeSpecies="B" qual:transitionEffect="assignmentLevel"/>
+        </qual:listOfOutputs>
+        <qual:listOfFunctionTerms>
+          <qual:defaultTerm qual:resultLevel="0"/>
+          <qual:functionTerm qual:resultLevel="1">
+            <math xmlns="http://www.w3.org/1998/Math/MathML">
+              <apply>
+                <eq/>
+                <ci> A </ci>
+                <cn type="integer"> 1 </cn>
+              </apply>
+            </math>
+          </qual:functionTerm>
+        </qual:listOfFunctionTerms>
+      </qual:transition>
+    </qual:listOfTransitions>
+  </model>
+</sbml>`)
+
+        const dualEdge = model.edges.find(
+            (edge) => edge.source === 'A' && edge.target === 'B'
+        )
+
+        expect(dualEdge?.data?.levels).toEqual([
+            expect.objectContaining({
+                type: InteractionType.Activation,
+                target: 2,
+            }),
+            expect.objectContaining({
+                type: InteractionType.Inhibition,
+                target: 1,
+            }),
+        ])
+    })
+
+    it('exports multilevel rules as exact result-level conditions', () => {
+        const xml = exportSbmlModel({
+            title: 'multilevel_exact',
+            nodes: [
+                {
+                    id: 'A',
+                    position: { x: 10, y: 10 },
+                    data: {
+                        name: 'A',
+                        activityLevels: 2,
+                        isInputNode: false,
+                        isValid: true,
+                        rules: [
+                            {
+                                id: 'rule-1',
+                                target: 1,
+                                expression: 'A:1 || B',
+                                isValid: true,
+                            },
+                            {
+                                id: 'rule-2',
+                                target: 2,
+                                expression: 'A:2',
+                                isValid: true,
+                            },
+                        ],
+                    },
+                },
+                {
+                    id: 'B',
+                    position: { x: 110, y: 10 },
+                    data: {
+                        name: 'B',
+                        activityLevels: 1,
+                        isInputNode: false,
+                        isValid: true,
+                        rules: [],
+                    },
+                },
+            ],
+            edges: [],
+        })
+
+        expect(xml).toContain('<qual:functionTerm qual:resultLevel="1">')
+        expect(xml).toContain('<apply>')
+        expect(xml).toContain('<eq/>')
+        expect(xml).toContain('<cn type="integer"> 1 </cn>')
+        expect(xml).not.toContain('<qual:functionTerm qual:resultLevel="2">')
     })
 
     it('rejects malformed XML', () => {

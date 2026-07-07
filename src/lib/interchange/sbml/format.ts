@@ -4,20 +4,14 @@ import {
     RegulatoryNodeNameSchema,
     type EditableRegulatoryEdge,
     type InternalGRNModel,
-    type PersistedAnnotations,
     type RegulatoryNodeProperties,
 } from '@/lib/schema'
 import type { Edge, Node } from '@xyflow/react'
 import { nanoid } from 'nanoid'
-import {
-    annotationsToPlainText,
-    mergeAnnotations,
-    parseSbmlAnnotations,
-} from './annotations'
+import { parseSbmlAnnotations } from './annotations'
 import {
     DEFAULT_NODE_POSITION,
-    GRN_ANNOTATIONS_TAG,
-    GRN_PAYLOAD_TAG,
+    SBML_DEFAULT_COMPARTMENT_ID,
     SBML_LAYOUT,
     SBML_NAMESPACES,
 } from './constants'
@@ -25,7 +19,6 @@ import { buildExpressionMathMl, parseMathMlToExpression } from './mathml'
 import {
     asRecord,
     buildXml,
-    compactText,
     ensureArray,
     getAttribute,
     getBooleanAttribute,
@@ -123,15 +116,42 @@ export function importSbmlModel(xml: string): InternalGRNModel {
             }
 
             const edgeKey = `${sourceSpeciesId}->${targetSpeciesId}`
-            const interactionType =
-                sign === 'negative'
-                    ? InteractionType.Inhibition
-                    : InteractionType.Activation
             const inputAnnotations = parseSbmlAnnotations({
                 notes: input.notes,
                 annotation: input.annotation,
             })
             const currentEdge = edgesByKey.get(edgeKey)
+            const sourceNodeActivityLevels =
+                nodesById.get(sourceSpeciesId)?.data.activityLevels ?? 1
+            const interactionLevels =
+                sign === 'dual'
+                    ? [
+                          {
+                              type: InteractionType.Activation,
+                              target:
+                                  getNumberAttribute(
+                                      input,
+                                      'qual:thresholdLevel'
+                                  ) ?? sourceNodeActivityLevels,
+                          },
+                          {
+                              type: InteractionType.Inhibition,
+                              target:
+                                  getNumberAttribute(
+                                      input,
+                                      'qual:thresholdLevel'
+                                  ) ?? 1,
+                          },
+                      ]
+                    : [
+                          {
+                              type:
+                                  sign === 'negative'
+                                      ? InteractionType.Inhibition
+                                      : InteractionType.Activation,
+                              target: threshold,
+                          },
+                      ]
 
             if (!currentEdge) {
                 edgesByKey.set(edgeKey, {
@@ -139,14 +159,12 @@ export function importSbmlModel(xml: string): InternalGRNModel {
                     source: sourceSpeciesId,
                     target: targetSpeciesId,
                     data: {
-                        levels: [
-                            {
-                                id: nanoid(),
-                                type: interactionType,
-                                target: threshold,
-                                isValid: true,
-                            },
-                        ],
+                        levels: interactionLevels.map((interactionLevel) => ({
+                            id: nanoid(),
+                            type: interactionLevel.type,
+                            target: interactionLevel.target,
+                            isValid: true,
+                        })),
                         annotations: inputAnnotations,
                     },
                 })
@@ -159,16 +177,14 @@ export function importSbmlModel(xml: string): InternalGRNModel {
                 return
             }
 
-            currentEdgeData.levels.push({
-                id: nanoid(),
-                type: interactionType,
-                target: threshold,
-                isValid: true,
+            interactionLevels.forEach((interactionLevel) => {
+                currentEdgeData.levels.push({
+                    id: nanoid(),
+                    type: interactionLevel.type,
+                    target: interactionLevel.target,
+                    isValid: true,
+                })
             })
-            currentEdgeData.annotations = mergeAnnotations(
-                currentEdgeData.annotations,
-                inputAnnotations
-            )
         })
 
         const functionTerms = ensureArray(
@@ -272,9 +288,6 @@ export function exportSbmlModel(model: InternalGRNModel): string {
             '@_xmlns': SBML_NAMESPACES.sbml,
             '@_xmlns:qual': SBML_NAMESPACES.qual,
             '@_xmlns:layout': SBML_NAMESPACES.layout,
-            '@_xmlns:rdf': SBML_NAMESPACES.rdf,
-            '@_xmlns:bqbiol': SBML_NAMESPACES.bqbiol,
-            '@_xmlns:grn': SBML_NAMESPACES.grn,
             '@_level': '3',
             '@_version': '1',
             '@_layout:required': 'false',
@@ -385,21 +398,32 @@ function normalizeImportedEdge(
 }
 
 function buildSbmlModelObject(model: InternalGRNModel): XmlRecord {
+    const sbmlNodeIdsByInternalId = createSbmlNodeIdMap(model.nodes)
+
     return {
-        '@_id': model.title || 'model_id',
-        '@_metaid': '_grn_model',
-        ...buildNotesEntry(model.annotations),
-        ...buildAnnotationEntry(model.annotations, '_grn_model'),
-        ...buildLayoutEntry(model.nodes),
-        ...buildSpeciesEntry(model.nodes),
-        ...buildTransitionsEntry(model),
+        '@_id': 'model_id',
+        ...buildLayoutEntry(model.nodes, sbmlNodeIdsByInternalId),
+        ...buildSpeciesEntry(model.nodes, sbmlNodeIdsByInternalId),
+        ...buildTransitionsEntry(model, sbmlNodeIdsByInternalId),
+        ...buildCompartmentsEntry(),
     }
 }
 
-function buildLayoutEntry(nodes: InternalGRNModel['nodes']): XmlRecord {
+function buildLayoutEntry(
+    nodes: InternalGRNModel['nodes'],
+    sbmlNodeIdsByInternalId: Map<string, string>
+): XmlRecord {
     const maxX =
-        Math.max(...nodes.map((node) => node.position.x), 0) +
-        SBML_LAYOUT.nodeWidth
+        Math.max(
+            ...nodes.map(
+                (node) =>
+                    node.position.x +
+                    (node.data.isInputNode
+                        ? SBML_LAYOUT.inputNodeWidth
+                        : SBML_LAYOUT.nodeWidth)
+            ),
+            0
+        )
     const maxY =
         Math.max(...nodes.map((node) => node.position.y), 0) +
         SBML_LAYOUT.nodeHeight
@@ -413,114 +437,149 @@ function buildLayoutEntry(nodes: InternalGRNModel['nodes']): XmlRecord {
                     '@_layout:height': String(maxY),
                 },
                 'layout:listOfAdditionalGraphicalObjects': {
-                    'layout:generalGlyph': nodes.map((node) => ({
-                        '@_layout:id': `_ly_${sanitizeIdentifier(node.id)}`,
-                        '@_layout:reference': node.id,
-                        'layout:boundingBox': {
-                            'layout:position': {
-                                '@_layout:x': String(node.position.x),
-                                '@_layout:y': String(node.position.y),
+                    'layout:generalGlyph': nodes.map((node) => {
+                        const sbmlNodeId =
+                            sbmlNodeIdsByInternalId.get(node.id) ?? node.id
+
+                        return {
+                            '@_layout:id': `_ly_${sanitizeIdentifier(
+                                sbmlNodeId
+                            )}`,
+                            '@_layout:reference': sbmlNodeId,
+                            'layout:boundingBox': {
+                                'layout:position': {
+                                    '@_layout:x': String(node.position.x),
+                                    '@_layout:y': String(node.position.y),
+                                },
+                                'layout:dimensions': {
+                                    '@_layout:width': String(
+                                        node.data.isInputNode
+                                            ? SBML_LAYOUT.inputNodeWidth
+                                            : SBML_LAYOUT.nodeWidth
+                                    ),
+                                    '@_layout:height': String(
+                                        SBML_LAYOUT.nodeHeight
+                                    ),
+                                },
                             },
-                            'layout:dimensions': {
-                                '@_layout:width': String(SBML_LAYOUT.nodeWidth),
-                                '@_layout:height': String(
-                                    SBML_LAYOUT.nodeHeight
-                                ),
-                            },
-                        },
-                    })),
+                        }
+                    }),
                 },
             },
         },
     }
 }
 
-function buildSpeciesEntry(nodes: InternalGRNModel['nodes']): XmlRecord {
+function buildSpeciesEntry(
+    nodes: InternalGRNModel['nodes'],
+    sbmlNodeIdsByInternalId: Map<string, string>
+): XmlRecord {
     return {
         'qual:listOfQualitativeSpecies': {
             'qual:qualitativeSpecies': nodes.map((node) => {
-                const metaid = `_grn_node_${sanitizeIdentifier(node.id)}`
+                const sbmlNodeId =
+                    sbmlNodeIdsByInternalId.get(node.id) ?? node.id
 
                 return {
-                    '@_metaid': metaid,
-                    '@_qual:id': node.id,
+                    '@_qual:id': sbmlNodeId,
                     '@_qual:name': node.data.name,
-                    '@_qual:compartment': 'default',
+                    '@_qual:compartment': SBML_DEFAULT_COMPARTMENT_ID,
                     '@_qual:constant': String(node.data.isInputNode),
                     '@_qual:maxLevel': String(node.data.activityLevels),
-                    ...buildNotesEntry(node.data.annotations),
-                    ...buildAnnotationEntry(node.data.annotations, metaid),
                 }
             }),
         },
     }
 }
 
-function buildTransitionsEntry(model: InternalGRNModel): XmlRecord {
+function buildCompartmentsEntry(): XmlRecord {
+    return {
+        listOfCompartments: {
+            compartment: {
+                '@_id': SBML_DEFAULT_COMPARTMENT_ID,
+                '@_constant': 'true',
+            },
+        },
+    }
+}
+
+function buildTransitionsEntry(
+    model: InternalGRNModel,
+    sbmlNodeIdsByInternalId: Map<string, string>
+): XmlRecord {
     const activityLevelsByName = new Map(
         model.nodes.map((node) => [node.data.name, node.data.activityLevels])
     )
     const speciesIdByName = new Map(
-        model.nodes.map((node) => [node.data.name, node.id])
+        model.nodes.map((node) => [
+            node.data.name,
+            sbmlNodeIdsByInternalId.get(node.id) ?? node.id,
+        ])
     )
 
     return {
         'qual:listOfTransitions': {
-            'qual:transition': model.nodes.map((node) => {
+            'qual:transition': model.nodes
+                .filter((node) => !node.data.isInputNode)
+                .map((node) => {
                 const incomingEdges = model.edges.filter(
                     (edge) => edge.target === node.id
                 )
 
+                const sbmlNodeId =
+                    sbmlNodeIdsByInternalId.get(node.id) ?? node.id
+                const sanitizedSbmlNodeId = sanitizeIdentifier(sbmlNodeId)
+                const exportedRules = selectExportedSbmlRules(
+                    buildExactLevelRules(node.data.rules)
+                )
+
                 return {
-                    '@_qual:id': `tr_${sanitizeIdentifier(node.id)}_`,
+                    '@_qual:id': `tr_${sanitizedSbmlNodeId}_`,
                     ...(incomingEdges.length > 0
                         ? {
                               'qual:listOfInputs': {
-                                  'qual:input': incomingEdges.flatMap(
-                                      (edge) => {
+                                  'qual:input': incomingEdges.map(
+                                      (edge, index) => {
                                           const edgeLevels =
                                               edge.data?.levels ?? []
-
-                                          return edgeLevels.map(
-                                              (level, index) => {
-                                                  const inputMetaid = `_grn_edge_${sanitizeIdentifier(
-                                                      edge.id
-                                                  )}_${index + 1}`
-
-                                                  return {
-                                                      '@_metaid': inputMetaid,
-                                                      '@_qual:id': `${sanitizeIdentifier(edge.id)}_in_${index + 1}`,
-                                                      '@_qual:qualitativeSpecies':
-                                                          edge.source,
-                                                      '@_qual:transitionEffect':
-                                                          'none',
-                                                      '@_qual:sign':
-                                                          level.type ===
-                                                          InteractionType.Inhibition
-                                                              ? 'negative'
-                                                              : 'positive',
-                                                      '@_qual:thresholdLevel':
-                                                          String(level.target),
-                                                      ...buildNotesEntry(
-                                                          edge.data?.annotations
-                                                      ),
-                                                      ...buildAnnotationEntry(
-                                                          edge.data
-                                                              ?.annotations,
-                                                          inputMetaid
-                                                      ),
-                                                  }
-                                              }
+                                          const hasPositive = edgeLevels.some(
+                                              (level) =>
+                                                  level.type ===
+                                                  InteractionType.Activation
                                           )
+                                          const hasNegative = edgeLevels.some(
+                                              (level) =>
+                                                  level.type ===
+                                                  InteractionType.Inhibition
+                                          )
+
+                                          let sign = 'positive'
+
+                                          if (hasPositive && hasNegative) {
+                                              sign = 'dual'
+                                          } else if (hasNegative) {
+                                              sign = 'negative'
+                                          }
+
+                                          return {
+                                              '@_qual:id': `tr_${sanitizedSbmlNodeId}_in_${index}`,
+                                              '@_qual:qualitativeSpecies':
+                                                  sbmlNodeIdsByInternalId.get(
+                                                      edge.source
+                                                  ) ?? edge.source,
+                                              '@_qual:transitionEffect':
+                                                  'none',
+                                              '@_qual:sign': sign,
+                                          }
                                       }
                                   ),
                               },
                           }
                         : {}),
-                    'qual:listOfOutputs': {
-                        'qual:output': {
-                            '@_qual:id': `tr_${sanitizeIdentifier(node.id)}_out`,
-                            '@_qual:qualitativeSpecies': node.id,
+                        'qual:listOfOutputs': {
+                            'qual:output': {
+                                '@_qual:id': `tr_${sanitizedSbmlNodeId}_out`,
+                                '@_qual:qualitativeSpecies': sbmlNodeId,
                             '@_qual:transitionEffect': 'assignmentLevel',
                         },
                     },
@@ -529,10 +588,9 @@ function buildTransitionsEntry(model: InternalGRNModel): XmlRecord {
                             '@_qual:resultLevel':
                                 node.data.rules.length === 0 ? '1' : '0',
                         },
-                        ...(node.data.rules.length > 0
+                        ...(exportedRules.length > 0
                             ? {
-                                  'qual:functionTerm': node.data.rules.map(
-                                      (rule) => ({
+                                  'qual:functionTerm': exportedRules.map((rule) => ({
                                           '@_qual:resultLevel': String(
                                               rule.target
                                           ),
@@ -555,71 +613,89 @@ function buildTransitionsEntry(model: InternalGRNModel): XmlRecord {
     }
 }
 
-function buildNotesEntry(
-    annotations: PersistedAnnotations | undefined
-): XmlRecord {
-    const text = compactText(annotationsToPlainText(annotations))
+function createSbmlNodeIdMap(nodes: InternalGRNModel['nodes']) {
+    const seenIds = new Set<string>()
 
-    if (text.length === 0) {
-        return {}
-    }
+    return new Map(
+        nodes.map((node) => {
+            const baseId = sanitizeIdentifier(node.data.name || node.id || 'node')
+            let candidate = baseId
+            let suffix = 2
 
-    return {
-        notes: {
-            body: {
-                '@_xmlns': SBML_NAMESPACES.xhtml,
-                p: text
-                    .split(/\n{2,}/)
-                    .map((paragraph) => ({ '#text': paragraph.trim() })),
-            },
-        },
-    }
+            while (seenIds.has(candidate)) {
+                candidate = `${baseId}_${suffix}`
+                suffix += 1
+            }
+
+            seenIds.add(candidate)
+            return [node.id, candidate]
+        })
+    )
 }
 
-function buildAnnotationEntry(
-    annotations: PersistedAnnotations | undefined,
-    metaid: string
-): XmlRecord {
-    const references = annotations?.references?.filter(
-        (reference) => reference.trim().length > 0
-    )
-    const hasCustomPayload = annotations !== undefined
+function buildExactLevelRules(
+    rules: InternalGRNModel['nodes'][number]['data']['rules']
+) {
+    const sortedRules = [...rules].sort((left, right) => left.target - right.target)
 
-    if ((!references || references.length === 0) && !hasCustomPayload) {
-        return {}
-    }
+    return sortedRules.map((rule, index) => {
+        const higherExpressions = sortedRules
+            .slice(index + 1)
+            .map((candidate) => candidate.expression.trim())
+            .filter((expression) => expression.length > 0)
 
-    const annotation: XmlRecord = {}
-
-    if (references && references.length > 0) {
-        annotation['rdf:RDF'] = {
-            'rdf:Description': {
-                '@_rdf:about': `#${metaid}`,
-                'bqbiol:unknownQualifier': references.map((reference) => ({
-                    'rdf:Bag': {
-                        'rdf:li': {
-                            '@_rdf:resource': reference,
-                        },
-                    },
-                })),
-            },
+        if (higherExpressions.length === 0) {
+            return rule
         }
-    }
 
-    if (hasCustomPayload) {
-        annotation[GRN_ANNOTATIONS_TAG] = {
-            '@_grn:version': '1',
-            [GRN_PAYLOAD_TAG]: {
-                '#text': JSON.stringify(annotations),
-            },
+        const currentExpression = wrapRuleExpression(rule.expression.trim())
+        const higherExpression = wrapRuleExpression(
+            higherExpressions.length === 1
+                ? higherExpressions[0] ?? ''
+                : higherExpressions
+                      .map((expression) => wrapRuleExpression(expression))
+                      .join(' || ')
+        )
+
+        return {
+            ...rule,
+            expression: `${currentExpression} && !${higherExpression}`,
         }
+    })
+}
+
+function selectExportedSbmlRules(
+    rules: InternalGRNModel['nodes'][number]['data']['rules']
+) {
+    if (rules.length <= 1) {
+        return rules
     }
 
-    return {
-        annotation,
+    const sortedRules = [...rules].sort((left, right) => left.target - right.target)
+    const [lowestRule] = sortedRules
+
+    return lowestRule ? [lowestRule] : []
+}
+
+function wrapRuleExpression(expression: string) {
+    if (
+        expression.startsWith('(') &&
+        expression.endsWith(')') &&
+        expression.length > 1
+    ) {
+        return expression
     }
+
+    return `(${expression})`
 }
 
 function sanitizeIdentifier(value: string): string {
-    return value.replace(/[^a-zA-Z0-9_]/g, '_')
+    const sanitized = value.replace(/[^a-zA-Z0-9_]/g, '_')
+    const normalized = sanitized.replace(/_+/g, '_').replace(/^_+|_+$/g, '')
+
+    if (normalized.length === 0) {
+        return 'id'
+    }
+
+    return /^[A-Za-z_]/.test(normalized) ? normalized : `id_${normalized}`
 }

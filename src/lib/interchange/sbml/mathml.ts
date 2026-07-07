@@ -60,6 +60,17 @@ export function buildExpressionMathMl(
     }
 
     const ast = buildAst(match)
+
+    if (containsMultilevelNegation(ast, activityLevelsByName)) {
+        return {
+            apply: buildExpandedApplyNode(
+                ast,
+                activityLevelsByName,
+                speciesIdByName
+            ),
+        }
+    }
+
     return {
         apply: buildApplyNode(ast, activityLevelsByName, speciesIdByName),
     }
@@ -355,6 +366,269 @@ function getFirstTagText(
     }
 
     return getNodeText(firstValue)
+}
+
+type Assignment = Map<string, number>
+type Cube = Map<string, number | undefined>
+
+function containsMultilevelNegation(
+    ast: RuleAst,
+    activityLevelsByName: Map<string, number>
+): boolean {
+    switch (ast.kind) {
+        case 'var':
+            return false
+        case 'not':
+            return (
+                ast.operand.kind !== 'var' ||
+                (activityLevelsByName.get(ast.operand.name) ?? 1) > 1
+            )
+        case 'and':
+        case 'or':
+            return ast.operands.some((operand) =>
+                containsMultilevelNegation(operand, activityLevelsByName)
+            )
+    }
+}
+
+function buildExpandedApplyNode(
+    ast: RuleAst,
+    activityLevelsByName: Map<string, number>,
+    speciesIdByName: Map<string, string>
+): XmlRecord {
+    const variables = Array.from(collectVariables(ast)).sort()
+    const assignments = enumerateAssignments(variables, activityLevelsByName)
+    const matchingAssignments = assignments.filter((assignment) =>
+        evaluateRuleAst(ast, assignment)
+    )
+
+    if (matchingAssignments.length === 0) {
+        throw new Error('Rule expression does not match any valid assignments.')
+    }
+
+    const minimizedCubes = minimizeCubes(
+        matchingAssignments.map((assignment) => new Map(assignment)),
+        activityLevelsByName
+    )
+
+    if (minimizedCubes.length === 1) {
+        return buildCubeApplyNode(
+            minimizedCubes[0] ?? new Map(),
+            speciesIdByName
+        )
+    }
+
+    return {
+        or: '',
+        apply: minimizedCubes.map((cube) =>
+            buildCubeApplyNode(cube, speciesIdByName)
+        ),
+    }
+}
+
+function buildCubeApplyNode(
+    cube: Cube,
+    speciesIdByName: Map<string, string>
+): XmlRecord {
+    const comparisons = Array.from(cube.entries())
+        .filter(([, value]) => value !== undefined)
+        .map(([name, value]) =>
+            buildComparison('eq', speciesIdByName.get(name) ?? name, value ?? 0)
+        )
+
+    if (comparisons.length === 0) {
+        throw new Error('Expanded rule cube unexpectedly has no comparisons.')
+    }
+
+    if (comparisons.length === 1) {
+        return comparisons[0] ?? {}
+    }
+
+    return {
+        and: '',
+        apply: comparisons,
+    }
+}
+
+function collectVariables(ast: RuleAst): Set<string> {
+    switch (ast.kind) {
+        case 'var':
+            return new Set([ast.name])
+        case 'not':
+            return collectVariables(ast.operand)
+        case 'and':
+        case 'or':
+            return ast.operands.reduce((variables, operand) => {
+                collectVariables(operand).forEach((name) => variables.add(name))
+                return variables
+            }, new Set<string>())
+    }
+}
+
+function enumerateAssignments(
+    variables: string[],
+    activityLevelsByName: Map<string, number>
+): Assignment[] {
+    if (variables.length === 0) {
+        return [new Map()]
+    }
+
+    const [currentVariable, ...remainingVariables] = variables
+    const nestedAssignments = enumerateAssignments(
+        remainingVariables,
+        activityLevelsByName
+    )
+    const maxLevel = activityLevelsByName.get(currentVariable ?? '') ?? 1
+    const assignments: Assignment[] = []
+
+    for (let value = 0; value <= maxLevel; value += 1) {
+        nestedAssignments.forEach((assignment) => {
+            const nextAssignment = new Map(assignment)
+            if (currentVariable) {
+                nextAssignment.set(currentVariable, value)
+            }
+            assignments.push(nextAssignment)
+        })
+    }
+
+    return assignments
+}
+
+function evaluateRuleAst(ast: RuleAst, assignment: Assignment): boolean {
+    switch (ast.kind) {
+        case 'var': {
+            const currentValue = assignment.get(ast.name) ?? 0
+            return currentValue >= (ast.value ?? 1)
+        }
+        case 'not':
+            return !evaluateRuleAst(ast.operand, assignment)
+        case 'and':
+            return ast.operands.every((operand) =>
+                evaluateRuleAst(operand, assignment)
+            )
+        case 'or':
+            return ast.operands.some((operand) =>
+                evaluateRuleAst(operand, assignment)
+            )
+    }
+}
+
+function minimizeCubes(
+    initialCubes: Cube[],
+    activityLevelsByName: Map<string, number>
+): Cube[] {
+    let cubes = initialCubes
+    let changed = true
+
+    while (changed) {
+        changed = false
+        const nextCubes: Cube[] = []
+        const usedIndices = new Set<number>()
+
+        for (let leftIndex = 0; leftIndex < cubes.length; leftIndex += 1) {
+            const leftCube = cubes[leftIndex]
+
+            for (
+                let rightIndex = leftIndex + 1;
+                rightIndex < cubes.length;
+                rightIndex += 1
+            ) {
+                const rightCube = cubes[rightIndex]
+                const combined = tryCombineCubes(
+                    leftCube ?? new Map(),
+                    rightCube ?? new Map(),
+                    activityLevelsByName
+                )
+
+                if (!combined) {
+                    continue
+                }
+
+                usedIndices.add(leftIndex)
+                usedIndices.add(rightIndex)
+                if (!hasCube(nextCubes, combined)) {
+                    nextCubes.push(combined)
+                }
+                changed = true
+            }
+        }
+
+        cubes.forEach((cube, index) => {
+            if (!usedIndices.has(index) && !hasCube(nextCubes, cube)) {
+                nextCubes.push(cube)
+            }
+        })
+
+        cubes = nextCubes
+    }
+
+    return cubes
+}
+
+function tryCombineCubes(
+    leftCube: Cube,
+    rightCube: Cube,
+    activityLevelsByName: Map<string, number>
+): Cube | null {
+    const variableNames = new Set([
+        ...leftCube.keys(),
+        ...rightCube.keys(),
+    ])
+    let differingVariable: string | null = null
+
+    for (const variableName of variableNames) {
+        const leftValue = leftCube.get(variableName)
+        const rightValue = rightCube.get(variableName)
+
+        if (leftValue === rightValue) {
+            continue
+        }
+
+        if (
+            leftValue === undefined ||
+            rightValue === undefined ||
+            (activityLevelsByName.get(variableName) ?? 1) !== 1 ||
+            !(
+                (leftValue === 0 && rightValue === 1) ||
+                (leftValue === 1 && rightValue === 0)
+            )
+        ) {
+            return null
+        }
+
+        if (differingVariable !== null) {
+            return null
+        }
+
+        differingVariable = variableName
+    }
+
+    if (differingVariable === null) {
+        return null
+    }
+
+    const combined = new Map(leftCube)
+    combined.set(differingVariable, undefined)
+    return combined
+}
+
+function hasCube(cubes: Cube[], candidate: Cube) {
+    return cubes.some((cube) => cubesEqual(cube, candidate))
+}
+
+function cubesEqual(leftCube: Cube, rightCube: Cube) {
+    const variableNames = new Set([
+        ...leftCube.keys(),
+        ...rightCube.keys(),
+    ])
+
+    for (const variableName of variableNames) {
+        if (leftCube.get(variableName) !== rightCube.get(variableName)) {
+            return false
+        }
+    }
+
+    return true
 }
 
 function buildAst(match: import('ohm-js').MatchResult): RuleAst {
