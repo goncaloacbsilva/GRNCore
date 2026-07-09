@@ -210,6 +210,43 @@ const EMPTY_SERIALIZED_EDITOR_STATE = {
     },
 } as unknown as SerializedEditorState
 
+const createPlainTextEditorState = (text: string): SerializedEditorState => {
+    const paragraphs = text
+        .split(/\n{2,}/)
+        .map((paragraph) => paragraph.trim())
+        .filter((paragraph) => paragraph.length > 0)
+
+    if (paragraphs.length === 0) {
+        return EMPTY_SERIALIZED_EDITOR_STATE
+    }
+
+    return {
+        root: {
+            ...EMPTY_SERIALIZED_EDITOR_STATE.root,
+            children: paragraphs.map((paragraph) => ({
+                children: [
+                    {
+                        detail: 0,
+                        format: 0,
+                        mode: 'normal',
+                        style: '',
+                        text: paragraph,
+                        type: 'text',
+                        version: 1,
+                    },
+                ],
+                direction: null,
+                format: '',
+                indent: 0,
+                textFormat: 0,
+                textStyle: '',
+                type: 'paragraph',
+                version: 1,
+            })),
+        },
+    }
+}
+
 const INTERCHANGE_FORMAT_SOURCE_TAGS: Partial<
     Record<InterchangeFormat, ModelMetadataTag>
 > = {
@@ -267,16 +304,28 @@ const inferMetadataTags = ({
 const createMetadataFromSnapshot = (
     id: string,
     snapshot: InternalGRNModel,
-    sourceFormat?: InterchangeFormat
+    sourceFormat?: InterchangeFormat,
+    metadataOverrides?: CreateLocalModelMetadataOverrides
 ): ModelMetadata => {
     const now = Date.now()
+    const overrideTitle = metadataOverrides?.title?.trim()
+    const normalizedTitle =
+        overrideTitle && overrideTitle.length > 0
+            ? overrideTitle
+            : snapshot.title
+    const normalizedAuthor = metadataOverrides?.author?.trim()
+    const normalizedTags = metadataOverrides?.tags
+        ? [...new Set(metadataOverrides.tags)]
+        : inferMetadataTags({ snapshot, sourceFormat })
 
     return {
         id,
-        title: snapshot.title,
-        description: annotationsToDescription(snapshot.annotations),
-        author: 'Unknown Author',
-        tags: inferMetadataTags({ snapshot, sourceFormat }),
+        title: normalizedTitle,
+        description:
+            metadataOverrides?.description ??
+            annotationsToDescription(snapshot.annotations),
+        author: normalizedAuthor ?? 'Unknown Author',
+        tags: normalizedTags,
         createdAt: now,
         lastChangedAt: now,
     }
@@ -303,9 +352,12 @@ const getNextUntitledModelTitle = (items: ModelMetadata[]): string => {
 
 const normalizeSnapshotTitleForCreate = (
     snapshot: InternalGRNModel,
-    items: ModelMetadata[]
+    items: ModelMetadata[],
+    metadataOverrides?: CreateLocalModelMetadataOverrides
 ): InternalGRNModel => {
-    const normalizedTitle = snapshot.title.trim()
+    const preferredTitle =
+        metadataOverrides?.title?.trim() ?? snapshot.title.trim()
+    const normalizedTitle = preferredTitle.trim()
     if (normalizedTitle.length > 0) {
         return {
             ...snapshot,
@@ -316,6 +368,25 @@ const normalizeSnapshotTitleForCreate = (
     return {
         ...snapshot,
         title: getNextUntitledModelTitle(items),
+    }
+}
+
+const applyMetadataOverridesToSnapshot = (
+    snapshot: InternalGRNModel,
+    metadataOverrides?: CreateLocalModelMetadataOverrides
+): InternalGRNModel => {
+    if (!metadataOverrides?.description) {
+        return snapshot
+    }
+
+    return {
+        ...snapshot,
+        annotations: {
+            references: snapshot.annotations?.references ?? [],
+            unstructured: createPlainTextEditorState(
+                metadataOverrides.description
+            ),
+        },
     }
 }
 
@@ -332,6 +403,11 @@ const updateMetadataForSnapshot = (
 export interface UpdateLocalModelDetailsInput extends ModelMetadataDetails {
     description: SerializedEditorState
 }
+
+export type CreateLocalModelMetadataOverrides = Pick<
+    ModelMetadata,
+    'title' | 'description' | 'author' | 'tags'
+>
 
 const writeSnapshotFile = async (
     modelId: string,
@@ -378,7 +454,10 @@ export async function getLocalModelSnapshot(
 
 export async function createLocalModel(
     snapshot: InternalGRNModel,
-    options?: { sourceFormat?: InterchangeFormat }
+    options?: {
+        sourceFormat?: InterchangeFormat
+        metadata?: CreateLocalModelMetadataOverrides
+    }
 ): Promise<ModelMetadata> {
     if (!isOPFSAvailable()) {
         throw new Error('OPFS is not available in this environment.')
@@ -389,15 +468,21 @@ export async function createLocalModel(
         const items = await readMetadataList()
         const normalizedSnapshot = normalizeSnapshotTitleForCreate(
             snapshot,
-            items
+            items,
+            options?.metadata
+        )
+        const snapshotWithMetadata = applyMetadataOverridesToSnapshot(
+            normalizedSnapshot,
+            options?.metadata
         )
         const metadata = createMetadataFromSnapshot(
             modelId,
-            normalizedSnapshot,
-            options?.sourceFormat
+            snapshotWithMetadata,
+            options?.sourceFormat,
+            options?.metadata
         )
 
-        await writeSnapshotFile(modelId, normalizedSnapshot)
+        await writeSnapshotFile(modelId, snapshotWithMetadata)
         await writeMetadataList([...items, metadata])
         notifyLocalModelsChanged()
 

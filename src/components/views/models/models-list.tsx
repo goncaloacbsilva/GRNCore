@@ -11,14 +11,20 @@ import {
 } from '@/components/ui/empty'
 import { DnaOffIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { useCreateModel } from '@/hooks/use-create-model'
 import { useLocalModelImportStore } from '@/store'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 export interface ModelsListProps {
     items: ModelMetadata[]
     onDelete: (modelId: string) => Promise<void> | void
     onEdit: (item: ModelMetadata) => Promise<void> | void
+    renderItemActions?: (item: ModelMetadata) => ReactNode
+    emptyState?: ReactNode
+    lazyRenderBatchSize?: number
+    lazyRenderInitialCount?: number
+    visibleLimit?: number
 }
 
 function ModelsListEmpty() {
@@ -73,6 +79,7 @@ interface AnimatedModelItemProps {
     onExited?: (modelId: string) => void
     onDelete: (modelId: string) => Promise<void> | void
     onEdit: (item: ModelMetadata) => Promise<void> | void
+    renderItemActions?: (item: ModelMetadata) => ReactNode
 }
 
 function AnimatedModelItem({
@@ -83,6 +90,7 @@ function AnimatedModelItem({
     onExited,
     onDelete,
     onEdit,
+    renderItemActions,
 }: AnimatedModelItemProps) {
     const containerRef = useRef<HTMLDivElement | null>(null)
     const hasPlayedEnterAnimation = useRef(false)
@@ -165,16 +173,42 @@ function AnimatedModelItem({
 
     return (
         <div ref={containerRef}>
-            <ModelItem item={item} onDelete={onDelete} onEdit={onEdit} />
+            <ModelItem
+                item={item}
+                onDelete={onDelete}
+                onEdit={onEdit}
+                renderActions={renderItemActions}
+            />
         </div>
     )
 }
 
-export function ModelsList({ items, onDelete, onEdit }: ModelsListProps) {
+export function ModelsList({
+    items,
+    onDelete,
+    onEdit,
+    renderItemActions,
+    emptyState,
+    lazyRenderBatchSize,
+    lazyRenderInitialCount,
+    visibleLimit,
+}: ModelsListProps) {
     const [enteringIds, setEnteringIds] = useState<Set<string>>(() => new Set())
     const [exitingIds, setExitingIds] = useState<Set<string>>(() => new Set())
+    const [loadedVisibleCount, setLoadedVisibleCount] = useState(0)
     const previousItemIdsRef = useRef(new Set(items.map((item) => item.id)))
     const hasInitializedRef = useRef(false)
+    const loadMoreRef = useRef<HTMLDivElement | null>(null)
+    const shouldLazyRender = (lazyRenderBatchSize ?? 0) > 0
+    const minimumVisibleCount = shouldLazyRender
+        ? Math.min(items.length, lazyRenderInitialCount ?? lazyRenderBatchSize!)
+        : items.length
+    const visibleCount = shouldLazyRender
+        ? Math.min(
+              items.length,
+              Math.max(minimumVisibleCount, loadedVisibleCount)
+          )
+        : items.length
 
     useEffect(() => {
         if (!hasInitializedRef.current) {
@@ -198,6 +232,45 @@ export function ModelsList({ items, onDelete, onEdit }: ModelsListProps) {
 
         previousItemIdsRef.current = new Set(items.map((item) => item.id))
     }, [items])
+
+    useEffect(() => {
+        if (!shouldLazyRender || visibleCount >= items.length) {
+            return
+        }
+
+        const target = loadMoreRef.current
+
+        if (!target) {
+            return
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const [entry] = entries
+
+                if (!entry?.isIntersecting) {
+                    return
+                }
+
+                setLoadedVisibleCount((current) =>
+                    Math.min(items.length, current + lazyRenderBatchSize!)
+                )
+            },
+            {
+                rootMargin: '600px 0px',
+            }
+        )
+
+        observer.observe(target)
+
+        return () => {
+            observer.disconnect()
+        }
+    }, [items.length, lazyRenderBatchSize, shouldLazyRender, visibleCount])
+
+    const visibleItems = items
+        .slice(0, visibleCount)
+        .slice(0, visibleLimit ?? Number.POSITIVE_INFINITY)
 
     const handleEntered = (modelId: string) => {
         setEnteringIds((current) => {
@@ -240,22 +313,34 @@ export function ModelsList({ items, onDelete, onEdit }: ModelsListProps) {
 
     return (
         <div className="flex flex-col gap-6 p-4">
-            {items.length === 0 ? (
-                <ModelsListEmpty />
-            ) : (
-                items.map((model) => (
-                    <AnimatedModelItem
-                        key={model.id}
-                        item={model}
-                        isEntering={enteringIds.has(model.id)}
-                        isExiting={exitingIds.has(model.id)}
-                        onEntered={handleEntered}
-                        onExited={handleExited}
-                        onDelete={handleDelete}
-                        onEdit={onEdit}
-                    />
-                ))
-            )}
+            {items.length === 0
+                ? (emptyState ?? <ModelsListEmpty />)
+                : visibleItems.map((model) => (
+                      <AnimatedModelItem
+                          key={model.id}
+                          item={model}
+                          isEntering={enteringIds.has(model.id)}
+                          isExiting={exitingIds.has(model.id)}
+                          onEntered={handleEntered}
+                          onExited={handleExited}
+                          onDelete={handleDelete}
+                          onEdit={onEdit}
+                          renderItemActions={renderItemActions}
+                      />
+                  ))}
+            {shouldLazyRender &&
+            visibleLimit === undefined &&
+            visibleCount < items.length ? (
+                <div
+                    ref={loadMoreRef}
+                    className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground"
+                >
+                    <Spinner className="size-4" />
+                    <span>
+                        Loading more models ({visibleCount} / {items.length})
+                    </span>
+                </div>
+            ) : null}
         </div>
     )
 }
