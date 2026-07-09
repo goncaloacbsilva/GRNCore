@@ -1,4 +1,5 @@
 import { ModelsHeader } from '@/components/layouts/header'
+import { useLocation } from '@tanstack/react-router'
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { usePageEnterTransition } from '@/hooks/use-page-transition'
 import { useRef } from 'react'
@@ -17,12 +18,14 @@ export const Route = createFileRoute('/models')({
 })
 
 function RouteComponent() {
+    const { pathname } = useLocation()
     const routeRootRef = useRef<HTMLDivElement | null>(null)
 
     usePageEnterTransition(routeRootRef)
 
     return (
         <div
+            key={pathname}
             ref={routeRootRef}
             data-route-transition-root="true"
             className="flex h-full w-full flex-col"

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import dayjs from 'dayjs'
 import {
     Item,
@@ -27,9 +27,15 @@ export interface ModelItemProps {
     item: ModelMetadata
     onDelete: (modelId: string) => Promise<void> | void
     onEdit: (item: ModelMetadata) => Promise<void> | void
+    renderActions?: (item: ModelMetadata) => ReactNode
 }
 
-export function ModelItem({ item, onDelete, onEdit }: ModelItemProps) {
+export function ModelItem({
+    item,
+    onDelete,
+    onEdit,
+    renderActions,
+}: ModelItemProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const [hasOverflow, setHasOverflow] = useState(false)
     const descriptionRef = useRef<HTMLParagraphElement | null>(null)
@@ -102,11 +108,15 @@ export function ModelItem({ item, onDelete, onEdit }: ModelItemProps) {
                     <div className="mt-4 flex flex-row items-center justify-between gap-4">
                         <ModelItemAuthor item={item} />
                         <div className="flex items-center gap-3">
-                            <ModelItemMenu
-                                item={item}
-                                onDelete={onDelete}
-                                onEdit={onEdit}
-                            />
+                            {renderActions ? (
+                                renderActions(item)
+                            ) : (
+                                <ModelItemMenu
+                                    item={item}
+                                    onDelete={onDelete}
+                                    onEdit={onEdit}
+                                />
+                            )}
                         </div>
                     </div>
                 </ItemContent>

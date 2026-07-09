@@ -13,13 +13,21 @@ import {
     useModelsFiltersStore,
 } from '@/store'
 import { SearchXIcon } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { ModelsList, type ModelsListProps } from './models-list'
 
-export interface FilterableModelsListProps
-    extends Pick<ModelsListProps, 'onDelete' | 'onEdit'> {
+export interface FilterableModelsListProps extends Pick<
+    ModelsListProps,
+    | 'onDelete'
+    | 'onEdit'
+    | 'lazyRenderBatchSize'
+    | 'lazyRenderInitialCount'
+    | 'visibleLimit'
+> {
     items: ModelMetadata[]
+    renderItemActions?: (item: ModelMetadata) => ReactNode
+    emptyState?: ReactNode
 }
 
 const sortModels = (items: ModelMetadata[], sortBy: ModelsSortOption) =>
@@ -45,6 +53,11 @@ export function FilterableModelsList({
     items,
     onDelete,
     onEdit,
+    renderItemActions,
+    emptyState,
+    lazyRenderBatchSize,
+    lazyRenderInitialCount,
+    visibleLimit,
 }: FilterableModelsListProps) {
     const { query, selectedTags, sortBy } = useModelsFiltersStore(
         useShallow((state) => ({
@@ -74,6 +87,12 @@ export function FilterableModelsList({
         )
     }, [items, query, selectedTags, sortBy])
 
+    const shouldUseLazyRender =
+        lazyRenderBatchSize !== undefined &&
+        query.trim().length === 0 &&
+        selectedTags.length === 0 &&
+        sortBy === MODEL_SORT_OPTIONS.LastChangedDesc
+
     if (filteredItems.length === 0 && items.length > 0) {
         return (
             <Empty className="p-4">
@@ -96,6 +115,19 @@ export function FilterableModelsList({
     }
 
     return (
-        <ModelsList items={filteredItems} onDelete={onDelete} onEdit={onEdit} />
+        <ModelsList
+            items={filteredItems}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            renderItemActions={renderItemActions}
+            emptyState={emptyState}
+            lazyRenderBatchSize={
+                shouldUseLazyRender ? lazyRenderBatchSize : undefined
+            }
+            lazyRenderInitialCount={
+                shouldUseLazyRender ? lazyRenderInitialCount : undefined
+            }
+            visibleLimit={visibleLimit}
+        />
     )
 }

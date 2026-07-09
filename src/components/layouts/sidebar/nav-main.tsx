@@ -1,9 +1,10 @@
 import { HardDrive, ChevronRight, UsersRound } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 
+import { usePageTransitionNavigate } from '@/hooks/use-page-transition'
 import { listLocalModels } from '@/lib/persistence'
 import type { ModelMetadata } from '@/lib/schema'
-import { usePersistenceStatus } from '@/store'
+import { useChangesTracking, useEditorStore, usePersistenceStatus } from '@/store'
 import {
     Collapsible,
     CollapsibleContent,
@@ -20,13 +21,17 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
-import { Link, useLocation } from '@tanstack/react-router'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 
 export function NavMain() {
+    const navigate = useNavigate()
+    const navigateWithTransition = usePageTransitionNavigate()
     const { pathname } = useLocation()
     const localModelsVersion = usePersistenceStatus(
         (state) => state.localModelsVersion
     )
+    const activeModelId = useChangesTracking((state) => state.activeModelId)
+    const modelTitle = useEditorStore((state) => state.modelTitle)
     const [recentModels, setRecentModels] = useState<ModelMetadata[]>([])
     const [isLocalModelsOpen, setIsLocalModelsOpen] = useState(
         pathname === '/models/local' || pathname.startsWith('/edit/')
@@ -35,7 +40,6 @@ export function NavMain() {
     const isLocalModelsActive =
         pathname === '/models/local' || pathname.startsWith('/edit/')
     const isCommunityModelsActive = pathname === '/models/community'
-    const isLocalModelsExpanded = isLocalModelsActive || isLocalModelsOpen
 
     useEffect(() => {
         let isCancelled = false
@@ -53,17 +57,52 @@ export function NavMain() {
         }
     }, [localModelsVersion])
 
+    useEffect(() => {
+        if (isLocalModelsActive) {
+            setIsLocalModelsOpen(true)
+        }
+    }, [isLocalModelsActive])
+
+    useEffect(() => {
+        if (!activeModelId) {
+            return
+        }
+
+        setRecentModels((currentItems) =>
+            currentItems.map((item) =>
+                item.id === activeModelId ? { ...item, title: modelTitle } : item
+            )
+        )
+    }, [activeModelId, modelTitle])
+
     const recentModelItems = useMemo(
         () => recentModels.slice(0, 5),
         [recentModels]
     )
+
+    const handleModelsNavigation =
+        (to: '/models/local' | '/models/community') =>
+        (event: MouseEvent<HTMLAnchorElement>) => {
+            if (pathname === to) {
+                event.preventDefault()
+                return
+            }
+
+            event.preventDefault()
+
+            void navigateWithTransition('forward', () =>
+                navigate({
+                    to,
+                })
+            )
+        }
 
     return (
         <SidebarGroup>
             <SidebarGroupLabel>Models</SidebarGroupLabel>
             <SidebarMenu>
                 <Collapsible
-                    open={isLocalModelsExpanded}
+                    open={isLocalModelsOpen}
                     onOpenChange={setIsLocalModelsOpen}
                     asChild
                     className="group/collapsible"
@@ -75,7 +114,12 @@ export function NavMain() {
                             isActive={isLocalModelsActive}
                             className="pr-8"
                         >
-                            <Link to="/models/local">
+                            <Link
+                                to="/models/local"
+                                onClick={handleModelsNavigation(
+                                    '/models/local'
+                                )}
+                            >
                                 <HardDrive />
                                 <span>Local</span>
                             </Link>
@@ -126,7 +170,12 @@ export function NavMain() {
                         tooltip="Community Models"
                         isActive={isCommunityModelsActive}
                     >
-                        <Link to="/models/community">
+                        <Link
+                            to="/models/community"
+                            onClick={handleModelsNavigation(
+                                '/models/community'
+                            )}
+                        >
                             <UsersRound />
                             <span>Community</span>
                         </Link>

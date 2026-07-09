@@ -1,3 +1,4 @@
+export * from './community-models'
 export * from './editor'
 export * from './history'
 export * from './local-model-import'
