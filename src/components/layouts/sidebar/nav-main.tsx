@@ -32,7 +32,9 @@ export function NavMain() {
     )
     const activeModelId = useChangesTracking((state) => state.activeModelId)
     const modelTitle = useEditorStore((state) => state.modelTitle)
-    const [recentModels, setRecentModels] = useState<ModelMetadata[]>([])
+    const [fetchedRecentModels, setFetchedRecentModels] = useState<
+        ModelMetadata[]
+    >([])
     const [isLocalModelsOpen, setIsLocalModelsOpen] = useState(
         pathname === '/models/local' || pathname.startsWith('/edit/')
     )
@@ -49,7 +51,7 @@ export function NavMain() {
                 return
             }
 
-            setRecentModels(items.slice(0, 5))
+            setFetchedRecentModels(items.slice(0, 5))
         })
 
         return () => {
@@ -57,27 +59,12 @@ export function NavMain() {
         }
     }, [localModelsVersion])
 
-    useEffect(() => {
-        if (isLocalModelsActive) {
-            setIsLocalModelsOpen(true)
-        }
-    }, [isLocalModelsActive])
-
-    useEffect(() => {
-        if (!activeModelId) {
-            return
-        }
-
-        setRecentModels((currentItems) =>
-            currentItems.map((item) =>
-                item.id === activeModelId ? { ...item, title: modelTitle } : item
-            )
-        )
-    }, [activeModelId, modelTitle])
-
     const recentModelItems = useMemo(
-        () => recentModels.slice(0, 5),
-        [recentModels]
+        () =>
+            fetchedRecentModels.map((item) =>
+                item.id === activeModelId ? { ...item, title: modelTitle } : item
+            ),
+        [activeModelId, fetchedRecentModels, modelTitle]
     )
 
     const handleModelsNavigation =
@@ -89,6 +76,9 @@ export function NavMain() {
             }
 
             event.preventDefault()
+            if (to === '/models/local') {
+                setIsLocalModelsOpen(true)
+            }
 
             void navigateWithTransition('forward', () =>
                 navigate({

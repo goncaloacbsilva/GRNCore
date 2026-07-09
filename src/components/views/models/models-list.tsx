@@ -195,41 +195,17 @@ export function ModelsList({
 }: ModelsListProps) {
     const [enteringIds, setEnteringIds] = useState<Set<string>>(() => new Set())
     const [exitingIds, setExitingIds] = useState<Set<string>>(() => new Set())
-    const [visibleCount, setVisibleCount] = useState(() =>
-        lazyRenderBatchSize
-            ? Math.min(
-                  items.length,
-                  lazyRenderInitialCount ?? lazyRenderBatchSize
-              )
-            : items.length
-    )
+    const [loadedVisibleCount, setLoadedVisibleCount] = useState(0)
     const previousItemIdsRef = useRef(new Set(items.map((item) => item.id)))
     const hasInitializedRef = useRef(false)
     const loadMoreRef = useRef<HTMLDivElement | null>(null)
     const shouldLazyRender = (lazyRenderBatchSize ?? 0) > 0
-
-    useEffect(() => {
-        if (!shouldLazyRender) {
-            setVisibleCount(items.length)
-            return
-        }
-
-        setVisibleCount((current) => {
-            if (current > 0) {
-                return current
-            }
-
-            return Math.min(
-                items.length,
-                lazyRenderInitialCount ?? lazyRenderBatchSize!
-            )
-        })
-    }, [
-        items.length,
-        lazyRenderBatchSize,
-        lazyRenderInitialCount,
-        shouldLazyRender,
-    ])
+    const minimumVisibleCount = shouldLazyRender
+        ? Math.min(items.length, lazyRenderInitialCount ?? lazyRenderBatchSize!)
+        : items.length
+    const visibleCount = shouldLazyRender
+        ? Math.min(items.length, Math.max(minimumVisibleCount, loadedVisibleCount))
+        : items.length
 
     useEffect(() => {
         if (!hasInitializedRef.current) {
@@ -273,7 +249,7 @@ export function ModelsList({
                     return
                 }
 
-                setVisibleCount((current) =>
+                setLoadedVisibleCount((current) =>
                     Math.min(items.length, current + lazyRenderBatchSize!)
                 )
             },
@@ -289,9 +265,9 @@ export function ModelsList({
         }
     }, [items.length, lazyRenderBatchSize, shouldLazyRender, visibleCount])
 
-    const visibleItems = (
-        shouldLazyRender ? items.slice(0, visibleCount) : items
-    ).slice(0, visibleLimit ?? Number.POSITIVE_INFINITY)
+    const visibleItems = items
+        .slice(0, visibleCount)
+        .slice(0, visibleLimit ?? Number.POSITIVE_INFINITY)
 
     const handleEntered = (modelId: string) => {
         setEnteringIds((current) => {

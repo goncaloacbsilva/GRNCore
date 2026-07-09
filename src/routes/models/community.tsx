@@ -40,9 +40,9 @@ interface BiomodelsMetadataResponse {
             | {
                   name?: string
               }
-            | Array<{
+            | {
                   name?: string
-              }>
+              }[]
     }
 }
 

@@ -244,7 +244,7 @@ const createPlainTextEditorState = (text: string): SerializedEditorState => {
                 version: 1,
             })),
         },
-    } as SerializedEditorState
+    }
 }
 
 const INTERCHANGE_FORMAT_SOURCE_TAGS: Partial<
@@ -308,7 +308,11 @@ const createMetadataFromSnapshot = (
     metadataOverrides?: CreateLocalModelMetadataOverrides
 ): ModelMetadata => {
     const now = Date.now()
-    const normalizedTitle = metadataOverrides?.title?.trim() || snapshot.title
+    const overrideTitle = metadataOverrides?.title?.trim()
+    const normalizedTitle =
+        overrideTitle && overrideTitle.length > 0
+            ? overrideTitle
+            : snapshot.title
     const normalizedAuthor = metadataOverrides?.author?.trim()
     const normalizedTags = metadataOverrides?.tags
         ? [...new Set(metadataOverrides.tags)]
@@ -400,10 +404,10 @@ export interface UpdateLocalModelDetailsInput extends ModelMetadataDetails {
     description: SerializedEditorState
 }
 
-export interface CreateLocalModelMetadataOverrides extends Pick<
+export type CreateLocalModelMetadataOverrides = Pick<
     ModelMetadata,
     'title' | 'description' | 'author' | 'tags'
-> {}
+>
 
 const writeSnapshotFile = async (
     modelId: string,
