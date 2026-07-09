@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { usePageTransitionNavigate } from '@/hooks/use-page-transition'
 import { listLocalModels } from '@/lib/persistence'
 import type { ModelMetadata } from '@/lib/schema'
-import { useChangesTracking, useEditorStore, usePersistenceStatus } from '@/store'
+import {
+    useChangesTracking,
+    useEditorStore,
+    usePersistenceStatus,
+} from '@/store'
 import {
     Collapsible,
     CollapsibleContent,
@@ -62,7 +66,9 @@ export function NavMain() {
     const recentModelItems = useMemo(
         () =>
             fetchedRecentModels.map((item) =>
-                item.id === activeModelId ? { ...item, title: modelTitle } : item
+                item.id === activeModelId
+                    ? { ...item, title: modelTitle }
+                    : item
             ),
         [activeModelId, fetchedRecentModels, modelTitle]
     )

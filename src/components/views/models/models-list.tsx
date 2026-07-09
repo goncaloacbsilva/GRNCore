@@ -204,7 +204,10 @@ export function ModelsList({
         ? Math.min(items.length, lazyRenderInitialCount ?? lazyRenderBatchSize!)
         : items.length
     const visibleCount = shouldLazyRender
-        ? Math.min(items.length, Math.max(minimumVisibleCount, loadedVisibleCount))
+        ? Math.min(
+              items.length,
+              Math.max(minimumVisibleCount, loadedVisibleCount)
+          )
         : items.length
 
     useEffect(() => {
