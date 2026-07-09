@@ -1,31 +1,15 @@
-import { ModelsList } from '@/components/views/models/models-list'
+import { FilterableModelsList } from '@/components/views/models'
 import { ImportModelDialog } from '@/components/views/editor/dialogs'
 import { emptySerializedEditorState } from '@/components/views/editor/overlay/annotations/lib/annotation-state'
-import {
-    Empty,
-    EmptyContent,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-} from '@/components/ui/empty'
 import {
     deleteLocalModel,
     getLocalModelSnapshot,
     listLocalModels,
 } from '@/lib/persistence'
 import type { ModelMetadata } from '@/lib/schema'
-import {
-    MODEL_SORT_OPTIONS,
-    type ModelsSortOption,
-    useChangesTracking,
-    useLocalModelImportStore,
-    useModelsFiltersStore,
-} from '@/store'
+import { useChangesTracking, useLocalModelImportStore } from '@/store'
 import { createFileRoute } from '@tanstack/react-router'
-import { SearchXIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
+import { useEffect, useState } from 'react'
 
 export const Route = createFileRoute('/models/local')({
     loader: async () => listLocalModels(),
@@ -51,25 +35,6 @@ interface LocalModelsContentProps {
     initialItems: ModelMetadata[]
 }
 
-const sortModels = (items: ModelMetadata[], sortBy: ModelsSortOption) =>
-    [...items].sort((left, right) => {
-        switch (sortBy) {
-            case MODEL_SORT_OPTIONS.LastChangedAsc:
-                return left.lastChangedAt - right.lastChangedAt
-            case MODEL_SORT_OPTIONS.TitleAsc:
-                return left.title.localeCompare(right.title, undefined, {
-                    sensitivity: 'base',
-                })
-            case MODEL_SORT_OPTIONS.TitleDesc:
-                return right.title.localeCompare(left.title, undefined, {
-                    sensitivity: 'base',
-                })
-            case MODEL_SORT_OPTIONS.LastChangedDesc:
-            default:
-                return right.lastChangedAt - left.lastChangedAt
-        }
-    })
-
 function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
     const [items, setItems] = useState(initialItems)
     const activeModelId = useChangesTracking((state) => state.activeModelId)
@@ -84,13 +49,6 @@ function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
     )
     const setOnImported = useLocalModelImportStore(
         (state) => state.setOnImported
-    )
-    const { query, selectedTags, sortBy } = useModelsFiltersStore(
-        useShallow((state) => ({
-            query: state.query,
-            selectedTags: state.selectedTags,
-            sortBy: state.sortBy,
-        }))
     )
 
     useEffect(() => {
@@ -187,52 +145,13 @@ function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
         )
     }
 
-    const filteredItems = useMemo(() => {
-        const normalizedQuery = query.trim().toLowerCase()
-
-        return sortModels(
-            items.filter((item) => {
-                const matchesQuery =
-                    normalizedQuery.length === 0 ||
-                    item.title.toLowerCase().includes(normalizedQuery) ||
-                    item.description.toLowerCase().includes(normalizedQuery)
-
-                const matchesTags =
-                    selectedTags.length === 0 ||
-                    selectedTags.every((tag) => item.tags.includes(tag))
-
-                return matchesQuery && matchesTags
-            }),
-            sortBy
-        )
-    }, [items, query, selectedTags, sortBy])
-
     return (
         <>
-            {filteredItems.length === 0 && items.length > 0 ? (
-                <Empty className="p-4">
-                    <EmptyHeader>
-                        <EmptyMedia
-                            variant="icon"
-                            className="bg-[#2F80ED] text-sidebar-primary-foreground"
-                        >
-                            <SearchXIcon className="h-6 w-6" />
-                        </EmptyMedia>
-                        <EmptyTitle>No models match your filters</EmptyTitle>
-                        <EmptyDescription>
-                            Adjust the search query or selected tags to find a
-                            model.
-                        </EmptyDescription>
-                    </EmptyHeader>
-                    <EmptyContent />
-                </Empty>
-            ) : (
-                <ModelsList
-                    items={filteredItems}
-                    onDelete={handleDelete}
-                    onEdit={handleEdit}
-                />
-            )}
+            <FilterableModelsList
+                items={items}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+            />
             <ImportModelDialog mode="local-models" />
         </>
     )
