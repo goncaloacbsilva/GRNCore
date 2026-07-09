@@ -6,10 +6,13 @@ import {
     getLocalModelSnapshot,
     listLocalModels,
 } from '@/lib/persistence'
-import type { ModelMetadata } from '@/lib/schema'
+import { ModelMetadataSchema, type ModelMetadata } from '@/lib/schema'
 import { useChangesTracking, useLocalModelImportStore } from '@/store'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
+import { z } from 'zod'
+
+const LocalModelsLoaderDataSchema = z.array(ModelMetadataSchema)
 
 export const Route = createFileRoute('/models/local')({
     loader: async () => listLocalModels(),
@@ -21,7 +24,7 @@ export const Route = createFileRoute('/models/local')({
 })
 
 function RouteComponent() {
-    const loaderItems = Route.useLoaderData()
+    const loaderItems = LocalModelsLoaderDataSchema.parse(Route.useLoaderData())
 
     return (
         <LocalModelsContent

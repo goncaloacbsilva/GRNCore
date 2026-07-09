@@ -5,9 +5,11 @@ import './index.css'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 
+const basepath = new URL(document.baseURI).pathname
+
 const router = createRouter({
     routeTree,
-    basepath: import.meta.env.BASE_URL,
+    basepath,
     defaultPreload: 'intent',
     scrollRestoration: true,
 })
