@@ -6,7 +6,10 @@ import type {
     ModelMetadataTag,
     PersistedAnnotations,
 } from '@/lib/schema'
-import { normalizeModelMetadataDetails } from '@/lib/schema'
+import {
+    normalizeModelMetadataDetails,
+    normalizeModelMetadataTags,
+} from '@/lib/schema'
 import { InterchangeFormat } from '@/lib/interchange'
 import { usePersistenceStatus } from '@/store/persistence'
 import type { SerializedEditorState } from 'lexical'
@@ -315,7 +318,7 @@ const createMetadataFromSnapshot = (
             : snapshot.title
     const normalizedAuthor = metadataOverrides?.author?.trim()
     const normalizedTags = metadataOverrides?.tags
-        ? [...new Set(metadataOverrides.tags)]
+        ? normalizeModelMetadataTags(metadataOverrides.tags)
         : inferMetadataTags({ snapshot, sourceFormat })
 
     return {

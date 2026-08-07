@@ -6,7 +6,7 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from '@/components/ui/empty'
-import type { ModelMetadata } from '@/lib/schema'
+import { getModelDisplayTags, type ModelMetadata } from '@/lib/schema'
 import {
     MODEL_SORT_OPTIONS,
     type ModelsSortOption,
@@ -16,6 +16,10 @@ import { SearchXIcon } from 'lucide-react'
 import { useMemo, type ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { ModelsList, type ModelsListProps } from './models-list'
+import {
+    getModelSearchKeywords,
+    modelMatchesSearchKeywords,
+} from './model-filtering'
 
 export interface FilterableModelsListProps extends Pick<
     ModelsListProps,
@@ -68,18 +72,17 @@ export function FilterableModelsList({
     )
 
     const filteredItems = useMemo(() => {
-        const normalizedQuery = query.trim().toLowerCase()
+        const keywords = getModelSearchKeywords(query)
 
         return sortModels(
             items.filter((item) => {
-                const matchesQuery =
-                    normalizedQuery.length === 0 ||
-                    item.title.toLowerCase().includes(normalizedQuery) ||
-                    item.description.toLowerCase().includes(normalizedQuery)
+                const matchesQuery = modelMatchesSearchKeywords(item, keywords)
 
                 const matchesTags =
                     selectedTags.length === 0 ||
-                    selectedTags.every((tag) => item.tags.includes(tag))
+                    selectedTags.some((tag) =>
+                        getModelDisplayTags(item).includes(tag)
+                    )
 
                 return matchesQuery && matchesTags
             }),

@@ -1,4 +1,4 @@
-import type { ModelMetadataTag } from '@/lib/schema'
+import type { ModelDisplayTag } from '@/lib/schema'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
@@ -14,11 +14,11 @@ export type ModelsSortOption =
 
 interface ModelsFiltersState {
     query: string
-    selectedTags: ModelMetadataTag[]
+    selectedTags: ModelDisplayTag[]
     sortBy: ModelsSortOption
 
     setQuery: (query: string) => void
-    toggleTag: (tag: ModelMetadataTag) => void
+    toggleTag: (tag: ModelDisplayTag) => void
     setSortBy: (sortBy: ModelsSortOption) => void
     clearTags: () => void
     reset: () => void
@@ -26,7 +26,7 @@ interface ModelsFiltersState {
 
 const initialState = {
     query: '',
-    selectedTags: [] as ModelMetadataTag[],
+    selectedTags: [] as ModelDisplayTag[],
     sortBy: MODEL_SORT_OPTIONS.LastChangedDesc as ModelsSortOption,
 }
 
