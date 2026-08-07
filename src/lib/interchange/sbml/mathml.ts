@@ -116,7 +116,7 @@ function parseApplyNode(
         }
     }
 
-    if ('eq' in applyNode || 'geq' in applyNode) {
+    if ('eq' in applyNode || 'geq' in applyNode || 'leq' in applyNode) {
         return parseComparisonNode(
             applyNode,
             activityLevelsByName,
@@ -143,7 +143,8 @@ function parseExpressionNode(
         'or' in record ||
         'not' in record ||
         'eq' in record ||
-        'geq' in record
+        'geq' in record ||
+        'leq' in record
     ) {
         return parseApplyNode(record, activityLevelsByName, nodeNameById)
     }
@@ -204,6 +205,8 @@ function parseComparisonNode(
         throw new Error('Only integer MathML thresholds are supported.')
     }
 
+    const activityLevels = activityLevelsByName.get(variableName) ?? 1
+
     if ('geq' in applyNode) {
         return {
             kind: 'var',
@@ -212,7 +215,22 @@ function parseComparisonNode(
         }
     }
 
-    const activityLevels = activityLevelsByName.get(variableName) ?? 1
+    if ('leq' in applyNode) {
+        if (numericValue >= activityLevels) {
+            throw new Error(
+                'MathML less-than-or-equal comparison is always true and cannot be represented as a regulatory rule.'
+            )
+        }
+
+        return {
+            kind: 'not',
+            operand: {
+                kind: 'var',
+                name: variableName,
+                value: numericValue + 1,
+            },
+        }
+    }
 
     if (numericValue === 0) {
         return {
@@ -348,7 +366,8 @@ function extractApplyChildren(applyNode: XmlRecord): unknown[] {
             key !== 'or' &&
             key !== 'not' &&
             key !== 'eq' &&
-            key !== 'geq'
+            key !== 'geq' &&
+            key !== 'leq'
     )
 
     return childEntries.flatMap(([, value]) => ensureArray(value))
