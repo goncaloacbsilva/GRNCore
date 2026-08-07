@@ -69,13 +69,11 @@ export function ImportModelDialog({
     const {
         open: localModelsOpen,
         setOpen: setLocalModelsOpen,
-        destination,
         importFile,
     } = useLocalModelImportStore(
         useShallow((state) => ({
             open: state.open,
             setOpen: state.setOpen,
-            destination: state.destination,
             importFile: state.importFile,
         }))
     )
@@ -125,19 +123,17 @@ export function ImportModelDialog({
                   ? async () => {
                         const metadata = await importFile(file)
 
-                        if (destination === 'editor') {
-                            await navigate({
-                                to: '/edit/$modelId',
-                                params: { modelId: metadata.id },
-                            })
+                        await navigate({
+                            to: '/edit/$modelId',
+                            params: { modelId: metadata.id },
+                        })
 
-                            toast.success(
-                                `Switched to imported model: ${metadata.title ?? 'Untitled model'}`,
-                                {
-                                    position: 'top-right',
-                                }
-                            )
-                        }
+                        toast.success(
+                            `Switched to imported model: ${metadata.title ?? 'Untitled model'}`,
+                            {
+                                position: 'top-right',
+                            }
+                        )
                     }
                   : () =>
                         new Promise<void>((resolve, reject) => {
@@ -158,12 +154,19 @@ export function ImportModelDialog({
                         setTimeout(() => setFiles([]), 500)
                     }, 500)
                 })
-                .catch(() => {
+                .catch((error: unknown) => {
+                    toast.error(`Failed to import ${file.name}`, {
+                        description:
+                            error instanceof Error
+                                ? error.message
+                                : 'Unknown error',
+                        duration: 5000,
+                        position: 'top-right',
+                    })
                     setTimeout(() => setFiles([]), 200)
                 })
         }
     }, [
-        destination,
         files,
         importFile,
         importModelToEditor,
@@ -177,11 +180,11 @@ export function ImportModelDialog({
         <Dialog open={open} onOpenChange={setDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Import Model</DialogTitle>
+                    <DialogTitle>Load Model</DialogTitle>
                     <DialogDescription>
-                        Upload a model file to import it into the application.
-                        Supported formats are: <br /> BoolNet (.bnet), SBML-Qual
-                        (.sbml), GINsim (.zginml, .ginml)
+                        Load a model from file. Supported formats are: <br />{' '}
+                        BoolNet (.bnet), SBML-Qual (.sbml), GINsim (.zginml,
+                        .ginml)
                     </DialogDescription>
                 </DialogHeader>
                 <FileUpload

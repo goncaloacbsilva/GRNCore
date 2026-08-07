@@ -1,4 +1,5 @@
 import { ModelsHeader } from '@/components/layouts/header'
+import { ImportModelDialog } from '@/components/views/editor/dialogs'
 import { useLocation } from '@tanstack/react-router'
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { usePageEnterTransition } from '@/hooks/use-page-transition'
@@ -36,6 +37,7 @@ function RouteComponent() {
             <div className="relative min-h-0 flex-1 w-full">
                 <Outlet />
             </div>
+            <ImportModelDialog mode="local-models" />
         </div>
     )
 }

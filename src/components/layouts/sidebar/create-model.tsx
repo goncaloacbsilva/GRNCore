@@ -16,7 +16,8 @@ export function CreateModelButton({ context }: CreateModelButtonProps) {
         <SidebarActionButton
             context={context}
             icon={PlusIcon}
-            label="Create Model"
+            label="New Model"
+            tooltip="Create a new model (saved to browser local storage)"
             className="cursor-pointer bg-primary text-[#F8FAFC] transition-all hover:bg-primary/80 hover:text-[#F8FAFC]"
             onClick={() => void createModel()}
         />

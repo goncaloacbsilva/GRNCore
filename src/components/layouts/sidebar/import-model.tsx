@@ -19,7 +19,8 @@ export function ImportModelButton({ context }: ImportModelButtonProps) {
         <SidebarActionButton
             context={context}
             icon={UploadIcon}
-            label="Upload Model"
+            label="Load Model"
+            tooltip="Load a model from a file"
             className="cursor-pointer"
             onClick={() => {
                 const destination = location.pathname.startsWith('/edit/')
