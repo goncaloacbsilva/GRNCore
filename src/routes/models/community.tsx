@@ -291,7 +291,7 @@ function RouteComponent() {
                             {sourceWebpageUrl ? (
                                 <Button
                                     asChild
-                                    variant="outline"
+                                    variant="link"
                                     className="cursor-pointer"
                                 >
                                     <a
