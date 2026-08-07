@@ -10,7 +10,7 @@ import { useViewActions } from '@/hooks'
 import { formatForDisplay } from '@tanstack/react-hotkeys'
 
 export function ViewMenu() {
-    const { resetZoom } = useViewActions()
+    const { resetZoom, zoomIn, zoomOut } = useViewActions()
 
     return (
         <MenubarMenu>
@@ -23,6 +23,8 @@ export function ViewMenu() {
                             {formatForDisplay('R')}
                         </MenubarShortcut>
                     </MenubarItem>
+                    <MenubarItem onSelect={zoomIn}>Zoom In</MenubarItem>
+                    <MenubarItem onSelect={zoomOut}>Zoom Out</MenubarItem>
                 </MenubarGroup>
             </MenubarContent>
         </MenubarMenu>

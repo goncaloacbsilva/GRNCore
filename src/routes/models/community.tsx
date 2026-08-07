@@ -20,7 +20,7 @@ import {
 } from '@/lib/persistence'
 import { usePageTransitionNavigate } from '@/hooks/use-page-transition'
 import { createFileRoute } from '@tanstack/react-router'
-import { CopyIcon, LibraryBigIcon } from 'lucide-react'
+import { CopyIcon, ExternalLinkIcon, LibraryBigIcon } from 'lucide-react'
 import { getModelFetcher } from '@grn-core/model-fetchers'
 import { useEffect, useMemo, useState } from 'react'
 import { useCommunityModelsStatus, useModelsFiltersStore } from '@/store'
@@ -33,28 +33,6 @@ export const Route = createFileRoute('/models/community')({
         getTitle: () => 'Community Models',
     },
 })
-
-interface BiomodelsMetadataResponse {
-    files?: {
-        main?:
-            | {
-                  name?: string
-              }
-            | {
-                  name?: string
-              }[]
-    }
-}
-
-function resolveBiomodelsFilename(metadata: BiomodelsMetadataResponse) {
-    const mainFile = metadata.files?.main
-
-    if (Array.isArray(mainFile)) {
-        return mainFile.find((entry) => entry.name?.trim())?.name
-    }
-
-    return mainFile?.name
-}
 
 function normalizeImportedFilename({
     filename,
@@ -74,41 +52,41 @@ function normalizeImportedFilename({
     return filename
 }
 
-async function fetchBiomodelsModelWithFallback(modelId: string) {
-    const metadataResponse = await fetch(
-        `https://www.biomodels.org/${modelId}?format=json`
+function decodeBase64Url(value: string): string {
+    const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
+    const paddedBase64 = base64.padEnd(
+        base64.length + ((4 - (base64.length % 4)) % 4),
+        '='
+    )
+    const binary = atob(paddedBase64)
+    const bytes = Uint8Array.from(binary, (character) =>
+        character.charCodeAt(0)
     )
 
-    if (!metadataResponse.ok) {
-        throw new Error(`Failed to fetch BioModels metadata for ${modelId}.`)
+    return new TextDecoder().decode(bytes)
+}
+
+function getCommunityModelSourceWebpageUrl(item: CommunityModelMetadata) {
+    if (item.source === 'biomodels') {
+        return `https://www.biomodels.org/${encodeURIComponent(item.id)}`
     }
 
-    const metadata =
-        (await metadataResponse.json()) as BiomodelsMetadataResponse
-    const filename = resolveBiomodelsFilename(metadata)
+    if (item.source === 'ginsim') {
+        let sourcePath: string
 
-    if (!filename) {
-        throw new Error(
-            `BioModels model ${modelId} does not expose a downloadable main file.`
-        )
+        try {
+            sourcePath = decodeBase64Url(item.id)
+        } catch {
+            return undefined
+        }
+
+        return `https://github.com/GINsim/GINsim.github.io/blob/master/${sourcePath
+            .split('/')
+            .map((part) => encodeURIComponent(part))
+            .join('/')}`
     }
 
-    const downloadUrl = new URL(
-        `https://www.biomodels.org/model/download/${modelId}`
-    )
-    downloadUrl.searchParams.set('filename', filename)
-
-    const fileResponse = await fetch(downloadUrl.toString())
-
-    if (!fileResponse.ok) {
-        throw new Error(`Failed to download BioModels file "${filename}".`)
-    }
-
-    return {
-        filename,
-        contentType: fileResponse.headers.get('content-type') ?? undefined,
-        content: new Uint8Array(await fileResponse.arrayBuffer()),
-    }
+    return undefined
 }
 
 function RouteComponent() {
@@ -196,31 +174,9 @@ function RouteComponent() {
         setCopyingModelId(item.id)
 
         try {
-            let fetchedModel: {
-                filename: string
-                content: Uint8Array
-                contentType?: string
-            }
-
-            try {
-                fetchedModel = await getModelFetcher(item.source).fetchModel(
-                    item.id
-                )
-            } catch (error) {
-                if (
-                    item.source !== 'biomodels' ||
-                    !(
-                        error instanceof Error &&
-                        error.message.includes(
-                            'does not expose files.main.name'
-                        )
-                    )
-                ) {
-                    throw error
-                }
-
-                fetchedModel = await fetchBiomodelsModelWithFallback(item.id)
-            }
+            const fetchedModel = await getModelFetcher(item.source).fetchModel(
+                item.id
+            )
 
             const normalizedFilename = normalizeImportedFilename({
                 filename: fetchedModel.filename,
@@ -327,28 +283,48 @@ function RouteComponent() {
                 renderItemActions={(item) => {
                     const communityItem = item as CommunityModelMetadata
                     const isCopying = copyingModelId === communityItem.id
+                    const sourceWebpageUrl =
+                        getCommunityModelSourceWebpageUrl(communityItem)
 
                     return (
-                        <Button
-                            variant="secondary"
-                            className="cursor-pointer"
-                            disabled={isCopying}
-                            onClick={() =>
-                                void handleCopyAndEdit(communityItem)
-                            }
-                        >
-                            {isCopying ? (
-                                <>
-                                    <Spinner className="size-4" />
-                                    Copying...
-                                </>
-                            ) : (
-                                <>
-                                    <CopyIcon />
-                                    Copy and Edit
-                                </>
-                            )}
-                        </Button>
+                        <>
+                            {sourceWebpageUrl ? (
+                                <Button
+                                    asChild
+                                    variant="outline"
+                                    className="cursor-pointer"
+                                >
+                                    <a
+                                        href={sourceWebpageUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <ExternalLinkIcon />
+                                        Open source webpage
+                                    </a>
+                                </Button>
+                            ) : null}
+                            <Button
+                                variant="secondary"
+                                className="cursor-pointer"
+                                disabled={isCopying}
+                                onClick={() =>
+                                    void handleCopyAndEdit(communityItem)
+                                }
+                            >
+                                {isCopying ? (
+                                    <>
+                                        <Spinner className="size-4" />
+                                        Copying...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CopyIcon />
+                                        Copy and Edit
+                                    </>
+                                )}
+                            </Button>
+                        </>
                     )
                 }}
             />

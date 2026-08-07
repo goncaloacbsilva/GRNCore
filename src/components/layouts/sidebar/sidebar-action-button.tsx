@@ -15,6 +15,7 @@ interface SidebarActionButtonProps {
     context: SidebarContextProps
     icon: LucideIcon
     label: string
+    tooltip: string
     className?: string
     onClick: () => void
 }
@@ -23,9 +24,12 @@ export function SidebarActionButton({
     context,
     icon: Icon,
     label,
+    tooltip,
     className,
     onClick,
 }: SidebarActionButtonProps) {
+    void context
+
     return (
         <SidebarMenu>
             <SidebarMenuItem>
@@ -41,13 +45,8 @@ export function SidebarActionButton({
                             </div>
                         </SidebarMenuButton>
                     </TooltipTrigger>
-                    <TooltipContent
-                        className={
-                            context.state === 'expanded' ? 'hidden' : 'block'
-                        }
-                        side="right"
-                    >
-                        <p>{label}</p>
+                    <TooltipContent side="right">
+                        <p>{tooltip}</p>
                     </TooltipContent>
                 </Tooltip>
             </SidebarMenuItem>

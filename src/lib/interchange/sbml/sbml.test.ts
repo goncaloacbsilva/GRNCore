@@ -146,6 +146,46 @@ describe('SBMLInterchanger', () => {
         ).toEqual([{ target: 1, expression: 'A || B' }])
     })
 
+    it('imports less-than-or-equal MathML comparisons as complemented thresholds', () => {
+        const model = importSbmlModel(`<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core"
+      xmlns:qual="http://www.sbml.org/sbml/level3/version1/qual/version1"
+      level="3"
+      version="1"
+      qual:required="true">
+  <model id="leq_terms">
+    <qual:listOfQualitativeSpecies>
+      <qual:qualitativeSpecies qual:id="A" qual:name="A" qual:compartment="default" qual:constant="false" qual:maxLevel="2"/>
+      <qual:qualitativeSpecies qual:id="B" qual:name="B" qual:compartment="default" qual:constant="false" qual:maxLevel="1"/>
+    </qual:listOfQualitativeSpecies>
+    <qual:listOfTransitions>
+      <qual:transition qual:id="tr_B">
+        <qual:listOfInputs>
+          <qual:input qual:id="a_in" qual:qualitativeSpecies="A" qual:transitionEffect="none" qual:sign="negative"/>
+        </qual:listOfInputs>
+        <qual:listOfOutputs>
+          <qual:output qual:id="b_out" qual:qualitativeSpecies="B" qual:transitionEffect="assignmentLevel"/>
+        </qual:listOfOutputs>
+        <qual:listOfFunctionTerms>
+          <qual:defaultTerm qual:resultLevel="0"/>
+          <qual:functionTerm qual:resultLevel="1">
+            <math xmlns="http://www.w3.org/1998/Math/MathML">
+              <apply><leq/><ci> A </ci><cn type="integer"> 1 </cn></apply>
+            </math>
+          </qual:functionTerm>
+        </qual:listOfFunctionTerms>
+      </qual:transition>
+    </qual:listOfTransitions>
+  </model>
+</sbml>`)
+
+        const nodeB = model.nodes.find((node) => node.id === 'B')
+
+        expect(nodeB?.data.rules.map((rule) => rule.expression)).toEqual([
+            '!A:2',
+        ])
+    })
+
     it('exports an internal model with SBML namespaces, layout, and rules', () => {
         const xml = exportSbmlModel(createRoundTripModel())
 

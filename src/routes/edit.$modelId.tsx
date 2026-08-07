@@ -8,29 +8,35 @@ const EditModelLoaderContextSchema = z.object({
     params: z.object({
         modelId: z.string(),
     }),
+    preload: z.boolean().optional(),
 })
 
 export const Route = createFileRoute('/edit/$modelId')({
     loader: async (loaderContext) => {
         const {
             params: { modelId },
+            preload,
         } = EditModelLoaderContextSchema.parse(loaderContext)
         const { activeModelId, clearLoadedModel, loadModel } =
             useChangesTracking.getState()
 
-        if (activeModelId !== modelId) {
+        if (!preload && activeModelId !== modelId) {
             clearLoadedModel()
         }
 
         const snapshot = await getLocalModelSnapshot(modelId)
 
         if (!snapshot) {
-            clearLoadedModel()
+            if (!preload) {
+                clearLoadedModel()
+            }
             // eslint-disable-next-line @typescript-eslint/only-throw-error
             throw redirect({ to: '/models/local', replace: true })
         }
 
-        loadModel(modelId, snapshot)
+        if (!preload) {
+            loadModel(modelId, snapshot)
+        }
         return { modelId }
     },
     component: RouteComponent,

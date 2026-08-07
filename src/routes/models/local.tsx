@@ -1,5 +1,4 @@
 import { FilterableModelsList } from '@/components/views/models'
-import { ImportModelDialog } from '@/components/views/editor/dialogs'
 import { emptySerializedEditorState } from '@/components/views/editor/overlay/annotations/lib/annotation-state'
 import {
     deleteLocalModel,
@@ -149,13 +148,10 @@ function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
     }
 
     return (
-        <>
-            <FilterableModelsList
-                items={items}
-                onDelete={handleDelete}
-                onEdit={handleEdit}
-            />
-            <ImportModelDialog mode="local-models" />
-        </>
+        <FilterableModelsList
+            items={items}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+        />
     )
 }

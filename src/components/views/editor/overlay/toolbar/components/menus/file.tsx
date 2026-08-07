@@ -48,7 +48,7 @@ export function FileMenu() {
                 <MenubarContent>
                     <MenubarGroup>
                         <MenubarSub>
-                            <MenubarSubTrigger>Export</MenubarSubTrigger>
+                            <MenubarSubTrigger>Export model</MenubarSubTrigger>
                             <MenubarSubContent>
                                 <MenubarGroup>
                                     {Object.values(InterchangeFormat).map(

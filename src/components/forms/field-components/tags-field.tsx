@@ -21,6 +21,11 @@ import {
     FieldError,
     FieldLabel,
 } from '@/components/ui/field'
+import {
+    isModelMetadataSourceTag,
+    normalizeModelMetadataTags,
+    type ModelMetadataTag,
+} from '@/lib/schema'
 import { useEffect, useRef } from 'react'
 import { useFieldContext } from '../form-context'
 
@@ -34,6 +39,28 @@ interface TagsFieldProps {
 }
 
 type TagGroup = TagsFieldProps['options'][number]
+
+function getNewSourceTag({
+    currentValue,
+    nextValue,
+}: {
+    currentValue: string[]
+    nextValue: string[]
+}) {
+    for (let index = nextValue.length - 1; index >= 0; index -= 1) {
+        const tag = nextValue[index]
+
+        if (
+            tag &&
+            isModelMetadataSourceTag(tag) &&
+            !currentValue.includes(tag)
+        ) {
+            return tag
+        }
+    }
+
+    return undefined
+}
 
 export function TagsField({
     label,
@@ -62,7 +89,19 @@ export function TagsField({
                     items={options}
                     multiple
                     value={field.state.value}
-                    onValueChange={(value) => field.handleChange(value)}
+                    onValueChange={(value) =>
+                        field.handleChange(
+                            normalizeModelMetadataTags(
+                                value as ModelMetadataTag[],
+                                {
+                                    preferredSourceTag: getNewSourceTag({
+                                        currentValue: field.state.value,
+                                        nextValue: value,
+                                    }),
+                                }
+                            )
+                        )
+                    }
                 >
                     <ComboboxChips
                         ref={anchor}

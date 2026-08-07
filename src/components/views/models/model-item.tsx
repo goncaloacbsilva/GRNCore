@@ -93,7 +93,7 @@ export function ModelItem({
                                 : 'text-sm text-wrap'
                         )}
                     >
-                        {item.description || 'No description provided'}
+                        {item.description || 'No model annotation provided'}
                     </ItemDescription>
                     {hasOverflow || isExpanded ? (
                         <Button

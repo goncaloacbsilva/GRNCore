@@ -4,16 +4,15 @@ import { Checkbox } from '@/components/ui/checkbox'
 import {
     Popover,
     PopoverContent,
-    PopoverHeader,
-    PopoverTitle,
     PopoverTrigger,
 } from '@/components/ui/popover'
-import { MODEL_METADATA_TAG_GROUPS, type ModelMetadataTag } from '@/lib/schema'
+import { MODEL_DISPLAY_TAG_GROUPS, type ModelDisplayTag } from '@/lib/schema'
 import { FilterIcon } from 'lucide-react'
+import { twJoin } from 'tailwind-merge'
 
 interface ModelsFiltersPopoverProps {
-    selectedTags: ModelMetadataTag[]
-    onToggleTag: (tag: ModelMetadataTag) => void
+    selectedTags: ModelDisplayTag[]
+    onToggleTag: (tag: ModelDisplayTag) => void
     onClearTags: () => void
     onReset: () => void
     hasSearchQuery: boolean
@@ -27,6 +26,19 @@ export function ModelsFiltersPopover({
     hasSearchQuery,
 }: ModelsFiltersPopoverProps) {
     const activeFiltersCount = selectedTags.length + (hasSearchQuery ? 1 : 0)
+    const tagCheckboxClasses: Record<ModelDisplayTag, string> = {
+        'SBML-qual':
+            'data-[state=checked]:border-[#3B82F6] data-[state=checked]:bg-[#3B82F6]',
+        GINML: 'data-[state=checked]:border-[#22C55E] data-[state=checked]:bg-[#22C55E]',
+        BNET: 'data-[state=checked]:border-[#F59E0B] data-[state=checked]:bg-[#F59E0B]',
+        GRNCore:
+            'data-[state=checked]:border-[#8B5CF6] data-[state=checked]:bg-[#8B5CF6]',
+        Annotated:
+            'data-[state=checked]:border-[#14B8A6] data-[state=checked]:bg-[#14B8A6]',
+        BioModels:
+            'data-[state=checked]:border-[#F43F5E] data-[state=checked]:bg-[#F43F5E]',
+        GINsim: 'data-[state=checked]:border-[#84CC16] data-[state=checked]:bg-[#84CC16]',
+    }
 
     return (
         <Popover>
@@ -48,13 +60,15 @@ export function ModelsFiltersPopover({
                 </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-80 space-y-4">
-                <PopoverHeader>
-                    <PopoverTitle>Filter by tags</PopoverTitle>
-                </PopoverHeader>
                 <div className="space-y-4">
-                    {MODEL_METADATA_TAG_GROUPS.map((group) => (
-                        <div key={group.value} className="space-y-2">
-                            <p className="text-sm font-medium">{group.value}</p>
+                    {MODEL_DISPLAY_TAG_GROUPS.map((group) => (
+                        <div
+                            key={group.value}
+                            className="space-y-2 rounded-md border px-3 py-2.5"
+                        >
+                            <p className="text-sm font-semibold">
+                                {group.value}
+                            </p>
                             <div className="space-y-2">
                                 {group.items.map((tag) => (
                                     <label
@@ -63,12 +77,18 @@ export function ModelsFiltersPopover({
                                     >
                                         <span className="text-sm">{tag}</span>
                                         <Checkbox
+                                            className={twJoin(
+                                                tagCheckboxClasses[
+                                                    tag as ModelDisplayTag
+                                                ],
+                                                'data-[state=checked]:text-white'
+                                            )}
                                             checked={selectedTags.includes(
-                                                tag as ModelMetadataTag
+                                                tag as ModelDisplayTag
                                             )}
                                             onCheckedChange={() =>
                                                 onToggleTag(
-                                                    tag as ModelMetadataTag
+                                                    tag as ModelDisplayTag
                                                 )
                                             }
                                             aria-label={`Toggle ${tag} tag filter`}
