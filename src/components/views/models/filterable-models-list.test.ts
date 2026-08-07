@@ -19,9 +19,9 @@ describe('models search helpers', () => {
     })
 
     it('matches every keyword across title, description, and author', () => {
-        expect(
-            modelMatchesSearchKeywords(sampleItem, ['my', 'model'])
-        ).toBe(true)
+        expect(modelMatchesSearchKeywords(sampleItem, ['my', 'model'])).toBe(
+            true
+        )
     })
 
     it('matches author names', () => {
@@ -29,8 +29,8 @@ describe('models search helpers', () => {
     })
 
     it('rejects items when a keyword is not present in any searchable field', () => {
-        expect(
-            modelMatchesSearchKeywords(sampleItem, ['my', 'unknown'])
-        ).toBe(false)
+        expect(modelMatchesSearchKeywords(sampleItem, ['my', 'unknown'])).toBe(
+            false
+        )
     })
 })

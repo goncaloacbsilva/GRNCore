@@ -45,9 +45,7 @@ export function SidebarActionButton({
                             </div>
                         </SidebarMenuButton>
                     </TooltipTrigger>
-                    <TooltipContent
-                        side="right"
-                    >
+                    <TooltipContent side="right">
                         <p>{tooltip}</p>
                     </TooltipContent>
                 </Tooltip>

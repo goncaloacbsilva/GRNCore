@@ -15,11 +15,9 @@ export const modelMatchesSearchKeywords = (
         return true
     }
 
-    const searchableFields = [
-        item.title,
-        item.description,
-        item.author,
-    ].map((value) => value.toLowerCase())
+    const searchableFields = [item.title, item.description, item.author].map(
+        (value) => value.toLowerCase()
+    )
 
     return keywords.every((keyword) =>
         searchableFields.some((field) => field.includes(keyword))
