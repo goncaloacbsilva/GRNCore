@@ -5,7 +5,11 @@ import {
     getLocalModelSnapshot,
     listLocalModels,
 } from '@/lib/persistence'
-import { ModelMetadataSchema, type ModelMetadata } from '@/lib/schema'
+import {
+    MODEL_METADATA_TAG_VALUES,
+    ModelMetadataSchema,
+    type ModelMetadata,
+} from '@/lib/schema'
 import { useChangesTracking, useLocalModelImportStore } from '@/store'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
@@ -150,6 +154,7 @@ function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
     return (
         <FilterableModelsList
             items={items}
+            availableTags={MODEL_METADATA_TAG_VALUES}
             onDelete={handleDelete}
             onEdit={handleEdit}
         />

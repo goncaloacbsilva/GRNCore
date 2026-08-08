@@ -16,6 +16,12 @@ export function ModelsHeader() {
         pathname === '/models/local' || pathname === '/models/community'
     const shouldShowCommunityRefreshIndicator =
         pathname === '/models/community' && isRefreshingCommunityModels
+    const filtersVariant =
+        pathname === '/models/local'
+            ? 'local'
+            : pathname === '/models/community'
+              ? 'community'
+              : null
     const breadcrumbTitle =
         pathname === '/models/local'
             ? 'Local Models'
@@ -39,7 +45,9 @@ export function ModelsHeader() {
                     <span className="size-3.5 shrink-0 rounded-full border-2 border-blue-200 border-t-blue-500 animate-spin" />
                 ) : null}
             </div>
-            {shouldShowModelsFilters ? <ModelsFilters /> : null}
+            {shouldShowModelsFilters && filtersVariant ? (
+                <ModelsFilters variant={filtersVariant} />
+            ) : null}
         </div>
     )
 }

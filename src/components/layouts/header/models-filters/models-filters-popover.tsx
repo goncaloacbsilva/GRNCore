@@ -6,11 +6,15 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover'
-import { MODEL_DISPLAY_TAG_GROUPS, type ModelDisplayTag } from '@/lib/schema'
+import type { ModelDisplayTag } from '@/lib/schema'
 import { FilterIcon } from 'lucide-react'
 import { twJoin } from 'tailwind-merge'
 
 interface ModelsFiltersPopoverProps {
+    tagGroups: {
+        value: string
+        items: readonly ModelDisplayTag[]
+    }[]
     selectedTags: ModelDisplayTag[]
     onToggleTag: (tag: ModelDisplayTag) => void
     onClearTags: () => void
@@ -19,6 +23,7 @@ interface ModelsFiltersPopoverProps {
 }
 
 export function ModelsFiltersPopover({
+    tagGroups,
     selectedTags,
     onToggleTag,
     onClearTags,
@@ -49,19 +54,19 @@ export function ModelsFiltersPopover({
                 >
                     <FilterIcon className="size-4" />
                     Filters
-                    {selectedTags.length > 0 ? (
+                    {activeFiltersCount > 0 ? (
                         <Badge
                             variant="secondary"
                             className="h-5 rounded-full px-1.5"
                         >
-                            {selectedTags.length}
+                            {activeFiltersCount}
                         </Badge>
                     ) : null}
                 </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-80 space-y-4">
                 <div className="space-y-4">
-                    {MODEL_DISPLAY_TAG_GROUPS.map((group) => (
+                    {tagGroups.map((group) => (
                         <div
                             key={group.value}
                             className="space-y-2 rounded-md border px-3 py-2.5"
@@ -78,18 +83,12 @@ export function ModelsFiltersPopover({
                                         <span className="text-sm">{tag}</span>
                                         <Checkbox
                                             className={twJoin(
-                                                tagCheckboxClasses[
-                                                    tag as ModelDisplayTag
-                                                ],
+                                                tagCheckboxClasses[tag],
                                                 'data-[state=checked]:text-white'
                                             )}
-                                            checked={selectedTags.includes(
-                                                tag as ModelDisplayTag
-                                            )}
+                                            checked={selectedTags.includes(tag)}
                                             onCheckedChange={() =>
-                                                onToggleTag(
-                                                    tag as ModelDisplayTag
-                                                )
+                                                onToggleTag(tag)
                                             }
                                             aria-label={`Toggle ${tag} tag filter`}
                                         />

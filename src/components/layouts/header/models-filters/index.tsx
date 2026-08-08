@@ -1,10 +1,19 @@
+import {
+    MODEL_DISPLAY_TAG_GROUPS,
+    MODEL_METADATA_TAG_GROUPS,
+    type ModelDisplayTag,
+} from '@/lib/schema'
 import { useModelsFiltersStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
 import { ModelsFiltersPopover } from './models-filters-popover'
 import { ModelsSearchBox } from './models-search-box'
 import { ModelsSortSelect } from './models-sort-select'
 
-export function ModelsFilters() {
+interface ModelsFiltersProps {
+    variant: 'local' | 'community'
+}
+
+export function ModelsFilters({ variant }: ModelsFiltersProps) {
     const {
         query,
         selectedTags,
@@ -27,11 +36,26 @@ export function ModelsFilters() {
         }))
     )
 
+    const tagGroups =
+        variant === 'local'
+            ? MODEL_METADATA_TAG_GROUPS
+            : MODEL_DISPLAY_TAG_GROUPS
+    const availableTags = tagGroups.flatMap((group) => group.items)
+    const visibleSelectedTags = selectedTags.filter((tag) =>
+        availableTags.includes(tag)
+    )
+
     return (
         <div className="flex items-center gap-2">
             <ModelsSearchBox query={query} onQueryChange={setQuery} />
             <ModelsFiltersPopover
-                selectedTags={selectedTags}
+                tagGroups={
+                    tagGroups as {
+                        value: string
+                        items: readonly ModelDisplayTag[]
+                    }[]
+                }
+                selectedTags={visibleSelectedTags}
                 onToggleTag={toggleTag}
                 onClearTags={clearTags}
                 onReset={reset}

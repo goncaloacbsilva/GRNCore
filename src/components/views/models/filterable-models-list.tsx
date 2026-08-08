@@ -6,7 +6,12 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from '@/components/ui/empty'
-import { getModelDisplayTags, type ModelMetadata } from '@/lib/schema'
+import {
+    MODEL_DISPLAY_TAG_VALUES,
+    getModelDisplayTags,
+    type ModelDisplayTag,
+    type ModelMetadata,
+} from '@/lib/schema'
 import {
     MODEL_SORT_OPTIONS,
     type ModelsSortOption,
@@ -30,6 +35,7 @@ export interface FilterableModelsListProps extends Pick<
     | 'visibleLimit'
 > {
     items: ModelMetadata[]
+    availableTags?: readonly ModelDisplayTag[]
     renderItemActions?: (item: ModelMetadata) => ReactNode
     emptyState?: ReactNode
 }
@@ -55,6 +61,7 @@ const sortModels = (items: ModelMetadata[], sortBy: ModelsSortOption) =>
 
 export function FilterableModelsList({
     items,
+    availableTags = MODEL_DISPLAY_TAG_VALUES,
     onDelete,
     onEdit,
     renderItemActions,
@@ -73,27 +80,33 @@ export function FilterableModelsList({
 
     const filteredItems = useMemo(() => {
         const keywords = getModelSearchKeywords(query)
+        const activeSelectedTags = selectedTags.filter((tag) =>
+            availableTags.includes(tag)
+        )
 
         return sortModels(
             items.filter((item) => {
                 const matchesQuery = modelMatchesSearchKeywords(item, keywords)
 
+                const modelTags = getModelDisplayTags(item)
                 const matchesTags =
-                    selectedTags.length === 0 ||
-                    selectedTags.some((tag) =>
-                        getModelDisplayTags(item).includes(tag)
-                    )
+                    activeSelectedTags.length === 0 ||
+                    activeSelectedTags.every((tag) => modelTags.includes(tag))
 
                 return matchesQuery && matchesTags
             }),
             sortBy
         )
-    }, [items, query, selectedTags, sortBy])
+    }, [availableTags, items, query, selectedTags, sortBy])
+
+    const activeSelectedTagsCount = selectedTags.filter((tag) =>
+        availableTags.includes(tag)
+    ).length
 
     const shouldUseLazyRender =
         lazyRenderBatchSize !== undefined &&
         query.trim().length === 0 &&
-        selectedTags.length === 0 &&
+        activeSelectedTagsCount === 0 &&
         sortBy === MODEL_SORT_OPTIONS.LastChangedDesc
 
     if (filteredItems.length === 0 && items.length > 0) {
