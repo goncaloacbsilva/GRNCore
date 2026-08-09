@@ -6,6 +6,7 @@ import {
 
 const sampleItem = {
     title: 'My pathway',
+    filename: 'cell-cycle.sbml',
     description: 'A model for regulatory analysis',
     author: 'Ana Silva',
 }
@@ -26,6 +27,10 @@ describe('models search helpers', () => {
 
     it('matches author names', () => {
         expect(modelMatchesSearchKeywords(sampleItem, ['silva'])).toBe(true)
+    })
+
+    it('matches filenames', () => {
+        expect(modelMatchesSearchKeywords(sampleItem, ['cycle'])).toBe(true)
     })
 
     it('rejects items when a keyword is not present in any searchable field', () => {

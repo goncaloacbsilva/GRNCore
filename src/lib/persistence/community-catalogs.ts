@@ -74,6 +74,46 @@ export type CommunityCatalogsMap = Partial<
     Record<CommunityCatalogSource, CommunityCatalog>
 >
 
+function decodeBase64Url(value: string): string | null {
+    try {
+        const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
+        const paddedBase64 = base64.padEnd(
+            base64.length + ((4 - (base64.length % 4)) % 4),
+            '='
+        )
+        const binary = atob(paddedBase64)
+        const bytes = Uint8Array.from(binary, (character) =>
+            character.charCodeAt(0)
+        )
+
+        return new TextDecoder().decode(bytes)
+    } catch {
+        return null
+    }
+}
+
+function getCommunityModelFilename(
+    model: ModelMetadata,
+    source: CommunityCatalogSource
+): string | undefined {
+    const catalogFilename = model.filename?.trim()
+
+    if (catalogFilename) {
+        return catalogFilename
+    }
+
+    if (source === 'biomodels') {
+        return `${model.id}.xml`
+    }
+
+    if (source === 'ginsim') {
+        const sourcePath = decodeBase64Url(model.id)
+        return sourcePath?.split('/').at(-1)
+    }
+
+    return undefined
+}
+
 export async function readCachedCatalogVersion(): Promise<string | null> {
     if (!isOPFSAvailable()) {
         return null
@@ -160,6 +200,10 @@ export function flattenCommunityCatalogs(
     return Object.entries(catalogs).flatMap(([source, catalog]) =>
         (catalog?.models ?? []).map((model) => ({
             ...model,
+            filename: getCommunityModelFilename(
+                model,
+                source as CommunityCatalogSource
+            ),
             source: source as CommunityCatalogSource,
         }))
     )

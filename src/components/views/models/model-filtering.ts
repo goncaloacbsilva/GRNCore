@@ -8,16 +8,19 @@ export const getModelSearchKeywords = (query: string) =>
         .filter((keyword) => keyword.length > 0)
 
 export const modelMatchesSearchKeywords = (
-    item: Pick<ModelMetadata, 'title' | 'description' | 'author'>,
+    item: Pick<ModelMetadata, 'title' | 'filename' | 'description' | 'author'>,
     keywords: string[]
 ) => {
     if (keywords.length === 0) {
         return true
     }
 
-    const searchableFields = [item.title, item.description, item.author].map(
-        (value) => value.toLowerCase()
-    )
+    const searchableFields = [
+        item.title,
+        item.filename ?? '',
+        item.description,
+        item.author,
+    ].map((value) => value.toLowerCase())
 
     return keywords.every((keyword) =>
         searchableFields.some((field) => field.includes(keyword))

@@ -30,7 +30,7 @@
         "dayjs": "^1.11.21",
         "fast-xml-parser": "^5.9.3",
         "fflate": "^0.8.3",
-        "@grn-core/model-fetchers": "https://github.com/goncaloacbsilva/GRNCore-Models/releases/download/model-fetchers-v0.1.5/grn-core-model-fetchers-0.1.5.tgz",
+        "@grn-core/model-fetchers": "https://github.com/goncaloacbsilva/GRNCore-Models/releases/download/model-fetchers-v0.1.7/grn-core-model-fetchers-0.1.7.tgz",
         "lexical": "^0.44.0",
         "lodash": "^4.18.1",
         "lucide-react": "^1.14.0",
@@ -192,7 +192,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
 
-    "@grn-core/model-fetchers": ["@grn-core/model-fetchers@https://github.com/goncaloacbsilva/GRNCore-Models/releases/download/model-fetchers-v0.1.5/grn-core-model-fetchers-0.1.5.tgz", { "dependencies": { "axios": "^1.11.0" } }],
+    "@grn-core/model-fetchers": ["@grn-core/model-fetchers@https://github.com/goncaloacbsilva/GRNCore-Models/releases/download/model-fetchers-v0.1.7/grn-core-model-fetchers-0.1.7.tgz", { "dependencies": { "axios": "^1.11.0" } }],
 
     "@hono/node-server": ["@hono/node-server@1.19.14", "", { "peerDependencies": { "hono": "^4" } }, "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw=="],
 

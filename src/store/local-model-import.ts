@@ -29,6 +29,9 @@ export const useLocalModelImportStore = create<LocalModelImportState>()(
             const snapshot = await importModel(file)
             const metadata = await createLocalModel(snapshot, {
                 sourceFormat: getInterchangeFormat(file.name),
+                metadata: {
+                    filename: file.name,
+                },
             })
 
             get().onImported?.(metadata)

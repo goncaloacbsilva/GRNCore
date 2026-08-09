@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { useCreateModel } from '@/hooks/use-create-model'
 import { useLocalModelImportStore } from '@/store'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 export interface ModelsListProps {
     items: ModelMetadata[]
@@ -93,17 +93,33 @@ function AnimatedModelItem({
     renderItemActions,
 }: AnimatedModelItemProps) {
     const containerRef = useRef<HTMLDivElement | null>(null)
-    const hasPlayedEnterAnimation = useRef(false)
     const hasPlayedExitAnimation = useRef(false)
 
     useEffect(() => {
         const container = containerRef.current
 
-        if (!container || !isEntering || hasPlayedEnterAnimation.current) {
+        if (!container || isEntering || isExiting) {
             return
         }
 
-        hasPlayedEnterAnimation.current = true
+        anime.remove(container)
+        anime.set(container, {
+            opacity: 1,
+            translateY: 0,
+            scale: 1,
+            height: 'auto',
+            marginBottom: 0,
+            overflow: 'visible',
+        })
+    }, [isEntering, isExiting, item.id])
+
+    useEffect(() => {
+        const container = containerRef.current
+
+        if (!container || !isEntering) {
+            return
+        }
+
         anime.remove(container)
         anime.set(container, {
             opacity: 0,
@@ -272,7 +288,7 @@ export function ModelsList({
         .slice(0, visibleCount)
         .slice(0, visibleLimit ?? Number.POSITIVE_INFINITY)
 
-    const handleEntered = (modelId: string) => {
+    const handleEntered = useCallback((modelId: string) => {
         setEnteringIds((current) => {
             if (!current.has(modelId)) {
                 return current
@@ -282,9 +298,9 @@ export function ModelsList({
             next.delete(modelId)
             return next
         })
-    }
+    }, [])
 
-    const handleDelete = (modelId: string) => {
+    const handleDelete = useCallback((modelId: string) => {
         setExitingIds((current) => {
             if (current.has(modelId)) {
                 return current
@@ -294,22 +310,25 @@ export function ModelsList({
             next.add(modelId)
             return next
         })
-    }
+    }, [])
 
-    const handleExited = (modelId: string) => {
-        setExitingIds((current) => {
-            const next = new Set(current)
-            next.delete(modelId)
-            return next
-        })
-        setEnteringIds((current) => {
-            const next = new Set(current)
-            next.delete(modelId)
-            return next
-        })
+    const handleExited = useCallback(
+        (modelId: string) => {
+            setExitingIds((current) => {
+                const next = new Set(current)
+                next.delete(modelId)
+                return next
+            })
+            setEnteringIds((current) => {
+                const next = new Set(current)
+                next.delete(modelId)
+                return next
+            })
 
-        void onDelete(modelId)
-    }
+            void onDelete(modelId)
+        },
+        [onDelete]
+    )
 
     return (
         <div className="flex flex-col gap-6 p-4">

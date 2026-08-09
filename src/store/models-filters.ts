@@ -42,9 +42,7 @@ const normalizeSelectedTags = (selectedTags: unknown): ModelDisplayTag[] => {
     const validSelectedTags = selectedTags.filter(isModelDisplayTag)
     const hasAllTagsSelected =
         validSelectedTags.length === MODEL_DISPLAY_TAG_VALUES.length &&
-        MODEL_DISPLAY_TAG_VALUES.every((tag) =>
-            validSelectedTags.includes(tag)
-        )
+        MODEL_DISPLAY_TAG_VALUES.every((tag) => validSelectedTags.includes(tag))
 
     return hasAllTagsSelected ? initialState.selectedTags : validSelectedTags
 }

@@ -324,6 +324,7 @@ const createMetadataFromSnapshot = (
     return {
         id,
         title: normalizedTitle,
+        filename: metadataOverrides?.filename?.trim() ?? undefined,
         description:
             metadataOverrides?.description ??
             annotationsToDescription(snapshot.annotations),
@@ -407,9 +408,11 @@ export interface UpdateLocalModelDetailsInput extends ModelMetadataDetails {
     description: SerializedEditorState
 }
 
-export type CreateLocalModelMetadataOverrides = Pick<
-    ModelMetadata,
-    'title' | 'description' | 'author' | 'tags'
+export type CreateLocalModelMetadataOverrides = Partial<
+    Pick<
+        ModelMetadata,
+        'title' | 'filename' | 'description' | 'author' | 'tags'
+    >
 >
 
 const writeSnapshotFile = async (

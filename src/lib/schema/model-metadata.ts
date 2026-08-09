@@ -156,6 +156,7 @@ export function normalizeModelMetadataTags(
 export const ModelMetadataSchema = z.object({
     id: z.string(),
     title: z.string(),
+    filename: z.string().optional(),
     description: z.string(),
     author: z.string(),
     tags: z.array(ModelMetadataTagSchema),

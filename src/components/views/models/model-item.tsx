@@ -14,6 +14,7 @@ import { twJoin } from 'tailwind-merge'
 import { ModelItemMenu } from './model-item-menu'
 import { ModelItemAuthor } from './model-item-author'
 import { ModelItemTags } from './model-item-tags'
+import { FileTextIcon } from 'lucide-react'
 
 function formatTimestamp(timestamp: number): string | null {
     if (timestamp <= 0) {
@@ -41,6 +42,11 @@ export function ModelItem({
     const descriptionRef = useRef<HTMLParagraphElement | null>(null)
     const createdAt = formatTimestamp(item.createdAt)
     const lastChangedAt = formatTimestamp(item.lastChangedAt)
+    const filename = item.filename?.trim()
+    const dateMetadataItems = [
+        createdAt ? { label: `Created ${createdAt}` } : null,
+        lastChangedAt ? { label: `Updated ${lastChangedAt}` } : null,
+    ].filter((metadataItem) => metadataItem !== null)
 
     useEffect(() => {
         const description = descriptionRef.current
@@ -70,16 +76,39 @@ export function ModelItem({
         <div className="flex w-full flex-col gap-6">
             <Item variant="outline" className="hover:bg-[#f9fafbc9]">
                 <ItemContent>
-                    <div className="flex flex-row justify-between">
-                        <div className="flex flex-col gap-1">
+                    <div className="flex flex-row justify-between gap-4">
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
                             <ItemTitle className="font-semibold">
                                 {item.title || 'Untitled model'}
                             </ItemTitle>
+                            {filename ? (
+                                <p
+                                    className="flex min-w-0 items-start gap-1.5 text-xs font-medium text-gray-400"
+                                    title={filename}
+                                >
+                                    <FileTextIcon className="mt-0.5 size-3.5 shrink-0" />
+                                    <span className="min-w-0 break-all">
+                                        {filename}
+                                    </span>
+                                </p>
+                            ) : null}
                             <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xs font-medium text-gray-400">
-                                {createdAt ? <p>Created {createdAt}</p> : null}/
-                                {lastChangedAt ? (
-                                    <p>Updated {lastChangedAt}</p>
-                                ) : null}
+                                {dateMetadataItems.map(
+                                    (metadataItem, index) => (
+                                        <div
+                                            key={metadataItem.label}
+                                            className="flex min-w-0 items-center gap-1"
+                                        >
+                                            {index > 0 ? <span>/</span> : null}
+                                            <p
+                                                className="max-w-64 truncate"
+                                                title={metadataItem.label}
+                                            >
+                                                {metadataItem.label}
+                                            </p>
+                                        </div>
+                                    )
+                                )}
                             </div>
                         </div>
                         <ModelItemTags item={item} />

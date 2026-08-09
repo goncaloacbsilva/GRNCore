@@ -52,6 +52,21 @@ function normalizeImportedFilename({
     return filename
 }
 
+interface DownloadedCommunityModel {
+    filename: string
+    content: Uint8Array
+    contentType?: string
+}
+
+interface BiomodelsFileEntry {
+    name?: unknown
+    mimeType?: unknown
+}
+
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : 'Unknown error'
+}
+
 function decodeBase64Url(value: string): string {
     const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
     const paddedBase64 = base64.padEnd(
@@ -66,27 +81,149 @@ function decodeBase64Url(value: string): string {
     return new TextDecoder().decode(bytes)
 }
 
-function getCommunityModelSourceWebpageUrl(item: CommunityModelMetadata) {
+function assertSafeGinsimSourcePath(sourcePath: string) {
+    const parts = sourcePath.split('/')
+
+    if (
+        !sourcePath.startsWith('models/') ||
+        sourcePath.includes('\\') ||
+        parts.some((part) => part.length === 0 || part === '.' || part === '..')
+    ) {
+        throw new Error(`Unsafe GINsim model source path: ${sourcePath}`)
+    }
+}
+
+function encodePathSegments(path: string) {
+    return path.split('/').map(encodeURIComponent).join('/')
+}
+
+function getBiomodelsMainFileEntries(value: unknown): BiomodelsFileEntry[] {
+    if (!value || typeof value !== 'object') {
+        return []
+    }
+
+    const record = value as {
+        main?: unknown
+        files?: { main?: unknown }
+    }
+    const main = record.main ?? record.files?.main
+
+    if (Array.isArray(main)) {
+        return main.filter(
+            (entry): entry is BiomodelsFileEntry =>
+                entry !== null && typeof entry === 'object'
+        )
+    }
+
+    if (main && typeof main === 'object') {
+        return [main]
+    }
+
+    return []
+}
+
+function getBiomodelsMainFilename(value: unknown): string | null {
+    const mainFiles = getBiomodelsMainFileEntries(value)
+    const preferredFile =
+        mainFiles.find(
+            (file) =>
+                typeof file.name === 'string' &&
+                /\.(sbml|xml)$/i.test(file.name)
+        ) ?? mainFiles[0]
+
+    return typeof preferredFile?.name === 'string' &&
+        preferredFile.name.trim().length > 0
+        ? preferredFile.name
+        : null
+}
+
+async function fetchBytes(url: string): Promise<{
+    content: Uint8Array
+    contentType?: string
+}> {
+    const response = await fetch(url)
+
+    if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`)
+    }
+
+    return {
+        content: new Uint8Array(await response.arrayBuffer()),
+        contentType: response.headers.get('content-type') ?? undefined,
+    }
+}
+
+async function fetchBiomodelsModel(
+    item: CommunityModelMetadata
+): Promise<DownloadedCommunityModel> {
+    const metadataResponse = await fetch(
+        `https://www.biomodels.org/model/files/${encodeURIComponent(item.id)}?format=json`
+    )
+
+    if (!metadataResponse.ok) {
+        throw new Error(
+            `BioModels files request failed with status ${metadataResponse.status}`
+        )
+    }
+
+    const filename = getBiomodelsMainFilename(await metadataResponse.json())
+
+    if (!filename) {
+        throw new Error(
+            `BioModels model ${item.id} does not expose a main file`
+        )
+    }
+
+    const downloadedFile = await fetchBytes(
+        `https://www.biomodels.org/model/download/${encodeURIComponent(item.id)}?filename=${encodeURIComponent(filename)}`
+    )
+
+    if (downloadedFile.content.byteLength === 0) {
+        throw new Error(`BioModels model ${item.id} returned empty content`)
+    }
+
+    return {
+        filename,
+        ...downloadedFile,
+    }
+}
+
+async function fetchGinsimModel(
+    item: CommunityModelMetadata
+): Promise<DownloadedCommunityModel> {
+    const sourcePath = decodeBase64Url(item.id)
+    assertSafeGinsimSourcePath(sourcePath)
+
+    const downloadedFile = await fetchBytes(
+        `https://raw.githubusercontent.com/GINsim/GINsim.github.io/master/${encodePathSegments(sourcePath)}`
+    )
+
+    if (downloadedFile.content.byteLength === 0) {
+        throw new Error(`GINsim model ${item.id} returned empty content`)
+    }
+
+    return {
+        filename: sourcePath.split('/').at(-1) ?? sourcePath,
+        ...downloadedFile,
+    }
+}
+
+async function fetchCommunityModel(
+    item: CommunityModelMetadata
+): Promise<DownloadedCommunityModel> {
     if (item.source === 'biomodels') {
-        return `https://www.biomodels.org/${encodeURIComponent(item.id)}`
+        return fetchBiomodelsModel(item)
     }
 
     if (item.source === 'ginsim') {
-        let sourcePath: string
-
-        try {
-            sourcePath = decodeBase64Url(item.id)
-        } catch {
-            return undefined
-        }
-
-        return `https://github.com/GINsim/GINsim.github.io/blob/master/${sourcePath
-            .split('/')
-            .map((part) => encodeURIComponent(part))
-            .join('/')}`
+        return fetchGinsimModel(item)
     }
 
-    return undefined
+    return getModelFetcher(item.source).fetchModel(item.id)
+}
+
+function getCommunityModelSourceWebpageUrl(item: CommunityModelMetadata) {
+    return getModelFetcher(item.source).getModelSource(item.id)
 }
 
 function RouteComponent() {
@@ -174,9 +311,7 @@ function RouteComponent() {
         setCopyingModelId(item.id)
 
         try {
-            const fetchedModel = await getModelFetcher(item.source).fetchModel(
-                item.id
-            )
+            const fetchedModel = await fetchCommunityModel(item)
 
             const normalizedFilename = normalizeImportedFilename({
                 filename: fetchedModel.filename,
@@ -192,6 +327,7 @@ function RouteComponent() {
                 sourceFormat: getInterchangeFormat(normalizedFilename),
                 metadata: {
                     title: item.title,
+                    filename: normalizedFilename,
                     description: item.description,
                     author: item.author,
                     tags: item.tags,
@@ -206,10 +342,7 @@ function RouteComponent() {
             )
         } catch (copyError) {
             toast.error('Failed to copy community model', {
-                description:
-                    copyError instanceof Error
-                        ? copyError.message
-                        : 'Unknown error',
+                description: getErrorMessage(copyError),
                 position: 'top-right',
             })
         } finally {
@@ -300,7 +433,7 @@ function RouteComponent() {
                                         rel="noreferrer"
                                     >
                                         <ExternalLinkIcon />
-                                        Open source webpage
+                                        Open webpage
                                     </a>
                                 </Button>
                             ) : null}

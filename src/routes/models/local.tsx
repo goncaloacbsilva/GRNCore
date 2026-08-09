@@ -1,4 +1,5 @@
 import { FilterableModelsList } from '@/components/views/models'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { emptySerializedEditorState } from '@/components/views/editor/overlay/annotations/lib/annotation-state'
 import {
     deleteLocalModel,
@@ -12,6 +13,7 @@ import {
 } from '@/lib/schema'
 import { useChangesTracking, useLocalModelImportStore } from '@/store'
 import { createFileRoute } from '@tanstack/react-router'
+import { TriangleAlertIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
@@ -152,11 +154,29 @@ function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
     }
 
     return (
-        <FilterableModelsList
-            items={items}
-            availableTags={MODEL_METADATA_TAG_VALUES}
-            onDelete={handleDelete}
-            onEdit={handleEdit}
-        />
+        <div className="flex flex-col">
+            <div className="sticky top-14 z-10 px-4 pt-4 pb-2">
+                <Alert className="border-amber-300 bg-amber-50 text-amber-950 shadow-sm">
+                    <TriangleAlertIcon className="text-amber-600" />
+                    <AlertTitle>Local storage is temporary</AlertTitle>
+                    <AlertDescription className="text-amber-900">
+                        <p>
+                            Local models are kept in browser storage and may be
+                            cleared after a few days. Export copies of any
+                            models you want to keep ({' '}
+                            <strong>File -&gt; Export model</strong>) <br />A
+                            future GRN Core Desktop app will provide persistent
+                            storage.
+                        </p>
+                    </AlertDescription>
+                </Alert>
+            </div>
+            <FilterableModelsList
+                items={items}
+                availableTags={MODEL_METADATA_TAG_VALUES}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+            />
+        </div>
     )
 }
