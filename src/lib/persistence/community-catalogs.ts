@@ -12,6 +12,7 @@ import {
 
 const CATALOGS_DIRECTORY_PATH = '/catalogs'
 const CATALOGS_VERSION_FILE_PATH = '/catalogs-version.json'
+const CATALOG_REFRESH_INTERVAL_MS = 15 * 60 * 1000
 
 const isOPFSAvailable = () =>
     typeof navigator !== 'undefined' &&
@@ -30,6 +31,20 @@ const parseJson = <T>(value: string, fallback: T): T => {
     } catch {
         return fallback
     }
+}
+
+interface CachedCatalogVersionMetadata {
+    version: string
+    checkedAt: number | null
+}
+
+function isFreshCatalogCheck(checkedAt: number | null): boolean {
+    if (checkedAt === null) {
+        return false
+    }
+
+    const age = Date.now() - checkedAt
+    return age >= 0 && age < CATALOG_REFRESH_INTERVAL_MS
 }
 
 const normalizeCatalog = (value: unknown, source: string): CommunityCatalog => {
@@ -115,6 +130,10 @@ function getCommunityModelFilename(
 }
 
 export async function readCachedCatalogVersion(): Promise<string | null> {
+    return (await readCachedCatalogVersionMetadata())?.version ?? null
+}
+
+async function readCachedCatalogVersionMetadata(): Promise<CachedCatalogVersionMetadata | null> {
     if (!isOPFSAvailable()) {
         return null
     }
@@ -124,17 +143,27 @@ export async function readCachedCatalogVersion(): Promise<string | null> {
         return null
     }
 
-    const parsed = parseJson<{ version?: string } | null>(
+    const parsed = parseJson<{ version?: string; checkedAt?: unknown } | null>(
         await target.text(),
         null
     )
-    return typeof parsed?.version === 'string' && parsed.version.length > 0
-        ? parsed.version
-        : null
+    if (typeof parsed?.version !== 'string' || parsed.version.length === 0) {
+        return null
+    }
+
+    return {
+        version: parsed.version,
+        checkedAt:
+            typeof parsed.checkedAt === 'number' &&
+            Number.isFinite(parsed.checkedAt)
+                ? parsed.checkedAt
+                : null,
+    }
 }
 
 export async function writeCachedCatalogVersion(
-    version: string
+    version: string,
+    checkedAt = Date.now()
 ): Promise<void> {
     if (!isOPFSAvailable()) {
         return
@@ -143,7 +172,7 @@ export async function writeCachedCatalogVersion(
     await enqueueCatalogPersistence(async () => {
         await write(
             CATALOGS_VERSION_FILE_PATH,
-            JSON.stringify({ version }, null, 2)
+            JSON.stringify({ version, checkedAt }, null, 2)
         )
     })
 }
@@ -220,11 +249,41 @@ export async function refreshCommunityCatalogsIfNeeded(): Promise<{
 
     inFlightCatalogRefresh = (async () => {
         const cachedCatalogs = await readCachedCatalogs()
-        const cachedVersion = await readCachedCatalogVersion()
+        const cachedVersionMetadata = await readCachedCatalogVersionMetadata()
+        const cachedVersion = cachedVersionMetadata?.version ?? null
         const hasCachedCatalogs = Object.keys(cachedCatalogs).length > 0
-        const currentVersion = await getCatalogVersion()
+
+        if (
+            hasCachedCatalogs &&
+            cachedVersion &&
+            isFreshCatalogCheck(cachedVersionMetadata?.checkedAt ?? null)
+        ) {
+            return {
+                catalogs: cachedCatalogs,
+                version: cachedVersion,
+                refreshed: false,
+            }
+        }
+
+        let currentVersion: string
+
+        try {
+            currentVersion = await getCatalogVersion()
+        } catch (error) {
+            if (hasCachedCatalogs && cachedVersion) {
+                return {
+                    catalogs: cachedCatalogs,
+                    version: cachedVersion,
+                    refreshed: false,
+                }
+            }
+
+            throw error
+        }
 
         if (hasCachedCatalogs && cachedVersion === currentVersion) {
+            await writeCachedCatalogVersion(currentVersion)
+
             return {
                 catalogs: cachedCatalogs,
                 version: currentVersion,
