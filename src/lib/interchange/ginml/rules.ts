@@ -34,10 +34,7 @@ export type RawGinmlRule =
     | RawInteractionRule
 
 export function normalizeGinmlExpressionSyntax(expression: string): string {
-    return expression
-        .replaceAll('&&', '&')
-        .replaceAll('||', '|')
-        .trim()
+    return expression.replaceAll('&&', '&').replaceAll('||', '|').trim()
 }
 
 export function toGinmlExpressionSyntax(expression: string): string {
