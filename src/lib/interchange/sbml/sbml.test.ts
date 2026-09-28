@@ -88,7 +88,7 @@ describe('SBMLInterchanger', () => {
             'https://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:15367',
         ])
         expect(spi1Node?.data.rules.map((rule) => rule.expression)).toEqual([
-            '"Retinoic Acid":1 && "Retinoic Acid Receptor" && !"PML::RARA fusion protein"',
+            '"Retinoic Acid":1 & "Retinoic Acid Receptor" & !"PML::RARA fusion protein"',
         ])
         expect(raEdge?.data?.annotations?.references).toEqual([
             'https://example.org/edge/ra-spi1',
@@ -143,7 +143,7 @@ describe('SBMLInterchanger', () => {
                 target: rule.target,
                 expression: rule.expression,
             }))
-        ).toEqual([{ target: 1, expression: 'A || B' }])
+        ).toEqual([{ target: 1, expression: 'A | B' }])
     })
 
     it('imports less-than-or-equal MathML comparisons as complemented thresholds', () => {
@@ -422,7 +422,7 @@ describe('SBMLInterchanger', () => {
                             {
                                 id: 'rule-1',
                                 target: 1,
-                                expression: 'A:1 || B',
+                                expression: 'A:1 | B',
                                 isValid: true,
                             },
                             {
@@ -595,7 +595,7 @@ function createRoundTripModel(): InternalGRNModel {
                         {
                             id: 'rule-b-1',
                             target: 1,
-                            expression: '"Node A":1 && !"Node C"',
+                            expression: '"Node A":1 & !"Node C"',
                             isValid: true,
                         },
                     ],

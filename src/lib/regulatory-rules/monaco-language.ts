@@ -96,17 +96,17 @@ export function ensureRegulatoryRuleEditorSetup(monacoInstance: typeof monaco) {
                 return {
                     suggestions: [
                         {
-                            label: '&&',
+                            label: '&',
                             kind: monacoInstance.languages.CompletionItemKind
                                 .Operator,
-                            insertText: '&& ',
+                            insertText: '& ',
                             range,
                         },
                         {
-                            label: '||',
+                            label: '|',
                             kind: monacoInstance.languages.CompletionItemKind
                                 .Operator,
-                            insertText: '|| ',
+                            insertText: '| ',
                             range,
                         },
                         {

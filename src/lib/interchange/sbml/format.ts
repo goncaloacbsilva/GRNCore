@@ -224,11 +224,11 @@ export function importSbmlModel(xml: string): InternalGRNModel {
                         ? (expressions[0] ?? '')
                         : expressions
                               .map((expression) =>
-                                  expression.includes('&&')
+                                  expression.includes('&')
                                       ? `(${expression})`
                                       : expression
                               )
-                              .join(' || '),
+                              .join(' | '),
             })
         )
 
@@ -661,12 +661,12 @@ function buildExactLevelRules(
                 ? (higherExpressions[0] ?? '')
                 : higherExpressions
                       .map((expression) => wrapRuleExpression(expression))
-                      .join(' || ')
+                      .join(' | ')
         )
 
         return {
             ...rule,
-            expression: `${currentExpression} && !${higherExpression}`,
+            expression: `${currentExpression} & !${higherExpression}`,
         }
     })
 }

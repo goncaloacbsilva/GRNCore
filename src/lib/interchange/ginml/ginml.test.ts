@@ -81,7 +81,7 @@ describe('GINMLInterchanger', () => {
         expect(ra?.data.isInputNode).toBe(true)
         expect(b?.data.rules.map((rule) => rule.expression)).toEqual(['1'])
         expect(c?.data.rules.map((rule) => rule.expression)).toEqual([
-            '"Retinoic Acid":1 || !B',
+            '"Retinoic Acid":1 | !B',
         ])
         expect(raToC?.data?.points).toBeUndefined()
         expect(raToC?.data?.levels).toEqual(
@@ -97,7 +97,7 @@ describe('GINMLInterchanger', () => {
         const nodeC = model.nodes.find((node) => node.id === 'C')
 
         expect(nodeC?.data.rules.map((rule) => rule.expression)).toEqual([
-            'B:1 || A:1 || (A:1 && B:1)',
+            'B:1 | A:1 | (A:1 & B:1)',
         ])
     })
 
@@ -159,7 +159,7 @@ describe('GINMLInterchanger', () => {
         expect(node?.data.rules).toEqual([
             expect.objectContaining({
                 target: 1,
-                expression: 'DNAdam && !p53',
+                expression: 'DNAdam & !p53',
                 isValid: true,
             }),
         ])
@@ -175,14 +175,14 @@ describe('GINMLInterchanger', () => {
 
         expect(
             validateRegulatoryRuleExpression(
-                'RA:1 || !B',
+                'RA:1 | !B',
                 incomingNodes,
                 incomingEdges
             )
         ).toMatch(/Unknown incoming node: RA/)
         expect(
             validateRegulatoryRuleExpression(
-                '"Retinoic Acid":1 || !B',
+                '"Retinoic Acid":1 | !B',
                 incomingNodes,
                 incomingEdges
             )
@@ -190,7 +190,7 @@ describe('GINMLInterchanger', () => {
         expect(target?.data.rules).toEqual([
             expect.objectContaining({
                 target: 1,
-                expression: '"Retinoic Acid":1 || !B',
+                expression: '"Retinoic Acid":1 | !B',
                 isValid: true,
             }),
         ])
@@ -502,7 +502,7 @@ describe('GINMLInterchanger', () => {
                     target: rule.target,
                     expression: rule.expression,
                 }))
-        ).toEqual([{ target: 1, expression: 'B:1 || A:1 || (A:1 && B:1)' }])
+        ).toEqual([{ target: 1, expression: 'B:1 | A:1 | (A:1 & B:1)' }])
     })
 
     it('round-trips supported node shapes through GINML export and import', () => {

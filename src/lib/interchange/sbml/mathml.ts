@@ -266,13 +266,13 @@ function renderRuleAst(ast: RuleAst, parentPrecedence = 0): string {
         case 'and': {
             const value = ast.operands
                 .map((operand) => renderRuleAst(operand, 2))
-                .join(' && ')
+                .join(' & ')
             return parentPrecedence > 2 ? `(${value})` : value
         }
         case 'or': {
             const value = ast.operands
                 .map((operand) => renderRuleAst(operand, 1))
-                .join(' || ')
+                .join(' | ')
             return parentPrecedence > 1 ? `(${value})` : value
         }
     }
