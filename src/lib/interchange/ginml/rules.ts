@@ -34,14 +34,7 @@ export type RawGinmlRule =
     | RawInteractionRule
 
 export function normalizeGinmlExpressionSyntax(expression: string): string {
-    return expression
-        .replaceAll('&&', '\u0000GINML_AND\u0000')
-        .replaceAll('||', '\u0000GINML_OR\u0000')
-        .replaceAll('&', '&&')
-        .replaceAll('|', '||')
-        .replaceAll('\u0000GINML_AND\u0000', '&&')
-        .replaceAll('\u0000GINML_OR\u0000', '||')
-        .trim()
+    return expression.replaceAll('&&', '&').replaceAll('||', '|').trim()
 }
 
 export function toGinmlExpressionSyntax(expression: string): string {
@@ -175,9 +168,9 @@ function materializeRuleSet(
             target,
             expression: expressions
                 .map((expression) =>
-                    expression.includes('&&') ? `(${expression})` : expression
+                    expression.includes('&') ? `(${expression})` : expression
                 )
-                .join(' || '),
+                .join(' | '),
             isValid: false,
         })
     }
@@ -275,7 +268,7 @@ function materializeRuleExpression(
                 )
             )
 
-            return parts.join(' && ')
+            return parts.join(' & ')
         }
     }
 }

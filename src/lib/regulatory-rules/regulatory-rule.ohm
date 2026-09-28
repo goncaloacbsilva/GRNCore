@@ -15,8 +15,8 @@ RegulatoryRule {
 
   Condition = Var ":" Val
 
-  AndOp = "&&" | "&"
-  OrOp = "||" | "|"
+  AndOp = "&"
+  OrOp = "|"
   Not = "!"
 
   Var = ident

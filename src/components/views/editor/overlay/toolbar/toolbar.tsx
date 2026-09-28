@@ -1,14 +1,14 @@
 import { Menubar } from '@/components/ui/menubar'
 import { AddEdgeToggle } from './components/add-edge-toggle'
 import { AddNodeButton } from './components/add-node-button'
-import { EditMenu, FileMenu, ViewMenu } from './components/menus'
+import { EditMenu, ExportMenu, ViewMenu } from './components/menus'
 import { InteractionSwitch } from './components/interaction-switch'
 
 export function Toolbar() {
     return (
         <div className="absolute top-2 left-2 flex flex-row items-center gap-8">
             <Menubar>
-                <FileMenu />
+                <ExportMenu />
                 <EditMenu />
                 <ViewMenu />
             </Menubar>

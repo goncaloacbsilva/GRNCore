@@ -163,10 +163,9 @@ function LocalModelsContent({ initialItems }: LocalModelsContentProps) {
                         <p>
                             Local models are kept in browser storage and may be
                             cleared after a few days. Export copies of any
-                            models you want to keep ({' '}
-                            <strong>File -&gt; Export model</strong>) <br />A
-                            future GRN Core Desktop app will provide persistent
-                            storage.
+                            models you want to keep ( <strong>Export</strong>){' '}
+                            <br />A future GRN Core Desktop app will provide
+                            persistent storage.
                         </p>
                     </AlertDescription>
                 </Alert>
