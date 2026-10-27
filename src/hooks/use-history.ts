@@ -27,21 +27,13 @@ export function useHistory() {
         (state) => state.setApplyingHistory
     )
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
-    const releaseTimeoutRef = useRef<number | null>(null)
+    const transactionRef = useRef(0)
     const releaseHistoryGuards = () => {
-        if (releaseTimeoutRef.current !== null) {
-            window.clearTimeout(releaseTimeoutRef.current)
-            releaseTimeoutRef.current = null
-        }
-
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                releaseTimeoutRef.current = window.setTimeout(() => {
-                    setApplyingHistory(false)
-                    setSnapshotPaused(false)
-                    releaseTimeoutRef.current = null
-                }, 250)
-            })
+        const transaction = ++transactionRef.current
+        queueMicrotask(() => {
+            if (transaction !== transactionRef.current) return
+            setApplyingHistory(false)
+            setSnapshotPaused(false)
         })
     }
 

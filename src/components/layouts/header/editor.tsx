@@ -18,42 +18,26 @@ import { usePersistenceStatus } from '@/store'
 import { useChangesTracking, useEditorStore } from '@/store'
 import { useStore as useFormStore } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CheckIcon } from 'lucide-react'
 
 function SavingIndicator() {
     const isSaving = usePersistenceStatus((state) => state.isSaving)
-    const contentRef = useRef<HTMLSpanElement | null>(null)
-    const [contentWidth, setContentWidth] = useState<number | null>(null)
-
-    useLayoutEffect(() => {
-        if (!contentRef.current) {
-            return
-        }
-
-        setContentWidth(contentRef.current.offsetWidth)
-    }, [isSaving])
 
     return (
         <Badge
             variant="ghost"
-            className={
-                isSaving ? '' : ' text-black hover:bg-muted transition-all'
-            }
+            className={`min-w-32 justify-center ${
+                isSaving ? '' : 'text-black hover:bg-muted'
+            }`}
         >
-            <span
-                className="inline-flex items-center overflow-hidden transition-[width] duration-100 ease-in-out"
-                style={{
-                    width: contentWidth === null ? 'auto' : `${contentWidth}px`,
-                }}
-            >
+            <span className="inline-flex items-center justify-center overflow-hidden">
                 <span
-                    ref={contentRef}
                     key={isSaving ? 'saving' : 'saved'}
                     className="inline-flex items-center gap-1 animate-in fade-in-0 slide-in-from-bottom-1 duration-100 whitespace-nowrap"
                 >
                     {isSaving ? (
-                        <span className="size-3.5 shrink-0 rounded-full border-2 border-blue-200 border-t-blue-500 animate-spin" />
+                        <span className="size-3.5 shrink-0 rounded-full border-2 border-blue-200 border-t-blue-500" />
                     ) : (
                         <CheckIcon className="size-3.5 text-blue-500" />
                     )}

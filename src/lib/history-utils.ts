@@ -5,10 +5,42 @@ import { toast } from 'sonner'
 interface DisplayHistoryActionToastInput {
     changes: Difference[]
     snapshot?: InternalGRNModel
+    message?: string | null
 }
 
 type PathSegment = string | number
 type PathMatcher = PathSegment | ((segment: PathSegment) => boolean)
+
+/** Classifies changes once at commit time so presentational history does not
+ * trigger semantic validation during undo/redo. */
+export const isSemanticHistoryChange = (change: Difference): boolean => {
+    const [collection, , section, field] = change.path
+    if (collection === 'nodes') {
+        if (change.type === 'CREATE' || change.type === 'REMOVE') return true
+        return (
+            section === 'data' &&
+            (field === 'name' ||
+                field === 'isInputNode' ||
+                field === 'activityLevels' ||
+                field === 'rules')
+        )
+    }
+
+    if (collection === 'edges') {
+        if (change.type === 'CREATE' || change.type === 'REMOVE') return true
+        return (
+            field === 'source' ||
+            field === 'target' ||
+            field === 'type' ||
+            (section === 'data' && field === 'levels')
+        )
+    }
+
+    return false
+}
+
+export const hasSemanticHistoryChanges = (changes: Difference[]) =>
+    changes.some(isSemanticHistoryChange)
 
 interface MutationSummary {
     addedNodes: number
@@ -689,13 +721,15 @@ const composeToastMessage = (summary: MutationSummary): string | null => {
 export function displayHistoryActionToast({
     changes,
     snapshot,
+    message: precomputedMessage,
 }: DisplayHistoryActionToastInput) {
-    if (changes.length === 0) {
+    if (changes.length === 0 && !precomputedMessage) {
         return
     }
 
-    const summary = summarizeChanges(changes, snapshot)
-    const message = composeToastMessage(summary)
+    const message =
+        precomputedMessage ??
+        composeToastMessage(summarizeChanges(changes, snapshot))
 
     if (!message) {
         return
@@ -705,3 +739,8 @@ export function displayHistoryActionToast({
         position: 'top-right',
     })
 }
+
+export const getHistoryActionSummary = (
+    changes: Difference[],
+    snapshot?: InternalGRNModel
+) => composeToastMessage(summarizeChanges(changes, snapshot))

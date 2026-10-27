@@ -1,4 +1,8 @@
-import { displayHistoryActionToast } from '@/lib/history-utils'
+import {
+    displayHistoryActionToast,
+    getHistoryActionSummary,
+    hasSemanticHistoryChanges,
+} from '@/lib/history-utils'
 import {
     exportModel,
     importModel,
@@ -15,11 +19,14 @@ import type {
     PersistedAnnotations,
     RegulatoryNodeProperties,
 } from '@/lib/schema'
+import type { SnapshotMutation } from '@/lib/persistence/snapshot-serialization'
 import type { Node, Edge, ReactFlowInstance } from '@xyflow/react'
 import diff, { type Difference } from 'microdiff'
 import isEqual from 'lodash/isEqual'
 import { create } from 'zustand'
 import { toast } from 'sonner'
+import { create as createImmutable } from 'mutative'
+import { useEditorStore } from './editor'
 
 type MicrodiffChange = Difference
 
@@ -30,7 +37,8 @@ type CanonicalGraphState = InternalGRNModel
 interface HistoryEntry {
     forwardDiffs: MicrodiffChange[]
     backwardDiffs: MicrodiffChange[]
-    afterState: InternalGRNModel
+    semantic: boolean
+    summary: string | null
 }
 
 interface HistoryJournal {
@@ -40,14 +48,14 @@ interface HistoryJournal {
 
 interface HistoryGroupContext {
     depth: number
-    reason: string
-    startState: InternalGRNModel
 }
 
 interface HistoryState {
     activeModelId: string | null
     autoDeleteEmptyModelId: string | null
     snapshot: InternalGRNModel
+    // Stable React Flow input; replaced only when loading or importing a model.
+    graphModel: InternalGRNModel
     hasHydrated: boolean
     baselineVersion: number
     graphVersion: number
@@ -113,13 +121,14 @@ let historyGroupContext: HistoryGroupContext | null = null
 
 const saveSnapshotForModel = async (
     modelId: string | null,
-    snapshot: InternalGRNModel
+    snapshot: InternalGRNModel,
+    mutations?: SnapshotMutation[]
 ) => {
     if (!modelId) {
         return
     }
 
-    await saveLocalModelSnapshot(modelId, snapshot)
+    await saveLocalModelSnapshot(modelId, snapshot, mutations)
 }
 
 const buildSnapshot = (
@@ -127,8 +136,8 @@ const buildSnapshot = (
     edges: Edge<EditableRegulatoryEdge>[]
 ): InternalGRNModel => ({
     ...createEmptyModelSnapshot(),
-    nodes: structuredClone(nodes),
-    edges: structuredClone(edges),
+    nodes,
+    edges,
 })
 
 const sanitizeSnapshot = (
@@ -188,12 +197,6 @@ const sanitizeSnapshot = (
 
 const getCanonicalState = (snapshot: InternalGRNModel): CanonicalGraphState =>
     sanitizeSnapshot(snapshot)
-
-const getSnapshotChanges = (
-    previousSnapshot: InternalGRNModel,
-    nextSnapshot: InternalGRNModel
-): MicrodiffChange[] =>
-    diff(getCanonicalState(previousSnapshot), getCanonicalState(nextSnapshot))
 
 const isSelectionNoisePath = (path: (string | number)[]) => {
     const staticNoiseKeys = new Set([
@@ -270,24 +273,18 @@ const isEquivalentIgnoringSelectionAndOrder = (
         }
     )
 
-const cloneSnapshot = (snapshot: InternalGRNModel): InternalGRNModel =>
-    structuredClone(snapshot)
-
-const getSnapshotAtPosition = (position: number): InternalGRNModel => {
-    if (position <= 0) {
-        return cloneSnapshot(historyRootSnapshot)
-    }
-
-    const afterState = historyJournal.entries[position - 1]?.afterState
-    if (!afterState) {
-        return cloneSnapshot(historyRootSnapshot)
-    }
-
-    return cloneSnapshot(afterState)
-}
-
-const getSnapshotAtCurrentPosition = () =>
-    getSnapshotAtPosition(historyJournal.position)
+const hasSameElementOrder = (
+    previousSnapshot: InternalGRNModel,
+    nextSnapshot: InternalGRNModel
+) =>
+    previousSnapshot.nodes.length === nextSnapshot.nodes.length &&
+    previousSnapshot.edges.length === nextSnapshot.edges.length &&
+    previousSnapshot.nodes.every(
+        (node, index) => node.id === nextSnapshot.nodes[index]?.id
+    ) &&
+    previousSnapshot.edges.every(
+        (edge, index) => edge.id === nextSnapshot.edges[index]?.id
+    )
 
 const pathParent = (
     target: unknown,
@@ -360,15 +357,12 @@ const applyMicrodiffChange = (
 const applyDiffs = (
     base: CanonicalGraphState,
     changes: MicrodiffChange[]
-): CanonicalGraphState => {
-    const next = structuredClone(base)
-
-    changes.forEach((change) => {
-        applyMicrodiffChange(next, change)
+): CanonicalGraphState =>
+    createImmutable(base, (draft) => {
+        changes.forEach((change) => {
+            applyMicrodiffChange(draft, change)
+        })
     })
-
-    return next
-}
 
 const normalizeSnapshot = (
     currentSnapshot: InternalGRNModel,
@@ -388,55 +382,69 @@ const trimHistory = () => {
     const overflow = historyJournal.entries.length - MAX_HISTORY
     const removedEntries = historyJournal.entries.splice(0, overflow)
 
-    const newRoot = removedEntries[overflow - 1]?.afterState
-    if (newRoot) {
-        historyRootSnapshot = cloneSnapshot(newRoot)
-    }
+    removedEntries.forEach((entry) => {
+        historyRootSnapshot = applyDiffs(
+            historyRootSnapshot,
+            entry.forwardDiffs
+        )
+    })
 
     historyJournal.position = Math.max(0, historyJournal.position - overflow)
     historyBaselinePosition = Math.max(0, historyBaselinePosition - overflow)
 }
 
-const commitSnapshot = (nextSnapshot: InternalGRNModel): boolean => {
-    const previousSnapshot = getSnapshotAtCurrentPosition()
+const commitSnapshot = (
+    nextSnapshot: InternalGRNModel
+): HistoryEntry | null => {
+    const previousSnapshot = historyCanonicalState
+    const nextCanonicalSnapshot = getCanonicalState(nextSnapshot)
     const forwardDiffs = filterHistoryChanges(
-        getSnapshotChanges(previousSnapshot, nextSnapshot)
+        diff(previousSnapshot, nextCanonicalSnapshot)
     )
 
-    if (isEquivalentIgnoringSelectionAndOrder(previousSnapshot, nextSnapshot)) {
-        historyCanonicalState = getCanonicalState(nextSnapshot)
-        return false
+    if (forwardDiffs.length === 0) {
+        historyCanonicalState = nextCanonicalSnapshot
+        return null
     }
 
-    if (forwardDiffs.length === 0) {
-        historyCanonicalState = getCanonicalState(previousSnapshot)
-        return false
+    if (
+        !hasSameElementOrder(previousSnapshot, nextCanonicalSnapshot) &&
+        isEquivalentIgnoringSelectionAndOrder(
+            previousSnapshot,
+            nextCanonicalSnapshot
+        )
+    ) {
+        historyCanonicalState = nextCanonicalSnapshot
+        return null
     }
 
     const backwardDiffs = filterHistoryChanges(
-        getSnapshotChanges(nextSnapshot, previousSnapshot)
+        diff(nextCanonicalSnapshot, previousSnapshot)
     )
 
     if (historyJournal.position < historyJournal.entries.length) {
         historyJournal.entries.splice(historyJournal.position)
     }
 
-    historyJournal.entries.push({
+    const entry: HistoryEntry = {
         forwardDiffs,
         backwardDiffs,
-        afterState: cloneSnapshot(nextSnapshot),
-    })
+        semantic: hasSemanticHistoryChanges(forwardDiffs),
+        summary: getHistoryActionSummary(forwardDiffs, nextSnapshot),
+    }
+    historyJournal.entries.push(entry)
     historyJournal.position = historyJournal.entries.length
 
     trimHistory()
 
-    historyCanonicalState = applyDiffs(historyCanonicalState, forwardDiffs)
-    return true
+    historyCanonicalState = nextCanonicalSnapshot
+    return entry
 }
 
 const resetDiffHistory = (nextSnapshot: InternalGRNModel) => {
-    historyRootSnapshot = cloneSnapshot(nextSnapshot)
-    historyCanonicalState = getCanonicalState(nextSnapshot)
+    const canonicalSnapshot = getCanonicalState(nextSnapshot)
+    historyRootSnapshot = canonicalSnapshot
+    historyCanonicalState = canonicalSnapshot
     historyJournal = {
         entries: [],
         position: 0,
@@ -444,8 +452,19 @@ const resetDiffHistory = (nextSnapshot: InternalGRNModel) => {
     historyGroupContext = null
 }
 
-const applySnapshotToInstance = (
+const getConsumerSnapshot = (state: InternalGRNModel): InternalGRNModel => ({
+    ...historyCanonicalState,
+    title: state.title,
+    annotations: state.annotations,
+})
+
+const cloneSnapshot = (snapshot: InternalGRNModel): InternalGRNModel =>
+    structuredClone(snapshot)
+
+const applyHistoryToInstance = (
+    previous: InternalGRNModel,
     snapshot: InternalGRNModel,
+    changes: MicrodiffChange[],
     instance: ReactFlowInstance<
         Node<RegulatoryNodeProperties>,
         Edge<EditableRegulatoryEdge>
@@ -453,56 +472,60 @@ const applySnapshotToInstance = (
 ) => {
     const currentNodes = instance.getNodes()
     const currentEdges = instance.getEdges()
-    const currentNodeSelectionById = new Map(
-        currentNodes.map((node) => [node.id, Boolean(node.selected)])
-    )
-    const currentEdgeSelectionById = new Map(
-        currentEdges.map((edge) => [edge.id, Boolean(edge.selected)])
-    )
+    const affectedNodeIds = new Set<string>()
+    const affectedEdgeIds = new Set<string>()
+    for (const change of changes) {
+        const [collection, index] = change.path
+        if (typeof index !== 'number') continue
+        if (collection === 'nodes') {
+            const previousId = previous.nodes[index]?.id
+            const nextId = snapshot.nodes[index]?.id
+            if (previousId) affectedNodeIds.add(previousId)
+            if (nextId) affectedNodeIds.add(nextId)
+        } else if (collection === 'edges') {
+            const previousId = previous.edges[index]?.id
+            const nextId = snapshot.edges[index]?.id
+            if (previousId) affectedEdgeIds.add(previousId)
+            if (nextId) affectedEdgeIds.add(nextId)
+        }
+    }
+
+    const currentNodeById = new Map(currentNodes.map((node) => [node.id, node]))
+    const currentEdgeById = new Map(currentEdges.map((edge) => [edge.id, edge]))
     const nextNodes = snapshot.nodes.map((node) => {
-        const currentSelected = currentNodeSelectionById.get(node.id)
-        if (currentSelected === undefined) {
-            const nextNode = { ...node }
-            delete nextNode.selected
-            return nextNode
-        }
-
-        if (Boolean(node.selected) === currentSelected) {
-            return node
-        }
-
-        return {
-            ...node,
-            selected: currentSelected,
-        }
+        const current = currentNodeById.get(node.id)
+        if (current && !affectedNodeIds.has(node.id)) return current
+        return current
+            ? { ...current, ...node, selected: current.selected }
+            : { ...node }
     })
-
     const nextEdges = snapshot.edges.map((edge) => {
-        const currentSelected = currentEdgeSelectionById.get(edge.id)
-        if (currentSelected === undefined) {
-            const nextEdge = { ...edge }
-            delete nextEdge.selected
-            return nextEdge
-        }
-
-        if (Boolean(edge.selected) === currentSelected) {
-            return edge
-        }
-
-        return {
-            ...edge,
-            selected: currentSelected,
-        }
+        const current = currentEdgeById.get(edge.id)
+        if (current && !affectedEdgeIds.has(edge.id)) return current
+        return current
+            ? { ...current, ...edge, selected: current.selected }
+            : { ...edge }
     })
 
-    instance.setNodes(nextNodes)
-    instance.setEdges(nextEdges)
+    if (
+        affectedNodeIds.size > 0 ||
+        previous.nodes.length !== snapshot.nodes.length
+    ) {
+        instance.setNodes(nextNodes)
+    }
+    if (
+        affectedEdgeIds.size > 0 ||
+        previous.edges.length !== snapshot.edges.length
+    ) {
+        instance.setEdges(nextEdges)
+    }
 }
 
 export const useChangesTracking = create<HistoryState>()((set, get) => ({
     activeModelId: null,
     autoDeleteEmptyModelId: null,
     snapshot: createEmptyModelSnapshot(),
+    graphModel: createEmptyModelSnapshot(),
     hasHydrated: false,
     baselineVersion: 0,
     graphVersion: 0,
@@ -532,9 +555,11 @@ export const useChangesTracking = create<HistoryState>()((set, get) => ({
 
                     resetDiffHistory(importedSnapshot)
                     historyBaselinePosition = historyJournal.position
+                    const graphModel = cloneSnapshot(importedSnapshot)
 
                     set((state) => ({
-                        snapshot: cloneSnapshot(importedSnapshot),
+                        snapshot: graphModel,
+                        graphModel,
                         baselineVersion: state.baselineVersion + 1,
                         graphVersion: state.graphVersion + 1,
                     }))
@@ -568,19 +593,22 @@ export const useChangesTracking = create<HistoryState>()((set, get) => ({
 
         set((state) => ({
             activeModelId: modelId,
-            snapshot: cloneSnapshot(sanitizedSnapshot),
+            snapshot: sanitizedSnapshot,
+            graphModel: sanitizedSnapshot,
             hasHydrated: true,
             baselineVersion: state.baselineVersion + 1,
             graphVersion: state.graphVersion + 1,
         }))
     },
     clearLoadedModel: () => {
-        resetDiffHistory(createEmptyModelSnapshot())
+        const graphModel = createEmptyModelSnapshot()
+        resetDiffHistory(graphModel)
         historyBaselinePosition = 0
 
         set((state) => ({
             activeModelId: null,
-            snapshot: createEmptyModelSnapshot(),
+            snapshot: graphModel,
+            graphModel,
             hasHydrated: false,
             baselineVersion: state.baselineVersion + 1,
             graphVersion: state.graphVersion + 1,
@@ -596,7 +624,9 @@ export const useChangesTracking = create<HistoryState>()((set, get) => ({
         }
 
         set({ snapshot: nextSnapshot })
-        void saveSnapshotForModel(get().activeModelId, nextSnapshot)
+        void saveSnapshotForModel(get().activeModelId, nextSnapshot, [
+            { type: 'set-title', title },
+        ])
     },
     setSnapshotAnnotations: (annotations) => {
         const nextSnapshot = {
@@ -605,7 +635,9 @@ export const useChangesTracking = create<HistoryState>()((set, get) => ({
         }
 
         set({ snapshot: nextSnapshot })
-        void saveSnapshotForModel(get().activeModelId, nextSnapshot)
+        void saveSnapshotForModel(get().activeModelId, nextSnapshot, [
+            { type: 'set-annotations', annotations },
+        ])
     },
     takeSnapshot: (
         nodes: Node<RegulatoryNodeProperties>[],
@@ -617,14 +649,16 @@ export const useChangesTracking = create<HistoryState>()((set, get) => ({
             return
         }
 
-        const didCommit = commitSnapshot(nextSnapshot)
-        if (!didCommit) {
+        const committedEntry = commitSnapshot(nextSnapshot)
+        if (!committedEntry) {
             return
         }
 
-        const committedSnapshot = getSnapshotAtCurrentPosition()
+        const committedSnapshot = getConsumerSnapshot(get().snapshot)
         set({ snapshot: committedSnapshot })
-        void saveSnapshotForModel(get().activeModelId, committedSnapshot)
+        void saveSnapshotForModel(get().activeModelId, committedSnapshot, [
+            { type: 'apply-diffs', changes: committedEntry.forwardDiffs },
+        ])
     },
     resetHistory: (
         nodes: Node<RegulatoryNodeProperties>[],
@@ -645,16 +679,9 @@ export const useChangesTracking = create<HistoryState>()((set, get) => ({
             void saveSnapshotForModel(get().activeModelId, nextSnapshot)
         }
     },
-    beginGroup: (
-        reason,
-        nodes: Node<RegulatoryNodeProperties>[],
-        edges: Edge<EditableRegulatoryEdge>[]
-    ) => {
-        const currentSnapshot = normalizeSnapshot(get().snapshot, nodes, edges)
+    beginGroup: () => {
         const currentGroup = (historyGroupContext ??= {
             depth: 0,
-            reason,
-            startState: currentSnapshot,
         })
 
         currentGroup.depth += 1
@@ -672,27 +699,20 @@ export const useChangesTracking = create<HistoryState>()((set, get) => ({
             return
         }
 
-        const finishedGroup = historyGroupContext
         historyGroupContext = null
 
         const nextSnapshot = normalizeSnapshot(get().snapshot, nodes, edges)
-        const snapshotChanges = getSnapshotChanges(
-            finishedGroup.startState,
-            nextSnapshot
-        )
 
-        if (snapshotChanges.length === 0) {
+        const committedEntry = commitSnapshot(nextSnapshot)
+        if (!committedEntry) {
             return
         }
 
-        const didCommit = commitSnapshot(nextSnapshot)
-        if (!didCommit) {
-            return
-        }
-
-        const committedSnapshot = getSnapshotAtCurrentPosition()
+        const committedSnapshot = getConsumerSnapshot(get().snapshot)
         set({ snapshot: committedSnapshot })
-        void saveSnapshotForModel(get().activeModelId, committedSnapshot)
+        void saveSnapshotForModel(get().activeModelId, committedSnapshot, [
+            { type: 'apply-diffs', changes: committedEntry.forwardDiffs },
+        ])
     },
     undo: (
         instance: ReactFlowInstance<
@@ -710,23 +730,29 @@ export const useChangesTracking = create<HistoryState>()((set, get) => ({
             return
         }
 
-        const previousSnapshot = getSnapshotAtPosition(
-            historyJournal.position - 1
-        )
         displayHistoryActionToast({
             changes: entry.backwardDiffs,
-            snapshot: previousSnapshot,
+            message: entry.summary,
         })
+        const previousSnapshot = getConsumerSnapshot(get().snapshot)
         historyCanonicalState = applyDiffs(
             historyCanonicalState,
             entry.backwardDiffs
         )
         historyJournal.position -= 1
 
-        const snapshot = getSnapshotAtCurrentPosition()
+        const snapshot = getConsumerSnapshot(get().snapshot)
         set({ snapshot })
-        applySnapshotToInstance(snapshot, instance)
-        void saveSnapshotForModel(get().activeModelId, snapshot)
+        applyHistoryToInstance(
+            previousSnapshot,
+            snapshot,
+            entry.backwardDiffs,
+            instance
+        )
+        if (entry.semantic) useEditorStore.getState().bumpSemanticRevision()
+        void saveSnapshotForModel(get().activeModelId, snapshot, [
+            { type: 'apply-diffs', changes: entry.backwardDiffs },
+        ])
     },
     redo: (
         instance: ReactFlowInstance<
@@ -745,18 +771,27 @@ export const useChangesTracking = create<HistoryState>()((set, get) => ({
 
         displayHistoryActionToast({
             changes: entry.forwardDiffs,
-            snapshot: entry.afterState,
+            message: entry.summary,
         })
+        const previousSnapshot = getConsumerSnapshot(get().snapshot)
         historyCanonicalState = applyDiffs(
             historyCanonicalState,
             entry.forwardDiffs
         )
         historyJournal.position += 1
 
-        const snapshot = getSnapshotAtCurrentPosition()
+        const snapshot = getConsumerSnapshot(get().snapshot)
         set({ snapshot })
-        applySnapshotToInstance(snapshot, instance)
-        void saveSnapshotForModel(get().activeModelId, snapshot)
+        applyHistoryToInstance(
+            previousSnapshot,
+            snapshot,
+            entry.forwardDiffs,
+            instance
+        )
+        if (entry.semantic) useEditorStore.getState().bumpSemanticRevision()
+        void saveSnapshotForModel(get().activeModelId, snapshot, [
+            { type: 'apply-diffs', changes: entry.forwardDiffs },
+        ])
     },
     getLastHistoryEntry: () => {
         if (historyJournal.position === 0) {
