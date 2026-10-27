@@ -1,5 +1,5 @@
 import { useReactFlow, useStore } from '@xyflow/react'
-import { useEditorStore } from '@/store'
+import { useEditorTransientStore } from '@/store'
 import { type AnchorHandleProps } from './types'
 
 export function AnchorHandle({
@@ -13,7 +13,7 @@ export function AnchorHandle({
 }: AnchorHandleProps) {
     const domNode = useStore((state) => state.domNode)
     const { screenToFlowPosition } = useReactFlow()
-    const setDragging = useEditorStore((state) => state.setDragging)
+    const setDragging = useEditorTransientStore((state) => state.setDragging)
 
     return (
         <circle

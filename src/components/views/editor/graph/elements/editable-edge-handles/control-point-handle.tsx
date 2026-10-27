@@ -9,7 +9,11 @@ import type {
     EditableRegulatoryEdge,
     RegulatoryNodeProperties,
 } from '@/lib/schema'
-import { useChangesTracking, useEditorStore } from '@/store'
+import {
+    useChangesTracking,
+    useEditorStore,
+    useEditorTransientStore,
+} from '@/store'
 import { type ControlPointHandleProps } from './types'
 
 export function ControlPointHandle({
@@ -30,7 +34,7 @@ export function ControlPointHandle({
         Node<RegulatoryNodeProperties>,
         Edge<EditableRegulatoryEdge>
     >()
-    const setDragging = useEditorStore((state) => state.setDragging)
+    const setDragging = useEditorTransientStore((state) => state.setDragging)
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
     const beginGroup = useChangesTracking((state) => state.beginGroup)
     const endGroup = useChangesTracking((state) => state.endGroup)

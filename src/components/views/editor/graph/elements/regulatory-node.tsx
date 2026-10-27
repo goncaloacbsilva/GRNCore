@@ -7,15 +7,12 @@ import {
     type Node,
     useConnection,
     useInternalNode,
-    useStore,
 } from '@xyflow/react'
 import type { RegulatoryNodeProperties } from '@/lib/schema'
 import { DEFAULT_NODE_HEIGHT } from '../config'
 import { getNodeContentMinWidth } from '../utils'
 import { useEditorStore } from '@/store'
 import { twJoin } from 'tailwind-merge'
-import { NodeToolbar } from './node-toolbar'
-import { shallow } from 'zustand/shallow'
 import {
     Tooltip,
     TooltipContent,
@@ -41,17 +38,11 @@ const RegulatoryNode = ({
     const connectModeActive = useEditorStore(
         (state) => state.connectModeEnabled
     )
-    const selectedNodeIdsArray = useStore(
-        (state) =>
-            state.nodes.filter((node) => node.selected).map((node) => node.id),
-        shallow
-    )
 
     const connectionFromThisNode =
         connection.inProgress && connection.fromNode.id === id
     const connectionToThisNode =
         connection.inProgress && connection.toNode?.id === id
-    const isToolbarHost = selectedNodeIdsArray[0] === id
     const hasInvalidRules = data.rules.some((rule) => !rule.isValid)
     const hasInvalidName = data.isValid === false
     const hasValidationError = hasInvalidName || hasInvalidRules
@@ -76,16 +67,6 @@ const RegulatoryNode = ({
 
     return (
         <>
-            <NodeToolbar
-                id={id}
-                nodeIds={selectedNodeIdsArray}
-                isVisible={
-                    selected &&
-                    !connectModeActive &&
-                    selectedNodeIdsArray.length > 0 &&
-                    isToolbarHost
-                }
-            />
             <div
                 style={{
                     backgroundColor: visibleBackgroundColor,

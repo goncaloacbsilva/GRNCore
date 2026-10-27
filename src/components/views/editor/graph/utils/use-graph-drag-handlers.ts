@@ -1,5 +1,5 @@
 import type { RegulatoryNodeProperties } from '@/lib/schema'
-import { useEditorStore } from '@/store'
+import { useEditorTransientStore } from '@/store'
 import { useCallback } from 'react'
 import type { Node } from '@xyflow/react'
 
@@ -15,14 +15,16 @@ interface UseGraphDragHandlersParams {
     onNodeDragStart: DragHandler
     onNodeDrag: DragHandler
     onNodeDragStop: DragStopHandler
+    onDragStateChange: (isDragging: boolean) => void
 }
 
 export function useGraphDragHandlers({
     onNodeDragStart,
     onNodeDrag,
     onNodeDragStop,
+    onDragStateChange,
 }: UseGraphDragHandlersParams) {
-    const setDragging = useEditorStore((state) => state.setDragging)
+    const setDragging = useEditorTransientStore((state) => state.setDragging)
 
     const handleNodeDragStart = useCallback(
         (
@@ -30,10 +32,11 @@ export function useGraphDragHandlers({
             node: Node<RegulatoryNodeProperties>,
             draggedNodes: Node<RegulatoryNodeProperties>[]
         ) => {
+            onDragStateChange(true)
             setDragging(true)
             onNodeDragStart(event, node, draggedNodes)
         },
-        [onNodeDragStart, setDragging]
+        [onDragStateChange, onNodeDragStart, setDragging]
     )
 
     const handleNodeDrag = useCallback(
@@ -42,28 +45,28 @@ export function useGraphDragHandlers({
             node: Node<RegulatoryNodeProperties>,
             draggedNodes: Node<RegulatoryNodeProperties>[]
         ) => {
-            setDragging(true)
             onNodeDrag(event, node, draggedNodes)
         },
-        [onNodeDrag, setDragging]
+        [onNodeDrag]
     )
 
     const handleNodeDragStop = useCallback(() => {
         onNodeDragStop()
         setDragging(false)
-    }, [onNodeDragStop, setDragging])
+        onDragStateChange(false)
+    }, [onDragStateChange, onNodeDragStop, setDragging])
 
     const handleSelectionDragStart = useCallback(() => {
+        onDragStateChange(true)
         setDragging(true)
-    }, [setDragging])
+    }, [onDragStateChange, setDragging])
 
-    const handleSelectionDrag = useCallback(() => {
-        setDragging(true)
-    }, [setDragging])
+    const handleSelectionDrag = useCallback(() => undefined, [])
 
     const handleSelectionDragStop = useCallback(() => {
         setDragging(false)
-    }, [setDragging])
+        onDragStateChange(false)
+    }, [onDragStateChange, setDragging])
 
     return {
         handleNodeDragStart,

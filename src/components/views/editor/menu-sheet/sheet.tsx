@@ -17,10 +17,41 @@ import { ChevronDownIcon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditorStore, type MenuSheetTab } from '@/store'
 
-const SHEET_ANIMATION_DURATION_MS = 200
 const SHEET_EXPAND_DURATION_MS = 200
 const SHEET_COLLAPSE_DURATION_MS = 200
 const SHEET_COLLAPSE_EASING = 'easeOutQuad'
+
+interface SelectedElements {
+    selectedNodes: Node<RegulatoryNodeProperties>[]
+    selectedEdges: Edge<EditableRegulatoryEdge>[]
+}
+
+const haveSameSelectedElements = (
+    previous: SelectedElements,
+    next: SelectedElements
+) =>
+    previous.selectedNodes.length === next.selectedNodes.length &&
+    previous.selectedEdges.length === next.selectedEdges.length &&
+    previous.selectedNodes.every((node, index) => {
+        const nextNode = next.selectedNodes[index]
+        return (
+            node.id === nextNode?.id &&
+            node.data === nextNode.data &&
+            node.style === nextNode.style &&
+            node.width === nextNode.width &&
+            node.height === nextNode.height
+        )
+    }) &&
+    previous.selectedEdges.every((edge, index) => {
+        const nextEdge = next.selectedEdges[index]
+        return (
+            edge.id === nextEdge?.id &&
+            edge.data === nextEdge.data &&
+            edge.style === nextEdge.style &&
+            edge.source === nextEdge.source &&
+            edge.target === nextEdge.target
+        )
+    })
 
 export function MenuSheet() {
     const { activeTab, setActiveTab } = useEditorStore(
@@ -39,98 +70,25 @@ export function MenuSheet() {
                 (edge) => edge.selected
             ) as Edge<EditableRegulatoryEdge>[],
         }),
-        shallow
+        haveSameSelectedElements
     )
     const isConnectModeEnabled = useEditorStore(
         (state) => state.connectModeEnabled
     )
 
     const selectedElements = selectedNodes.length + selectedEdges.length
-    const [isSheetMounted, setIsSheetMounted] = useState(false)
-    const [isSheetVisible, setIsSheetVisible] = useState(false)
     const [collapsedSelectionKeys, setCollapsedSelectionKeys] = useState(
         () => new Set<string>()
     )
-    const [renderedSelection, setRenderedSelection] = useState<{
-        nodes: Node<RegulatoryNodeProperties>[]
-        edges: Edge<EditableRegulatoryEdge>[]
-    }>({
-        nodes: [],
-        edges: [],
-    })
     const animatedContentRef = useRef<HTMLDivElement | null>(null)
     const animatedContentInnerRef = useRef<HTMLDivElement | null>(null)
     const contentAnimationRef = useRef<ReturnType<typeof anime> | null>(null)
     const hasInitializedContentAnimationRef = useRef(false)
-    const hadSelectionRef = useRef(false)
 
-    useEffect(() => {
-        if (selectedElements > 0) {
-            if (hadSelectionRef.current) {
-                const updateTimeout = window.setTimeout(() => {
-                    setRenderedSelection({
-                        nodes: selectedNodes,
-                        edges: selectedEdges,
-                    })
-                    setIsSheetMounted(true)
-                    setIsSheetVisible(true)
-                }, 0)
-
-                return () => {
-                    window.clearTimeout(updateTimeout)
-                }
-            }
-
-            hadSelectionRef.current = true
-            let animationFrame = 0
-            let nestedAnimationFrame = 0
-            const mountTimeout = window.setTimeout(() => {
-                setRenderedSelection({
-                    nodes: selectedNodes,
-                    edges: selectedEdges,
-                })
-                setIsSheetMounted(true)
-                setIsSheetVisible(false)
-
-                animationFrame = requestAnimationFrame(() => {
-                    nestedAnimationFrame = requestAnimationFrame(() => {
-                        setIsSheetVisible(true)
-                    })
-                })
-            }, 0)
-
-            return () => {
-                window.clearTimeout(mountTimeout)
-                cancelAnimationFrame(animationFrame)
-                cancelAnimationFrame(nestedAnimationFrame)
-            }
-        }
-
-        hadSelectionRef.current = false
-        const hideTimeout = window.setTimeout(() => {
-            setIsSheetVisible(false)
-        }, 0)
-
-        const unmountTimeout = window.setTimeout(() => {
-            setIsSheetMounted(false)
-            setRenderedSelection({
-                nodes: [],
-                edges: [],
-            })
-        }, SHEET_ANIMATION_DURATION_MS)
-
-        return () => {
-            window.clearTimeout(hideTimeout)
-            window.clearTimeout(unmountTimeout)
-        }
-    }, [selectedEdges, selectedElements, selectedNodes])
-
-    const renderedSelectedElements =
-        renderedSelection.nodes.length + renderedSelection.edges.length
     const selectedElementKey =
-        renderedSelectedElements === 1
-            ? (renderedSelection.nodes[0]?.id ?? renderedSelection.edges[0]?.id)
-            : renderedSelectedElements.toString()
+        selectedElements === 1
+            ? (selectedNodes[0]?.id ?? selectedEdges[0]?.id)
+            : selectedElements.toString()
     const activeSelectionKey = selectedElementKey ?? '__none__'
     const isSheetOpen = !collapsedSelectionKeys.has(activeSelectionKey)
 
@@ -213,7 +171,7 @@ export function MenuSheet() {
         []
     )
 
-    if (!isSheetMounted || renderedSelectedElements === 0) {
+    if (selectedElements === 0) {
         return null
     }
 
@@ -226,19 +184,15 @@ export function MenuSheet() {
                 key={selectedElementKey}
                 open={isSheetOpen}
                 onOpenChange={handleSheetOpenChange}
-                className={`group bg-background pointer-events-auto flex max-h-10 min-h-0 w-80 flex-col overflow-hidden rounded-lg border transition-all duration-200 ease-out data-[state=open]:max-h-[calc(100vh-13.5rem)] ${
-                    isSheetVisible
-                        ? 'opacity-100'
-                        : 'pointer-events-none translate-x-4 opacity-0'
-                }`}
+                className="group bg-background pointer-events-auto flex max-h-10 min-h-0 w-80 flex-col overflow-hidden rounded-lg border transition-all duration-200 ease-out data-[state=open]:max-h-[calc(100vh-13.5rem)]"
             >
                 <Tabs
                     className="min-h-0 gap-3"
                     defaultValue="base"
                     value={
-                        renderedSelectedElements > 1
+                        selectedElements > 1
                             ? 'style'
-                            : renderedSelection.edges.length == 1
+                            : selectedEdges.length == 1
                               ? 'base'
                               : activeTab
                     }
@@ -271,12 +225,11 @@ export function MenuSheet() {
                                 }
                             />
                             <h3 className="pl-2 font-semibold">
-                                {renderedSelectedElements > 1 &&
-                                    'Element properties'}
-                                {renderedSelectedElements == 1 &&
+                                {selectedElements > 1 && 'Element properties'}
+                                {selectedElements == 1 &&
                                     selectedNodes.length == 1 &&
                                     'Node properties'}
-                                {renderedSelectedElements == 1 &&
+                                {selectedElements == 1 &&
                                     selectedEdges.length == 1 &&
                                     'Edge properties'}
                             </h3>
@@ -293,16 +246,16 @@ export function MenuSheet() {
                                 className="flex min-h-0 max-h-[calc(100vh-16rem)] flex-col overflow-y-auto"
                             >
                                 <div className="flex shrink-0 flex-col gap-2 px-4 pb-4">
-                                    {renderedSelectedElements > 1 && (
+                                    {selectedElements > 1 && (
                                         <Alert>
                                             <AlertDescription className="text-xs">
-                                                {renderedSelectedElements}{' '}
-                                                elements selected
+                                                {selectedElements} elements
+                                                selected
                                             </AlertDescription>
                                         </Alert>
                                     )}
                                     <div className="flex flex-row items-center">
-                                        {renderedSelectedElements == 1 &&
+                                        {selectedElements == 1 &&
                                             selectedNodes.length == 1 && (
                                                 <TabsList className="w-full">
                                                     <>
@@ -319,22 +272,24 @@ export function MenuSheet() {
                                 </div>
 
                                 {/* Menus */}
-                                {renderedSelection.nodes.length == 1 && (
-                                    <>
+                                {selectedNodes.length == 1 &&
+                                    activeTab === 'base' && (
                                         <NodeBasePropertiesMenu
-                                            key={`${renderedSelection.nodes[0].id}-base`}
-                                            node={renderedSelection.nodes[0]}
+                                            key={`${selectedNodes[0].id}-base`}
+                                            node={selectedNodes[0]}
                                         />
+                                    )}
+                                {selectedNodes.length == 1 &&
+                                    activeTab === 'style' && (
                                         <StyleMenu
-                                            key={`${renderedSelection.nodes[0].id}-style`}
-                                            node={renderedSelection.nodes[0]}
+                                            key={`${selectedNodes[0].id}-style`}
+                                            node={selectedNodes[0]}
                                         />
-                                    </>
-                                )}
-                                {renderedSelection.edges.length == 1 && (
+                                    )}
+                                {selectedEdges.length == 1 && (
                                     <EdgeBasePropertiesMenu
-                                        key={renderedSelection.edges[0].id}
-                                        edge={renderedSelection.edges[0]}
+                                        key={selectedEdges[0].id}
+                                        edge={selectedEdges[0]}
                                     />
                                 )}
                             </div>

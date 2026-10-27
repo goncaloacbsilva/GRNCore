@@ -12,6 +12,29 @@ interface EdgeDataWithPoints {
 }
 
 export type NodePositionMap = Map<string, XYPosition>
+export type EdgeAdjacencyMap = ReadonlyMap<string, ReadonlySet<string>>
+
+export function buildEdgeAdjacencyMap<T extends Edge>(
+    edges: T[]
+): Map<string, Set<string>> {
+    const adjacency = new Map<string, Set<string>>()
+
+    for (const edge of edges) {
+        for (const nodeId of [String(edge.source), String(edge.target)]) {
+            const incidentEdges = adjacency.get(nodeId) ?? new Set<string>()
+            incidentEdges.add(String(edge.id))
+            adjacency.set(nodeId, incidentEdges)
+        }
+    }
+
+    return adjacency
+}
+
+export function buildEdgeIndexById<T extends Edge>(
+    edges: T[]
+): Map<string, number> {
+    return new Map(edges.map((edge, index) => [String(edge.id), index]))
+}
 
 export function mapDraggedNodePositions(
     draggedNodes: DragNode[]
@@ -56,52 +79,86 @@ export function shiftDraggedEdgePoints<T extends Edge>({
     edges,
     draggedNodeIds,
     delta,
+    adjacency,
+    edgeIndexById,
 }: {
     edges: T[]
     draggedNodeIds: Set<string>
     delta: XYPosition
+    adjacency?: EdgeAdjacencyMap
+    edgeIndexById?: ReadonlyMap<string, number>
 }): T[] {
     const { x: dx, y: dy } = delta
+    const affectedEdgeIds = new Set<string>()
 
-    return edges.map((edge) => {
-        const sourceMoved = draggedNodeIds.has(String(edge.source))
-        const targetMoved = draggedNodeIds.has(String(edge.target))
+    if (adjacency) {
+        for (const nodeId of draggedNodeIds) {
+            for (const edgeId of adjacency.get(nodeId) ?? []) {
+                affectedEdgeIds.add(edgeId)
+            }
+        }
+    }
 
-        if (!sourceMoved && !targetMoved) {
-            return edge
+    let nextEdges: T[] | null = null
+    const candidateIndices = adjacency
+        ? [...affectedEdgeIds].flatMap((edgeId) => {
+              const index = edgeIndexById?.get(edgeId)
+              if (index !== undefined) return [index]
+              const fallbackIndex = edges.findIndex(
+                  (edge) => String(edge.id) === edgeId
+              )
+              return fallbackIndex >= 0 ? [fallbackIndex] : []
+          })
+        : edges.map((_, index) => index)
+
+    for (const index of candidateIndices) {
+        const edge = edges[index]
+        if (!edge) {
+            continue
         }
 
+        const sourceMoved = draggedNodeIds.has(String(edge.source))
+        const targetMoved = draggedNodeIds.has(String(edge.target))
         const edgeData = (edge.data ?? {}) as EdgeDataWithPoints
         const points = edgeData.points
         if (!points || points.length === 0) {
-            return edge
+            continue
         }
 
         const startHandleId = `${edge.id}-start-control`
         const endHandleId = `${edge.id}-end-control`
         const moveGeometryPoints = sourceMoved && targetMoved
 
-        return {
+        const nextPoints = points.map((point) => {
+            const shouldMove =
+                (point.id === startHandleId && sourceMoved) ||
+                (point.id === endHandleId && targetMoved) ||
+                (moveGeometryPoints &&
+                    point.id !== startHandleId &&
+                    point.id !== endHandleId)
+
+            return shouldMove
+                ? {
+                      ...point,
+                      x: point.x + dx,
+                      y: point.y + dy,
+                  }
+                : point
+        })
+
+        if (nextPoints.every((point, pointIndex) => point === points[pointIndex])) {
+            continue
+        }
+
+        nextEdges ??= edges.slice()
+        nextEdges[index] = {
             ...edge,
             data: {
                 ...edgeData,
-                points: points.map((point) => {
-                    const shouldMove =
-                        (point.id === startHandleId && sourceMoved) ||
-                        (point.id === endHandleId && targetMoved) ||
-                        (moveGeometryPoints &&
-                            point.id !== startHandleId &&
-                            point.id !== endHandleId)
-
-                    return shouldMove
-                        ? {
-                              ...point,
-                              x: point.x + dx,
-                              y: point.y + dy,
-                          }
-                        : point
-                }),
+                points: nextPoints,
             },
         }
-    })
+    }
+
+    return nextEdges ?? edges
 }
