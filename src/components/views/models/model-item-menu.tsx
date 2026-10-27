@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import type { ModelMetadata } from '@/lib/schema'
 import { usePageTransitionNavigate } from '@/hooks/use-page-transition'
 import { useChangesTracking } from '@/store'
@@ -21,6 +22,30 @@ export function ModelItemMenu({ item, onDelete, onEdit }: ModelItemMenuProps) {
         (state) => state.clearLoadedModel
     )
     const [editDialogOpen, setEditDialogOpen] = useState(false)
+    const [isOpening, setIsOpening] = useState(false)
+
+    const handleOpen = async () => {
+        if (isOpening) return
+
+        setIsOpening(true)
+        await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+        )
+
+        try {
+            await navigateWithTransition(
+                'forward',
+                () =>
+                    navigate({
+                        to: '/edit/$modelId',
+                        params: { modelId: item.id },
+                    }),
+                { skipExit: true }
+            )
+        } finally {
+            setIsOpening(false)
+        }
+    }
 
     const handleDelete = async () => {
         await onDelete(item.id)
@@ -36,16 +61,11 @@ export function ModelItemMenu({ item, onDelete, onEdit }: ModelItemMenuProps) {
             <div className="flex flex-row items-center gap-2">
                 <Button
                     className="cursor-pointer"
-                    onClick={() =>
-                        void navigateWithTransition('forward', () =>
-                            navigate({
-                                to: '/edit/$modelId',
-                                params: { modelId: item.id },
-                            })
-                        )
-                    }
+                    disabled={isOpening}
+                    onClick={() => void handleOpen()}
                 >
-                    Open Model
+                    {isOpening ? <Spinner className="size-4" /> : null}
+                    {isOpening ? 'Opening...' : 'Open Model'}
                 </Button>
                 <Button
                     variant="ghost"

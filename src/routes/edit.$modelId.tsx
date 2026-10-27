@@ -1,4 +1,4 @@
-import { EditorView } from '@/components/views'
+import { EditorLoadingView, EditorView } from '@/components/views'
 import { getLocalModelSnapshot } from '@/lib/persistence'
 import { useChangesTracking } from '@/store'
 import { createFileRoute, redirect } from '@tanstack/react-router'
@@ -17,12 +17,7 @@ export const Route = createFileRoute('/edit/$modelId')({
             params: { modelId },
             preload,
         } = EditModelLoaderContextSchema.parse(loaderContext)
-        const { activeModelId, clearLoadedModel, loadModel } =
-            useChangesTracking.getState()
-
-        if (!preload && activeModelId !== modelId) {
-            clearLoadedModel()
-        }
+        const { clearLoadedModel, loadModel } = useChangesTracking.getState()
 
         const snapshot = await getLocalModelSnapshot(modelId)
 
@@ -39,6 +34,9 @@ export const Route = createFileRoute('/edit/$modelId')({
         }
         return { modelId }
     },
+    pendingMs: 0,
+    pendingMinMs: 250,
+    pendingComponent: EditorLoadingView,
     component: RouteComponent,
 })
 

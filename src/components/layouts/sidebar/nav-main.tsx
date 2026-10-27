@@ -27,6 +27,7 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
+import { Spinner } from '@/components/ui/spinner'
 
 export function NavMain() {
     const sidebar = useSidebar()
@@ -44,6 +45,7 @@ export function NavMain() {
     const [isLocalModelsOpen, setIsLocalModelsOpen] = useState(
         pathname === '/models/local' || pathname.startsWith('/edit/')
     )
+    const [openingModelId, setOpeningModelId] = useState<string | null>(null)
 
     const isLocalModelsActive = pathname === '/models/local'
     const isCommunityModelsActive = pathname === '/models/community'
@@ -95,6 +97,36 @@ export function NavMain() {
                     to,
                 })
             )
+        }
+
+    const handleRecentModelNavigation =
+        (modelId: string) => async (event: MouseEvent<HTMLAnchorElement>) => {
+            event.preventDefault()
+
+            if (pathname === `/edit/${modelId}` || openingModelId) {
+                return
+            }
+
+            setOpeningModelId(modelId)
+            await new Promise<void>((resolve) =>
+                requestAnimationFrame(() =>
+                    requestAnimationFrame(() => resolve())
+                )
+            )
+
+            try {
+                await navigateWithTransition(
+                    'forward',
+                    () =>
+                        navigate({
+                            to: '/edit/$modelId',
+                            params: { modelId },
+                        }),
+                    { skipExit: true }
+                )
+            } finally {
+                setOpeningModelId(null)
+            }
         }
 
     return (
@@ -172,9 +204,23 @@ export function NavMain() {
                                                     params={{
                                                         modelId: item.id,
                                                     }}
+                                                    preload={false}
+                                                    aria-disabled={
+                                                        openingModelId !== null
+                                                    }
+                                                    onClick={(event) =>
+                                                        void handleRecentModelNavigation(
+                                                            item.id
+                                                        )(event)
+                                                    }
                                                     className="flex min-w-0 items-center gap-2"
                                                 >
-                                                    <span className="size-1.5 shrink-0 rounded-full bg-[#2F80ED]" />
+                                                    {openingModelId ===
+                                                    item.id ? (
+                                                        <Spinner className="size-3 shrink-0" />
+                                                    ) : (
+                                                        <span className="size-1.5 shrink-0 rounded-full bg-[#2F80ED]" />
+                                                    )}
                                                     <span className="min-w-0 truncate">
                                                         {item.title}
                                                     </span>
