@@ -10,6 +10,7 @@ import { useReactFlow, type Edge, type Node } from '@xyflow/react'
 import { Plus } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { EdgeLevel } from './edge-level'
+import { useEditorStore } from '@/store'
 import {
     Tooltip,
     TooltipContent,
@@ -23,6 +24,9 @@ interface EdgeBasePropertiesMenuProps {
 export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
     const { getNode, updateEdgeData } =
         useReactFlow<Node<RegulatoryNodeProperties>>()
+    const bumpSemanticRevision = useEditorStore(
+        (state) => state.bumpSemanticRevision
+    )
     const sourceNode = getNode(edge.source)
     const scrollContainerRef = useRef<HTMLDivElement | null>(null)
     const previousLevelsLengthRef = useRef(edge.data?.levels.length ?? 0)
@@ -90,6 +94,7 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
                 currentLevel.id === levelId ? level : currentLevel
             ),
         })
+        bumpSemanticRevision()
     }
 
     const removeEdgeLevel = (levelId: string) => {
@@ -100,6 +105,7 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
             ...edge.data,
             levels: levels.filter((level) => level.id !== levelId),
         })
+        bumpSemanticRevision()
     }
 
     const findNextTarget = () => {
@@ -130,6 +136,7 @@ export function EdgeBasePropertiesMenu({ edge }: EdgeBasePropertiesMenuProps) {
             ...edge.data,
             levels: newLevels,
         })
+        bumpSemanticRevision()
     }
 
     return (
