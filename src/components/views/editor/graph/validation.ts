@@ -196,7 +196,9 @@ export function validateGraphIncrementally(
         }
 
         for (const [edgeId, state] of snapshot.edges) {
-            if (sameEdgeSemanticState(previousSnapshot.edges.get(edgeId), state)) {
+            if (
+                sameEdgeSemanticState(previousSnapshot.edges.get(edgeId), state)
+            ) {
                 continue
             }
 
@@ -212,7 +214,10 @@ export function validateGraphIncrementally(
 
             // A removed source can change the rules and edge levels of every
             // remaining target it used to regulate.
-            for (const [previousEdgeId, previousEdge] of previousSnapshot.edges) {
+            for (const [
+                previousEdgeId,
+                previousEdge,
+            ] of previousSnapshot.edges) {
                 if (previousEdge.source === nodeId) {
                     affectedNodeIds.add(previousEdge.target)
                     affectedEdgeIds.add(previousEdgeId)
@@ -277,11 +282,12 @@ export function validateGraphIncrementally(
             .activityLevels
         const nextLevels = edge.data.levels.map((level) => {
             edgeLevelEvaluations++
-            const hasConflict = edge.data?.levels.some(
-                (currentLevel) =>
-                    currentLevel.id !== level.id &&
-                    currentLevel.target === level.target
-            ) ?? false
+            const hasConflict =
+                edge.data?.levels.some(
+                    (currentLevel) =>
+                        currentLevel.id !== level.id &&
+                        currentLevel.target === level.target
+                ) ?? false
             const isWithinSourceRange =
                 sourceActivityLevels === undefined ||
                 level.target <= sourceActivityLevels
@@ -290,7 +296,11 @@ export function validateGraphIncrementally(
             return level.isValid === isValid ? level : { ...level, isValid }
         })
 
-        if (edge.data.levels.every((level, index) => level === nextLevels[index])) {
+        if (
+            edge.data.levels.every(
+                (level, index) => level === nextLevels[index]
+            )
+        ) {
             return edge
         }
 

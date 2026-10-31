@@ -19,15 +19,15 @@ No application source was changed as part of this audit.
 
 At the initial fitted viewport, the loaded editor contained:
 
-| Metric | Count |
-| --- | ---: |
-| Model nodes | 1,093 |
-| Model edges | 1,807 |
-| Total DOM elements | 20,194 |
-| SVG paths | 7,120 |
-| SVG markers | 1,807 |
-| Nodes intersecting the viewport | 17 |
-| Edges intersecting the viewport | 147 |
+| Metric                          |  Count |
+| ------------------------------- | -----: |
+| Model nodes                     |  1,093 |
+| Model edges                     |  1,807 |
+| Total DOM elements              | 20,194 |
+| SVG paths                       |  7,120 |
+| SVG markers                     |  1,807 |
+| Nodes intersecting the viewport |     17 |
+| Edges intersecting the viewport |    147 |
 
 Only about 5.7% of graph elements intersected the viewport, while all nodes and edges remained mounted. Approximately 98.4% of nodes and 91.9% of edges were offscreen but still contributed React components, subscriptions, effects, SVG definitions, and DOM nodes.
 

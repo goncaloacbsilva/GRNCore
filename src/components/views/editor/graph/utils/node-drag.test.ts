@@ -74,7 +74,12 @@ describe('shiftDraggedEdgePoints', () => {
                 id: 'loop',
                 source: 'dragged',
                 target: 'dragged',
-                data: { points: [point('loop-start-control'), point('loop-geometry')] },
+                data: {
+                    points: [
+                        point('loop-start-control'),
+                        point('loop-geometry'),
+                    ],
+                },
             },
             {
                 id: 'between-dragged',
@@ -95,7 +100,9 @@ describe('shiftDraggedEdgePoints', () => {
             point('loop-start-control', 11, 24),
             point('loop-geometry', 11, 24),
         ])
-        expect(next[1].data?.points).toEqual([point('between-geometry', 11, 24)])
+        expect(next[1].data?.points).toEqual([
+            point('between-geometry', 11, 24),
+        ])
     })
 })
 

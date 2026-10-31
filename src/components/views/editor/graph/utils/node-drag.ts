@@ -146,7 +146,11 @@ export function shiftDraggedEdgePoints<T extends Edge>({
                 : point
         })
 
-        if (nextPoints.every((point, pointIndex) => point === points[pointIndex])) {
+        if (
+            nextPoints.every(
+                (point, pointIndex) => point === points[pointIndex]
+            )
+        ) {
             continue
         }
 

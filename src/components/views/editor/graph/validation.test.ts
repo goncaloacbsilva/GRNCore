@@ -58,7 +58,11 @@ function makeSyntheticGraph() {
 describe('incremental graph validation', () => {
     it('does no semantic validation for position-only or selection-only changes', () => {
         const graph = makeSyntheticGraph()
-        const initial = validateGraphIncrementally(graph.nodes, graph.edges, null)
+        const initial = validateGraphIncrementally(
+            graph.nodes,
+            graph.edges,
+            null
+        )
 
         const movedNodes = graph.nodes.map((node, index) => ({
             ...node,
@@ -87,7 +91,11 @@ describe('incremental graph validation', () => {
 
     it("validates only a changed node's incident edges and dependent rules", () => {
         const graph = makeSyntheticGraph()
-        const initial = validateGraphIncrementally(graph.nodes, graph.edges, null)
+        const initial = validateGraphIncrementally(
+            graph.nodes,
+            graph.edges,
+            null
+        )
         const changedNodes = graph.nodes.map((node) =>
             node.id === 'node-0'
                 ? { ...node, data: { ...node.data, activityLevels: 2 } }
@@ -111,7 +119,11 @@ describe('incremental graph validation', () => {
     it('does not update state when all validity flags are already correct', () => {
         const graph = makeSyntheticGraph()
         const snapshot = createValidationSnapshot(graph.nodes, graph.edges)
-        const result = validateGraphIncrementally(graph.nodes, graph.edges, snapshot)
+        const result = validateGraphIncrementally(
+            graph.nodes,
+            graph.edges,
+            snapshot
+        )
 
         expect(result.nodesChanged).toBe(false)
         expect(result.edgesChanged).toBe(false)
@@ -119,7 +131,11 @@ describe('incremental graph validation', () => {
 
     it('revalidates the former target when an edge is deleted', () => {
         const graph = makeSyntheticGraph()
-        const initial = validateGraphIncrementally(graph.nodes, graph.edges, null)
+        const initial = validateGraphIncrementally(
+            graph.nodes,
+            graph.edges,
+            null
+        )
         const withoutEdge = graph.edges.filter((edge) => edge.id !== 'edge-0')
 
         const result = validateGraphIncrementally(
@@ -134,7 +150,11 @@ describe('incremental graph validation', () => {
 
     it('revalidates dependents when a source node and its incident edge are deleted', () => {
         const graph = makeSyntheticGraph()
-        const initial = validateGraphIncrementally(graph.nodes, graph.edges, null)
+        const initial = validateGraphIncrementally(
+            graph.nodes,
+            graph.edges,
+            null
+        )
         const result = validateGraphIncrementally(
             graph.nodes.filter((node) => node.id !== 'node-0'),
             graph.edges.filter((edge) => edge.id !== 'edge-0'),
