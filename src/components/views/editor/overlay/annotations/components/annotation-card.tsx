@@ -35,15 +35,15 @@ export function AnnotationCard({
             open={isOpen}
             onOpenChange={onOpenChange}
             className={twJoin(
-                'bg-background pointer-events-auto flex h-10 min-h-0 flex-col overflow-hidden rounded-lg border transition-all duration-200 ease-out data-[state=open]:h-full',
+                'bg-background pointer-events-auto flex h-auto min-h-10 flex-col overflow-hidden rounded-lg border transition-all duration-200 ease-out data-[state=open]:h-full',
                 widthClassName
             )}
         >
             <TooltipProvider>
-                <div className="flex h-10 shrink-0 items-center gap-2 overflow-auto border-b p-1">
+                <div className="flex min-h-10 shrink-0 items-center gap-2 overflow-auto border-b px-1">
                     <button
                         type="button"
-                        className="flex flex-1 select-none items-center gap-2 rounded-sm px-2 py-1 text-left text-sm font-medium hover:bg-accent"
+                        className="flex flex-1 select-none items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm font-medium hover:bg-accent"
                         onClick={() => onOpenChange(!isOpen)}
                         aria-expanded={isOpen}
                         aria-label={

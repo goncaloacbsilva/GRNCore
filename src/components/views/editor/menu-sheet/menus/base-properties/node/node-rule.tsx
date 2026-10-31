@@ -15,7 +15,7 @@ import {
 import { useEditorStore } from '@/store'
 import { useStore } from '@tanstack/react-form'
 import { type Edge, type Node } from '@xyflow/react'
-import { XIcon } from 'lucide-react'
+import { Trash2Icon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Fragment } from 'react/jsx-runtime'
 
@@ -317,21 +317,11 @@ export function NodeRule({
         <Fragment key={ruleKey}>
             <div
                 ref={ruleContainerRef}
-                className="group ml-3 flex flex-col p-1"
+                className="group ml-3 mr-3 flex flex-col p-1"
                 onFocusCapture={handleFocusCapture}
                 onBlurCapture={handleBlurCapture}
             >
-                <div className="flex w-full flex-row justify-end">
-                    <Button
-                        variant="ghost"
-                        size="xs"
-                        className="flex flex-row"
-                        onClick={() => removeCallback(rule.id)}
-                    >
-                        <XIcon />
-                    </Button>
-                </div>
-                <FieldGroup className="flex flex-col items-center gap-4 pr-6 pb-2">
+                <FieldGroup className="flex flex-col items-center gap-4 pt-2 pb-2">
                     <form.AppField
                         name="target"
                         children={(field) => (
@@ -374,6 +364,18 @@ export function NodeRule({
                         )}
                     />
                 </FieldGroup>
+                <div className="flex w-full justify-end pb-2">
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => removeCallback(rule.id)}
+                    >
+                        <Trash2Icon />
+                        Delete expression
+                    </Button>
+                </div>
             </div>
             <Separator hidden={ruleKey === ruleCount - 1} className="my-1" />
         </Fragment>

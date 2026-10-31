@@ -16,6 +16,8 @@ import type {
 } from '@/lib/schema'
 import { nanoid } from 'nanoid'
 import {
+    buildEdgeAdjacencyMap,
+    buildEdgeIndexById,
     getNodeDragDelta,
     mapDraggedNodePositions,
     shiftDraggedEdgePoints,
@@ -50,22 +52,49 @@ function getEventClientPoint(
 export function useGraphInteractions({
     setNodes,
     setEdges,
+    initialEdges,
+    onSelectionOnlyChange,
 }: {
     setNodes: SetNodes
     setEdges: SetEdges
+    initialEdges: RegulatoryEdge[]
+    onSelectionOnlyChange: () => void
 }) {
     const dragPreviousPositionsRef = useRef<
         Map<string, { x: number; y: number }>
     >(new Map())
+    const edgeAdjacencyRef = useRef(buildEdgeAdjacencyMap(initialEdges))
+    const edgeIndexByIdRef = useRef(buildEdgeIndexById(initialEdges))
     const connectionStartNodeIdRef = useRef<string | null>(null)
     const connectionCreatedRef = useRef(false)
     const connectionInteraction = useEditorStore(
         (state) => state.connectModeInteraction
     )
     const popSelectedNodeId = useEditorStore((state) => state.popSelectedNodeId)
+    const bumpSemanticRevision = useEditorStore(
+        (state) => state.bumpSemanticRevision
+    )
 
     const onNodesChange = useCallback(
         (changes: NodeChange<RegulatoryNode>[]) => {
+            if (
+                changes.length > 0 &&
+                changes.every((change) => change.type === 'select')
+            ) {
+                onSelectionOnlyChange()
+            }
+
+            if (
+                changes.some(
+                    (change) =>
+                        change.type !== 'select' &&
+                        change.type !== 'position' &&
+                        change.type !== 'dimensions'
+                )
+            ) {
+                bumpSemanticRevision()
+            }
+
             // Make sure we exclude the node from the selected node list
             changes.forEach((change) => {
                 if (change.type == 'remove') {
@@ -75,14 +104,38 @@ export function useGraphInteractions({
 
             setNodes((prevNodes) => applyNodeChanges(changes, prevNodes))
         },
-        [setNodes, popSelectedNodeId]
+        [
+            bumpSemanticRevision,
+            onSelectionOnlyChange,
+            setNodes,
+            popSelectedNodeId,
+        ]
     )
 
     const onEdgesChange = useCallback(
         (changes: EdgeChange<RegulatoryEdge>[]) => {
-            setEdges((prevEdges) => applyEdgeChanges(changes, prevEdges))
+            if (
+                changes.length > 0 &&
+                changes.every((change) => change.type === 'select')
+            ) {
+                onSelectionOnlyChange()
+            }
+
+            const hasStructuralChanges = changes.some(
+                (change) => change.type !== 'select'
+            )
+            if (hasStructuralChanges) bumpSemanticRevision()
+
+            setEdges((prevEdges) => {
+                const nextEdges = applyEdgeChanges(changes, prevEdges)
+                if (hasStructuralChanges) {
+                    edgeAdjacencyRef.current = buildEdgeAdjacencyMap(nextEdges)
+                    edgeIndexByIdRef.current = buildEdgeIndexById(nextEdges)
+                }
+                return nextEdges
+            })
         },
-        [setEdges]
+        [bumpSemanticRevision, onSelectionOnlyChange, setEdges]
     )
 
     const onNodeDragStart = useCallback(
@@ -118,6 +171,8 @@ export function useGraphInteractions({
                     edges: currentEdges,
                     draggedNodeIds: draggedIds,
                     delta: dragDelta,
+                    adjacency: edgeAdjacencyRef.current,
+                    edgeIndexById: edgeIndexByIdRef.current,
                 })
             )
 
@@ -142,8 +197,8 @@ export function useGraphInteractions({
     const onConnect = useCallback(
         (params: Connection) => {
             connectionCreatedRef.current = true
-            setEdges((eds) =>
-                addEdge(
+            setEdges((eds) => {
+                const nextEdges = addEdge(
                     {
                         ...params,
                         data: {
@@ -159,9 +214,13 @@ export function useGraphInteractions({
                     },
                     eds
                 )
-            )
+                edgeAdjacencyRef.current = buildEdgeAdjacencyMap(nextEdges)
+                edgeIndexByIdRef.current = buildEdgeIndexById(nextEdges)
+                return nextEdges
+            })
+            bumpSemanticRevision()
         },
-        [setEdges, connectionInteraction]
+        [bumpSemanticRevision, setEdges, connectionInteraction]
     )
 
     const onConnectEnd = useCallback(
@@ -182,8 +241,8 @@ export function useGraphInteractions({
                 : null
 
             if (dropTargetNode === startNodeId) {
-                setEdges((eds) =>
-                    addEdge(
+                setEdges((eds) => {
+                    const nextEdges = addEdge(
                         {
                             source: startNodeId,
                             target: startNodeId,
@@ -192,13 +251,17 @@ export function useGraphInteractions({
                         },
                         eds
                     )
-                )
+                    edgeAdjacencyRef.current = buildEdgeAdjacencyMap(nextEdges)
+                    edgeIndexByIdRef.current = buildEdgeIndexById(nextEdges)
+                    return nextEdges
+                })
+                bumpSemanticRevision()
             }
 
             connectionStartNodeIdRef.current = null
             connectionCreatedRef.current = false
         },
-        [setEdges]
+        [bumpSemanticRevision, setEdges]
     )
 
     return {

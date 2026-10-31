@@ -18,12 +18,28 @@ interface SelectionRect {
     height: number
 }
 
+export function selectEdgePreservingIdentity<T extends Edge>(
+    edges: T[],
+    selectedId: string
+): T[] {
+    let nextEdges: T[] | null = null
+
+    edges.forEach((edge, index) => {
+        const nextSelected = edge.id === selectedId
+        if (Boolean(edge.selected) === nextSelected) return
+        nextEdges ??= edges.slice()
+        nextEdges[index] = { ...edge, selected: nextSelected }
+    })
+
+    return nextEdges ?? edges
+}
+
 interface UseRegulatoryEdgeSelectionArgs {
     controlPoints: ControlPoint[]
     id: string
     selected: boolean
     setEdges: SetEdges
-    transform: [number, number, number]
+    getViewport: () => { x: number; y: number; zoom: number }
     userSelectionActive: boolean
     userSelectionRect: SelectionRect | null
 }
@@ -33,7 +49,7 @@ export function useRegulatoryEdgeSelection({
     id,
     selected,
     setEdges,
-    transform,
+    getViewport,
     userSelectionActive,
     userSelectionRect,
 }: UseRegulatoryEdgeSelectionArgs) {
@@ -42,7 +58,7 @@ export function useRegulatoryEdgeSelection({
             return
         }
 
-        const [txTransform, tyTransform, zoom] = transform
+        const { x: txTransform, y: tyTransform, zoom } = getViewport()
         const minX = userSelectionRect.x
         const minY = userSelectionRect.y
         const maxX = minX + userSelectionRect.width
@@ -75,7 +91,7 @@ export function useRegulatoryEdgeSelection({
         id,
         selected,
         setEdges,
-        transform,
+        getViewport,
         userSelectionActive,
         userSelectionRect,
     ])
@@ -106,10 +122,7 @@ export function useRegulatoryEdgeActions({
 }: UseRegulatoryEdgeActionsArgs) {
     const selectEdge = useCallback(() => {
         setEdges((currentEdges) =>
-            currentEdges.map((edge) => ({
-                ...edge,
-                selected: edge.id === id,
-            }))
+            selectEdgePreservingIdentity(currentEdges, id)
         )
     }, [id, setEdges])
 

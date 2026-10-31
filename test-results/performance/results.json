@@ -1,0 +1,615 @@
+{
+    "metadata": {
+        "generatedAt": "2026-08-17T13:08:44.770Z",
+        "browserName": "chromium",
+        "viewport": {
+            "width": 1440,
+            "height": 1000
+        },
+        "commitSha": "a976c6d",
+        "samplesPerBenchmark": 1,
+        "scenarioTimeoutMs": 240000
+    },
+    "interactions": [
+        {
+            "task": "node-selection",
+            "tier": "small",
+            "nodeCount": 10,
+            "edgeCount": 12,
+            "ruleCount": 9,
+            "expressionCharCount": 40,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "stats": {
+                "samples": 1,
+                "min": 296,
+                "max": 296,
+                "median": 296,
+                "p95": 296
+            }
+        },
+        {
+            "task": "node-repositioning",
+            "tier": "small",
+            "nodeCount": 10,
+            "edgeCount": 12,
+            "ruleCount": 9,
+            "expressionCharCount": 40,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "stats": {
+                "samples": 1,
+                "min": 110.20000004768372,
+                "max": 110.20000004768372,
+                "median": 110.20000004768372,
+                "p95": 110.20000004768372
+            }
+        },
+        {
+            "task": "edge-creation",
+            "tier": "small",
+            "nodeCount": 10,
+            "edgeCount": 12,
+            "ruleCount": 9,
+            "expressionCharCount": 40,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "stats": {
+                "samples": 1,
+                "min": 296.8000000715256,
+                "max": 296.8000000715256,
+                "median": 296.8000000715256,
+                "p95": 296.8000000715256
+            }
+        },
+        {
+            "task": "canvas-panning",
+            "tier": "small",
+            "nodeCount": 10,
+            "edgeCount": 12,
+            "ruleCount": 9,
+            "expressionCharCount": 40,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "stats": {
+                "samples": 1,
+                "min": 63.299999952316284,
+                "max": 63.299999952316284,
+                "median": 63.299999952316284,
+                "p95": 63.299999952316284
+            }
+        },
+        {
+            "task": "zooming",
+            "tier": "small",
+            "nodeCount": 10,
+            "edgeCount": 12,
+            "ruleCount": 9,
+            "expressionCharCount": 40,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "stats": {
+                "samples": 1,
+                "min": 48.700000047683716,
+                "max": 48.700000047683716,
+                "median": 48.700000047683716,
+                "p95": 48.700000047683716
+            }
+        },
+        {
+            "task": "node-selection",
+            "tier": "medium",
+            "nodeCount": 100,
+            "edgeCount": 180,
+            "ruleCount": 99,
+            "expressionCharCount": 906,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "stats": {
+                "samples": 1,
+                "min": 413.09999990463257,
+                "max": 413.09999990463257,
+                "median": 413.09999990463257,
+                "p95": 413.09999990463257
+            }
+        },
+        {
+            "task": "node-repositioning",
+            "tier": "medium",
+            "nodeCount": 100,
+            "edgeCount": 180,
+            "ruleCount": 99,
+            "expressionCharCount": 906,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "stats": {
+                "samples": 1,
+                "min": 215,
+                "max": 215,
+                "median": 215,
+                "p95": 215
+            }
+        },
+        {
+            "task": "edge-creation",
+            "tier": "medium",
+            "nodeCount": 100,
+            "edgeCount": 180,
+            "ruleCount": 99,
+            "expressionCharCount": 906,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "stats": {
+                "samples": 1,
+                "min": 668.3000000715256,
+                "max": 668.3000000715256,
+                "median": 668.3000000715256,
+                "p95": 668.3000000715256
+            }
+        },
+        {
+            "task": "canvas-panning",
+            "tier": "medium",
+            "nodeCount": 100,
+            "edgeCount": 180,
+            "ruleCount": 99,
+            "expressionCharCount": 906,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "stats": {
+                "samples": 1,
+                "min": 89.59999990463257,
+                "max": 89.59999990463257,
+                "median": 89.59999990463257,
+                "p95": 89.59999990463257
+            }
+        },
+        {
+            "task": "zooming",
+            "tier": "medium",
+            "nodeCount": 100,
+            "edgeCount": 180,
+            "ruleCount": 99,
+            "expressionCharCount": 906,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "stats": {
+                "samples": 1,
+                "min": 245.70000004768372,
+                "max": 245.70000004768372,
+                "median": 245.70000004768372,
+                "p95": 245.70000004768372
+            }
+        }
+    ],
+    "interchange": [
+        {
+            "tier": "small",
+            "format": "bnet",
+            "nodeCount": 10,
+            "edgeCount": 12,
+            "ruleCount": 9,
+            "expressionCharCount": 40,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 107,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 0.10000002384185791,
+                    "max": 0.10000002384185791,
+                    "median": 0.10000002384185791,
+                    "p95": 0.10000002384185791
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 2.1999999284744263,
+                    "max": 2.1999999284744263,
+                    "median": 2.1999999284744263,
+                    "p95": 2.1999999284744263
+                }
+            }
+        },
+        {
+            "tier": "small",
+            "format": "sbml",
+            "nodeCount": 10,
+            "edgeCount": 12,
+            "ruleCount": 9,
+            "expressionCharCount": 40,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 13883,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 2.5,
+                    "max": 2.5,
+                    "median": 2.5,
+                    "p95": 2.5
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 4.799999952316284,
+                    "max": 4.799999952316284,
+                    "median": 4.799999952316284,
+                    "p95": 4.799999952316284
+                }
+            }
+        },
+        {
+            "tier": "small",
+            "format": "ginml",
+            "nodeCount": 10,
+            "edgeCount": 12,
+            "ruleCount": 9,
+            "expressionCharCount": 40,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 3738,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 1.399999976158142,
+                    "max": 1.399999976158142,
+                    "median": 1.399999976158142,
+                    "p95": 1.399999976158142
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 3.8000000715255737,
+                    "max": 3.8000000715255737,
+                    "median": 3.8000000715255737,
+                    "p95": 3.8000000715255737
+                }
+            }
+        },
+        {
+            "tier": "medium",
+            "format": "bnet",
+            "nodeCount": 100,
+            "edgeCount": 180,
+            "ruleCount": 99,
+            "expressionCharCount": 906,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 1514,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 0.20000004768371582,
+                    "max": 0.20000004768371582,
+                    "median": 0.20000004768371582,
+                    "p95": 0.20000004768371582
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 25.299999952316284,
+                    "max": 25.299999952316284,
+                    "median": 25.299999952316284,
+                    "p95": 25.299999952316284
+                }
+            }
+        },
+        {
+            "tier": "medium",
+            "format": "sbml",
+            "nodeCount": 100,
+            "edgeCount": 180,
+            "ruleCount": 99,
+            "expressionCharCount": 906,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 157832,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 12.5,
+                    "max": 12.5,
+                    "median": 12.5,
+                    "p95": 12.5
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 22.40000009536743,
+                    "max": 22.40000009536743,
+                    "median": 22.40000009536743,
+                    "p95": 22.40000009536743
+                }
+            }
+        },
+        {
+            "tier": "medium",
+            "format": "ginml",
+            "nodeCount": 100,
+            "edgeCount": 180,
+            "ruleCount": 99,
+            "expressionCharCount": 906,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 41602,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 3.299999952316284,
+                    "max": 3.299999952316284,
+                    "median": 3.299999952316284,
+                    "p95": 3.299999952316284
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 17.5,
+                    "max": 17.5,
+                    "median": 17.5,
+                    "p95": 17.5
+                }
+            }
+        },
+        {
+            "tier": "large",
+            "format": "bnet",
+            "nodeCount": 1000,
+            "edgeCount": 2400,
+            "ruleCount": 999,
+            "expressionCharCount": 16485,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 23394,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 0.5,
+                    "max": 0.5,
+                    "median": 0.5,
+                    "p95": 0.5
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 8875.700000047684,
+                    "max": 8875.700000047684,
+                    "median": 8875.700000047684,
+                    "p95": 8875.700000047684
+                }
+            }
+        },
+        {
+            "tier": "large",
+            "format": "sbml",
+            "nodeCount": 1000,
+            "edgeCount": 2400,
+            "ruleCount": 999,
+            "expressionCharCount": 16485,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 1809288,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 108.39999997615814,
+                    "max": 108.39999997615814,
+                    "median": 108.39999997615814,
+                    "p95": 108.39999997615814
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 186.89999997615814,
+                    "max": 186.89999997615814,
+                    "median": 186.89999997615814,
+                    "p95": 186.89999997615814
+                }
+            }
+        },
+        {
+            "tier": "large",
+            "format": "ginml",
+            "nodeCount": 1000,
+            "edgeCount": 2400,
+            "ruleCount": 999,
+            "expressionCharCount": 16485,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 510369,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 53.300000071525574,
+                    "max": 53.300000071525574,
+                    "median": 53.300000071525574,
+                    "p95": 53.300000071525574
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 539.3999999761581,
+                    "max": 539.3999999761581,
+                    "median": 539.3999999761581,
+                    "p95": 539.3999999761581
+                }
+            }
+        },
+        {
+            "tier": "very-large",
+            "format": "sbml",
+            "nodeCount": 10000,
+            "edgeCount": 40000,
+            "ruleCount": 9999,
+            "expressionCharCount": 368897,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 24279639,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 3439.399999976158,
+                    "max": 3439.399999976158,
+                    "median": 3439.399999976158,
+                    "p95": 3439.399999976158
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 7446.600000023842,
+                    "max": 7446.600000023842,
+                    "median": 7446.600000023842,
+                    "p95": 7446.600000023842
+                }
+            }
+        },
+        {
+            "tier": "very-large",
+            "format": "ginml",
+            "nodeCount": 10000,
+            "edgeCount": 40000,
+            "ruleCount": 9999,
+            "expressionCharCount": 368897,
+            "invalidExpressionCount": 0,
+            "polarityMismatchCount": 0,
+            "bytes": 7703838,
+            "stats": {
+                "exportMs": {
+                    "samples": 1,
+                    "min": 9357.700000047684,
+                    "max": 9357.700000047684,
+                    "median": 9357.700000047684,
+                    "p95": 9357.700000047684
+                },
+                "importMs": {
+                    "samples": 1,
+                    "min": 92986.5,
+                    "max": 92986.5,
+                    "median": 92986.5,
+                    "p95": 92986.5
+                }
+            }
+        }
+    ],
+    "history": [
+        {
+            "step": 1,
+            "historyPosition": 1,
+            "maxHistory": 100,
+            "modifyMs": 82.29999995231628,
+            "undoMs": 144,
+            "redoMs": 179.19999992847443,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 10,
+            "historyPosition": 10,
+            "maxHistory": 100,
+            "modifyMs": 47.09999990463257,
+            "undoMs": 174.40000009536743,
+            "redoMs": 145.40000009536743,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 20,
+            "historyPosition": 20,
+            "maxHistory": 100,
+            "modifyMs": 46.39999997615814,
+            "undoMs": 159,
+            "redoMs": 137,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 30,
+            "historyPosition": 30,
+            "maxHistory": 100,
+            "modifyMs": 48.299999952316284,
+            "undoMs": 174.60000002384186,
+            "redoMs": 145.5,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 40,
+            "historyPosition": 40,
+            "maxHistory": 100,
+            "modifyMs": 48,
+            "undoMs": 174.30000007152557,
+            "redoMs": 146.39999997615814,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 50,
+            "historyPosition": 50,
+            "maxHistory": 100,
+            "modifyMs": 58.799999952316284,
+            "undoMs": 174.39999997615814,
+            "redoMs": 128,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 60,
+            "historyPosition": 60,
+            "maxHistory": 100,
+            "modifyMs": 57,
+            "undoMs": 131.10000002384186,
+            "redoMs": 145.29999995231628,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 70,
+            "historyPosition": 70,
+            "maxHistory": 100,
+            "modifyMs": 44.700000047683716,
+            "undoMs": 165.79999995231628,
+            "redoMs": 145.60000002384186,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 80,
+            "historyPosition": 80,
+            "maxHistory": 100,
+            "modifyMs": 46.39999997615814,
+            "undoMs": 177.10000002384186,
+            "redoMs": 149.19999992847443,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 90,
+            "historyPosition": 90,
+            "maxHistory": 100,
+            "modifyMs": 61.699999928474426,
+            "undoMs": 167.5,
+            "redoMs": 137.5,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 100,
+            "historyPosition": 100,
+            "maxHistory": 100,
+            "modifyMs": 50.200000047683716,
+            "undoMs": 124.5,
+            "redoMs": 128.20000004768372,
+            "heapUsed": 91700000
+        },
+        {
+            "step": 105,
+            "historyPosition": 100,
+            "maxHistory": 100,
+            "modifyMs": 43.700000047683716,
+            "undoMs": 182.30000007152557,
+            "redoMs": 136.80000007152557,
+            "heapUsed": 91700000
+        }
+    ],
+    "notes": [
+        {
+            "benchmark": "interaction",
+            "tier": "large",
+            "timeoutMs": 240000,
+            "message": "Skipped after timeout: Scenario exceeded 240000ms timeout."
+        },
+        {
+            "benchmark": "interaction",
+            "tier": "very-large",
+            "timeoutMs": 240000,
+            "message": "Skipped after timeout: Scenario exceeded 240000ms timeout."
+        },
+        {
+            "benchmark": "interchange",
+            "tier": "very-large",
+            "format": "bnet",
+            "timeoutMs": 240000,
+            "message": "Skipped after timeout: Scenario exceeded 240000ms timeout."
+        }
+    ]
+}

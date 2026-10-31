@@ -28,9 +28,9 @@ interface EditorState {
     connectModeEnabled: boolean
     connectModeInteraction: InteractionType
     selectedNodesIds: Set<string>
+    semanticRevision: number
     menuSheetTab: MenuSheetTab
     copyArea: InternalGRNModel | null
-    isDragging: boolean
     isApplyingHistory: boolean
     isSnapshotPaused: boolean
     customNodeThemes: CustomNodeTheme[]
@@ -39,7 +39,6 @@ interface EditorState {
     setImportModelDialogVisible: (visible: boolean) => void
     setConnectMode: (enabled: boolean) => void
     setConnectModeInteraction: (interaction: InteractionType) => void
-    setDragging: (value: boolean) => void
     setApplyingHistory: (value: boolean) => void
     setSnapshotPaused: (value: boolean) => void
     setAnnotationsPanelOpen: (open: boolean) => void
@@ -51,6 +50,7 @@ interface EditorState {
 
     pushSelectedNodeId: (node: string) => void
     popSelectedNodeId: (node: string) => void
+    bumpSemanticRevision: () => void
 
     copySelectedElements: (instance: ReactFlowInstance) => void
     pasteSelectedElements: (
@@ -69,9 +69,9 @@ type EditorStateSnapshot = Pick<
     | 'connectModeEnabled'
     | 'connectModeInteraction'
     | 'selectedNodesIds'
+    | 'semanticRevision'
     | 'menuSheetTab'
     | 'copyArea'
-    | 'isDragging'
     | 'isApplyingHistory'
     | 'isSnapshotPaused'
     | 'customNodeThemes'
@@ -83,9 +83,9 @@ const initialEditorState: EditorStateSnapshot = {
     connectModeEnabled: false,
     connectModeInteraction: InteractionType.Activation,
     selectedNodesIds: new Set<string>(),
+    semanticRevision: 0,
     menuSheetTab: 'base',
     copyArea: null,
-    isDragging: false,
     isApplyingHistory: false,
     isSnapshotPaused: false,
     annotationsPanelOpen: false,
@@ -134,9 +134,6 @@ export const useEditorStore = create<EditorState>()(
             setConnectModeInteraction: (interaction) => {
                 set(() => ({ connectModeInteraction: interaction }))
             },
-            setDragging: (value) => {
-                set(() => ({ isDragging: value }))
-            },
             setApplyingHistory: (value) => {
                 set(() => ({ isApplyingHistory: value }))
             },
@@ -156,6 +153,11 @@ export const useEditorStore = create<EditorState>()(
                     next.delete(nodeId)
                     return { selectedNodesIds: next }
                 })
+            },
+            bumpSemanticRevision: () => {
+                set((state) => ({
+                    semanticRevision: state.semanticRevision + 1,
+                }))
             },
             copySelectedElements: (instance) => {
                 set(() => ({
@@ -187,3 +189,14 @@ export const useEditorStore = create<EditorState>()(
         }
     )
 )
+
+interface EditorTransientState {
+    isDragging: boolean
+    setDragging: (value: boolean) => void
+}
+
+/** Drag state is intentionally not persisted: it changes at interaction rate. */
+export const useEditorTransientStore = create<EditorTransientState>((set) => ({
+    isDragging: false,
+    setDragging: (value) => set({ isDragging: value }),
+}))

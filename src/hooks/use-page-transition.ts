@@ -3,6 +3,10 @@ import { useEffect, type RefObject } from 'react'
 
 type TransitionDirection = 'forward' | 'back'
 
+interface PageTransitionOptions {
+    skipExit?: boolean
+}
+
 const ROUTE_TRANSITION_SELECTOR = '[data-route-transition-root="true"]'
 const EXIT_DISTANCE_PX = 32
 const ENTER_DISTANCE_PX = 24
@@ -48,10 +52,13 @@ const animateCurrentRouteOut = async (direction: TransitionDirection) => {
 export function usePageTransitionNavigate() {
     return async (
         direction: TransitionDirection,
-        action: () => Promise<void> | void
+        action: () => Promise<void> | void,
+        options?: PageTransitionOptions
     ) => {
         pendingDirection = direction
-        await animateCurrentRouteOut(direction)
+        if (!options?.skipExit) {
+            await animateCurrentRouteOut(direction)
+        }
         await action()
     }
 }

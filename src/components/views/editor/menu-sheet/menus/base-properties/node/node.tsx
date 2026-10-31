@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import * as z from 'zod'
 import { shallow } from 'zustand/shallow'
 import { NodeRules } from './node-rules'
+import { useEditorStore } from '@/store'
 import {
     NodeIncomingEdgesTooltipContent,
     NodeOutgoingEdgesTooltipContent,
@@ -49,6 +50,9 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
     const { getNode, updateNode } =
         useReactFlow<Node<RegulatoryNodeProperties>>()
     const nodeData = normalizeRegulatoryNodeProperties(node.data)
+    const bumpSemanticRevision = useEditorStore(
+        (state) => state.bumpSemanticRevision
+    )
     const persistNodeData = useCallback(
         (
             values: Pick<
@@ -66,8 +70,9 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                     width: getNodeContentMinWidth(values.name),
                 },
             }))
+            bumpSemanticRevision()
         },
-        [node.id, updateNode]
+        [bumpSemanticRevision, node.id, updateNode]
     )
     const outgoingEdges = useStore(
         (state) =>
@@ -219,7 +224,8 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
                 width: getNodeContentMinWidth(nextName),
             },
         }))
-    }, [currentName, isFormTouched, node.id, updateNode])
+        bumpSemanticRevision()
+    }, [bumpSemanticRevision, currentName, isFormTouched, node.id, updateNode])
 
     const isAtEdgeTargetBoundary =
         minActivityLevels > baseMinActivityLevels &&
@@ -297,6 +303,7 @@ export function NodeBasePropertiesMenu({ node }: NodeBasePropertiesMenuProps) {
             </FieldGroup>
             {!currentIsInputNode && (
                 <NodeRules
+                    key={`${node.id}-rules`}
                     node={{ ...node, data: currentNodeData }}
                     incomingNodes={incomingNodes}
                     incomingEdges={incomingEdges}

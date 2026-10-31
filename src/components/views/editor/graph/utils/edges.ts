@@ -7,7 +7,7 @@ interface Point {
     y: number
 }
 
-interface ParallelEdgeMeta {
+export interface ParallelEdgeMeta {
     index: number
     total: number
     centeredIndex: number
@@ -167,48 +167,43 @@ function getEdgeSideKey(
 }
 
 /**
- * Returns stable parallel-edge positioning metadata for an edge.
+ * Groups every edge once so renderers can look up their parallel offset in O(1).
  * Edges are grouped by undirected node pair so A->B and B->A are spaced together.
  */
-export function getParallelEdgeMeta(
+export function getParallelEdgeMetadata(
     edges: Edge[],
-    edgeId: string,
-    source: string,
-    target: string,
     nodeLookup: ReadonlyMap<string, InternalNode>
-): ParallelEdgeMeta {
-    const pairKey = getUndirectedPairKey(source, target)
-    const currentEdge = edges.find((edge) => String(edge.id) === edgeId)
-    const currentSideKey = currentEdge
-        ? getEdgeSideKey(currentEdge, nodeLookup)
-        : 'unknown'
+): ReadonlyMap<string, ParallelEdgeMeta> {
+    const groups = new Map<string, Edge[]>()
 
-    const siblings = edges
-        .filter(
-            (edge) =>
-                getUndirectedPairKey(
-                    String(edge.source),
-                    String(edge.target)
-                ) === pairKey &&
-                getEdgeSideKey(edge, nodeLookup) === currentSideKey
-        )
-        .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+    for (const edge of edges) {
+        const source = String(edge.source)
+        const target = String(edge.target)
+        const groupKey = `${getUndirectedPairKey(source, target)}|${getEdgeSideKey(edge, nodeLookup)}`
+        const group = groups.get(groupKey)
 
-    const total = siblings.length
-    if (total <= 1) {
-        return {
-            index: 0,
-            total,
-            centeredIndex: 0,
+        if (group) {
+            group.push(edge)
+        } else {
+            groups.set(groupKey, [edge])
         }
     }
 
-    const index = siblings.findIndex((edge) => String(edge.id) === edgeId)
-    const safeIndex = index >= 0 ? index : 0
+    const metadataById = new Map<string, ParallelEdgeMeta>()
+    for (const group of groups.values()) {
+        group.sort((left, right) =>
+            String(left.id).localeCompare(String(right.id))
+        )
 
-    return {
-        index: safeIndex,
-        total,
-        centeredIndex: safeIndex - (total - 1) / 2,
+        const total = group.length
+        group.forEach((edge, index) => {
+            metadataById.set(String(edge.id), {
+                index,
+                total,
+                centeredIndex: total <= 1 ? 0 : index - (total - 1) / 2,
+            })
+        })
     }
+
+    return metadataById
 }

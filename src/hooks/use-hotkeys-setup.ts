@@ -4,7 +4,8 @@ import { useEditorStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
 import { useHistory } from './use-history'
 import { useViewActions } from './use-view-actions'
-import { useStore } from '@xyflow/react'
+import { useOnSelectionChange } from '@xyflow/react'
+import { useCallback, useState } from 'react'
 
 export function useHotkeysSetup() {
     const {
@@ -16,10 +17,21 @@ export function useHotkeysSetup() {
     } = useElementsActions()
 
     const { resetZoom } = useViewActions()
-    const { selectedNodesCount, selectedEdgesCount } = useStore((state) => ({
-        selectedNodesCount: state.nodes.filter((node) => node.selected).length,
-        selectedEdgesCount: state.edges.filter((edge) => edge.selected).length,
-    }))
+    const [selectionCounts, setSelectionCounts] = useState({
+        selectedNodesCount: 0,
+        selectedEdgesCount: 0,
+    })
+    const onSelectionChange = useCallback(
+        ({ nodes, edges }: { nodes: unknown[]; edges: unknown[] }) => {
+            setSelectionCounts({
+                selectedNodesCount: nodes.length,
+                selectedEdgesCount: edges.length,
+            })
+        },
+        []
+    )
+    useOnSelectionChange({ onChange: onSelectionChange })
+    const { selectedNodesCount, selectedEdgesCount } = selectionCounts
 
     const {
         setAddNodeDialogVisible,

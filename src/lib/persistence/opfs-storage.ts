@@ -13,34 +13,37 @@ import {
 import { InterchangeFormat } from '@/lib/interchange'
 import { usePersistenceStatus } from '@/store/persistence'
 import type { SerializedEditorState } from 'lexical'
+import { createEmptyModelSnapshot } from './model-snapshot'
 import {
-    createEmptyModelSnapshot,
-    stripTransientSnapshotFields,
-} from './model-snapshot'
+    loadSnapshotOffMainThread,
+    serializeSnapshotOffMainThread,
+} from './snapshot-serializer'
+import type { SnapshotMutation } from './snapshot-serialization'
 
 const METADATA_FILE_PATH = '/metadata.json'
 const SNAPSHOTS_DIRECTORY_PATH = '/snapshots'
-const MIN_SAVING_FEEDBACK_MS = 800
+const SAVING_FEEDBACK_DELAY_MS = 150
 
 const isOPFSAvailable = () =>
     typeof navigator !== 'undefined' &&
     typeof navigator.storage?.getDirectory === 'function'
 
 let pendingWrites = 0
-let savingStartedAt = 0
-let finishTimer: ReturnType<typeof setTimeout> | null = null
+let savingFeedbackTimer: ReturnType<typeof setTimeout> | null = null
 let persistenceWriteQueue = Promise.resolve()
 
 const startSaving = () => {
     pendingWrites += 1
-    if (finishTimer) {
-        clearTimeout(finishTimer)
-        finishTimer = null
+    if (pendingWrites !== 1 || savingFeedbackTimer) {
+        return
     }
-    if (pendingWrites === 1) {
-        savingStartedAt = Date.now()
-    }
-    usePersistenceStatus.getState().setSaving(true)
+
+    savingFeedbackTimer = setTimeout(() => {
+        savingFeedbackTimer = null
+        if (pendingWrites > 0) {
+            usePersistenceStatus.getState().setSaving(true)
+        }
+    }, SAVING_FEEDBACK_DELAY_MS)
 }
 
 const finishSaving = () => {
@@ -49,20 +52,11 @@ const finishSaving = () => {
         return
     }
 
-    const elapsed = Date.now() - savingStartedAt
-    const remaining = Math.max(0, MIN_SAVING_FEEDBACK_MS - elapsed)
-
-    if (remaining === 0) {
-        usePersistenceStatus.getState().setSaving(false)
-        return
+    if (savingFeedbackTimer) {
+        clearTimeout(savingFeedbackTimer)
+        savingFeedbackTimer = null
     }
-
-    finishTimer = setTimeout(() => {
-        finishTimer = null
-        if (pendingWrites === 0) {
-            usePersistenceStatus.getState().setSaving(false)
-        }
-    }, remaining)
+    usePersistenceStatus.getState().setSaving(false)
 }
 
 const notifyLocalModelsChanged = () => {
@@ -417,13 +411,14 @@ export type CreateLocalModelMetadataOverrides = Partial<
 
 const writeSnapshotFile = async (
     modelId: string,
-    snapshot: InternalGRNModel
+    snapshot: InternalGRNModel,
+    mutations?: SnapshotMutation[]
 ): Promise<void> => {
-    await ensureSnapshotsDirectory()
-    await write(
-        snapshotPath(modelId),
-        JSON.stringify(stripTransientSnapshotFields(snapshot), null, 2)
-    )
+    const [serializedSnapshot] = await Promise.all([
+        serializeSnapshotOffMainThread(modelId, snapshot, mutations),
+        ensureSnapshotsDirectory(),
+    ])
+    await write(snapshotPath(modelId), serializedSnapshot)
 }
 
 export async function listLocalModels(): Promise<ModelMetadata[]> {
@@ -443,9 +438,10 @@ export async function getLocalModelSnapshot(
         return null
     }
 
-    const parsedSnapshot = parseJson<InternalGRNModel | null>(
-        await target.text(),
-        null
+    const serializedSnapshot = await target.arrayBuffer()
+    const parsedSnapshot = await loadSnapshotOffMainThread(
+        modelId,
+        serializedSnapshot
     )
 
     if (!parsedSnapshot) {
@@ -517,29 +513,109 @@ export async function deleteLocalModel(modelId: string): Promise<void> {
 
 export async function saveLocalModelSnapshot(
     modelId: string,
-    snapshot: InternalGRNModel
+    snapshot: InternalGRNModel,
+    mutations?: SnapshotMutation[]
 ): Promise<void> {
     if (!isOPFSAvailable()) {
         return
     }
 
+    return enqueueCoalescedSnapshotWrite(modelId, snapshot, mutations)
+}
+
+interface PendingSnapshotWrite {
+    snapshot: InternalGRNModel
+    mutations: SnapshotMutation[] | null
+}
+
+interface SnapshotWriteState {
+    active: boolean
+    pending: PendingSnapshotWrite | null
+    waiters: {
+        resolve: () => void
+        reject: (error: unknown) => void
+    }[]
+}
+
+const snapshotWriteStates = new Map<string, SnapshotWriteState>()
+
+const enqueueCoalescedSnapshotWrite = (
+    modelId: string,
+    snapshot: InternalGRNModel,
+    mutations?: SnapshotMutation[]
+): Promise<void> => {
+    const state = snapshotWriteStates.get(modelId) ?? {
+        active: false,
+        pending: null,
+        waiters: [],
+    }
+    if (!state.pending) {
+        state.pending = {
+            snapshot,
+            mutations: mutations ? [...mutations] : null,
+        }
+    } else {
+        state.pending.snapshot = snapshot
+        state.pending.mutations =
+            state.pending.mutations && mutations
+                ? [...state.pending.mutations, ...mutations]
+                : null
+    }
+    const promise = new Promise<void>((resolve, reject) => {
+        state.waiters.push({ resolve, reject })
+    })
+    snapshotWriteStates.set(modelId, state)
+    if (!state.active) void drainCoalescedSnapshotWrites(modelId, state)
+    return promise
+}
+
+const drainCoalescedSnapshotWrites = async (
+    modelId: string,
+    state: SnapshotWriteState
+) => {
+    state.active = true
     startSaving()
     try {
-        await enqueuePersistenceWrite(async () => {
-            await writeSnapshotFile(modelId, snapshot)
-
-            const items = await readMetadataList()
-            const nextItems = items.map((item) =>
-                item.id === modelId
-                    ? updateMetadataForSnapshot(item, snapshot)
-                    : item
-            )
-
-            await writeMetadataList(nextItems)
-        })
+        while (state.pending) {
+            const nextWrite = state.pending
+            state.pending = null
+            await enqueuePersistenceWrite(async () => {
+                await writeSnapshotFile(
+                    modelId,
+                    nextWrite.snapshot,
+                    nextWrite.mutations ?? undefined
+                )
+                const items = await readMetadataList()
+                const nextItems = items.map((item) =>
+                    item.id === modelId
+                        ? updateMetadataForSnapshot(item, nextWrite.snapshot)
+                        : item
+                )
+                await writeMetadataList(nextItems)
+            })
+        }
+        state.waiters.splice(0).forEach(({ resolve }) => resolve())
+    } catch (error) {
+        state.waiters.splice(0).forEach(({ reject }) => reject(error))
     } finally {
+        state.active = false
         finishSaving()
+        if (!state.pending) snapshotWriteStates.delete(modelId)
+        else void drainCoalescedSnapshotWrites(modelId, state)
     }
+}
+
+export async function flushLocalModelSnapshots(): Promise<void> {
+    await Promise.all(
+        [...snapshotWriteStates.values()].map(
+            (state) =>
+                new Promise<void>((resolve) => {
+                    if (!state.active && !state.pending) resolve()
+                    else
+                        state.waiters.push({ resolve, reject: () => resolve() })
+                })
+        )
+    )
 }
 
 export async function updateLocalModelDetails(

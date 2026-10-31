@@ -175,7 +175,9 @@ G4, (G4 & !G3)`)
         }
         wrongTargetRule.target = 2
 
-        expect(() => exportBNetModel(multilevelModel)).toThrow(/multi-level/)
+        expect(() => exportBNetModel(multilevelModel)).toThrow(
+            /multivalued model/
+        )
         expect(() => exportBNetModel(wrongTargetModel)).toThrow(
             /targeting level 1/
         )

@@ -1,5 +1,4 @@
 import type { EditableRegulatoryEdge, InternalGRNModel } from '@/lib/schema'
-import { isRegulatoryRuleExpressionValid } from '@/lib/regulatory-rules'
 import {
     type Edge,
     Background,
@@ -32,8 +31,14 @@ import {
     useGraphInteractions,
 } from './utils'
 import { useHotkeysSetup } from '@/hooks'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useChangesTracking, useEditorStore } from '@/store'
+import { EdgeRenderMetadataProvider } from './edge-render-metadata-provider'
+import { NodeToolbar } from './elements/node-toolbar'
+import {
+    validateGraphIncrementally,
+    type ValidationSnapshot,
+} from './validation'
 
 interface GraphProps {
     model: InternalGRNModel
@@ -52,17 +57,33 @@ export function Graph({ model }: GraphProps) {
     const [edges, setEdges] = useEdgesState<Edge<EditableRegulatoryEdge>>(
         model.edges
     )
-
     const takeSnapshot = useChangesTracking((state) => state.takeSnapshot)
     const resetHistory = useChangesTracking((state) => state.resetHistory)
-    const dragging = useEditorStore((state) => state.isDragging)
+    const connectModeActive = useEditorStore(
+        (state) => state.connectModeEnabled
+    )
     const setModelAnnotations = useEditorStore(
         (state) => state.setModelAnnotations
     )
     const setSnapshotPaused = useEditorStore((state) => state.setSnapshotPaused)
     const isApplyingHistory = useEditorStore((state) => state.isApplyingHistory)
     const isSnapshotPaused = useEditorStore((state) => state.isSnapshotPaused)
+    const semanticRevision = useEditorStore((state) => state.semanticRevision)
     const hasInitializedHistoryRef = useRef(false)
+    const shouldSkipSelectionWorkRef = useRef(false)
+    const validationSnapshotRef = useRef<ValidationSnapshot | null>(null)
+    const nodesRef = useRef(nodes)
+    const edgesRef = useRef(edges)
+    const dragInProgressRef = useRef(false)
+    const dragSnapshotPendingRef = useRef(false)
+    const dragSnapshotTimerRef = useRef<number | null>(null)
+    useEffect(() => {
+        nodesRef.current = nodes
+        edgesRef.current = edges
+    }, [edges, nodes])
+    const markSelectionOnlyChange = useCallback(() => {
+        shouldSkipSelectionWorkRef.current = true
+    }, [])
 
     useEffect(() => {
         if (hasInitializedHistoryRef.current) {
@@ -94,147 +115,37 @@ export function Graph({ model }: GraphProps) {
     ])
 
     useEffect(() => {
-        if (isApplyingHistory || isSnapshotPaused) {
+        if (
+            isApplyingHistory ||
+            isSnapshotPaused ||
+            dragInProgressRef.current ||
+            dragSnapshotPendingRef.current
+        ) {
             return
         }
 
-        if (!dragging) {
-            takeSnapshot(nodes, edges)
+        if (shouldSkipSelectionWorkRef.current) {
+            return
         }
-    }, [
-        nodes,
-        edges,
-        dragging,
-        isApplyingHistory,
-        isSnapshotPaused,
-        takeSnapshot,
-    ])
+
+        takeSnapshot(nodes, edges)
+    }, [nodes, edges, isApplyingHistory, isSnapshotPaused, takeSnapshot])
 
     useEffect(() => {
-        const incomingNodesByTargetId = new Map<
-            (typeof nodes)[number]['id'],
-            typeof nodes
-        >()
-        const incomingEdgesByTargetId = new Map<
-            (typeof nodes)[number]['id'],
-            typeof edges
-        >()
+        const result = validateGraphIncrementally(
+            nodesRef.current,
+            edgesRef.current,
+            validationSnapshotRef.current
+        )
+        validationSnapshotRef.current = result.snapshot
 
-        edges.forEach((edge) => {
-            const sourceNode = nodes.find((node) => node.id === edge.source)
-
-            if (!sourceNode) {
-                return
-            }
-
-            const incomingNodes = incomingNodesByTargetId.get(edge.target) ?? []
-            incomingNodes.push(sourceNode)
-            incomingNodesByTargetId.set(edge.target, incomingNodes)
-
-            const incomingEdges = incomingEdgesByTargetId.get(edge.target) ?? []
-            incomingEdges.push(edge)
-            incomingEdgesByTargetId.set(edge.target, incomingEdges)
-        })
-
-        let hasChanges = false
-        const nextNodes = nodes.map((node) => {
-            if (node.data.rules.length === 0) {
-                return node
-            }
-
-            const incomingNodes = incomingNodesByTargetId.get(node.id) ?? []
-            const incomingEdges = incomingEdgesByTargetId.get(node.id) ?? []
-            const nextRules = node.data.rules.map((rule) => {
-                const hasTargetConflict = node.data.rules.some(
-                    (currentRule) =>
-                        currentRule.id !== rule.id &&
-                        currentRule.target === rule.target
-                )
-                const isValid =
-                    !hasTargetConflict &&
-                    isRegulatoryRuleExpressionValid(
-                        rule.expression,
-                        incomingNodes,
-                        incomingEdges
-                    )
-
-                return rule.isValid === isValid ? rule : { ...rule, isValid }
-            })
-
-            const rulesChanged = nextRules.some(
-                (rule, index) => rule !== node.data.rules[index]
-            )
-
-            if (!rulesChanged) {
-                return node
-            }
-
-            hasChanges = true
-            return {
-                ...node,
-                data: {
-                    ...node.data,
-                    rules: nextRules,
-                },
-            }
-        })
-
-        if (!hasChanges) {
-            return
-        }
-
-        setNodes(nextNodes)
-    }, [edges, nodes, setNodes])
+        if (result.nodesChanged) setNodes(result.nodes)
+        if (result.edgesChanged) setEdges(result.edges)
+    }, [semanticRevision, setEdges, setNodes])
 
     useEffect(() => {
-        let hasChanges = false
-        const nextEdges = edges.map((edge) => {
-            const sourceActivityLevels = nodes.find(
-                (node) => node.id === edge.source
-            )?.data.activityLevels
-            const nextLevels =
-                edge.data?.levels.map((level) => {
-                    const hasConflict =
-                        edge.data?.levels.some(
-                            (currentLevel) =>
-                                currentLevel.id !== level.id &&
-                                currentLevel.target === level.target
-                        ) ?? false
-                    const isWithinSourceRange =
-                        sourceActivityLevels === undefined ||
-                        level.target <= sourceActivityLevels
-                    const isValid = !hasConflict && isWithinSourceRange
-
-                    return level.isValid === isValid
-                        ? level
-                        : { ...level, isValid }
-                }) ?? []
-
-            const levelsChanged =
-                edge.data?.levels.some(
-                    (level, index) => level !== nextLevels[index]
-                ) ?? false
-
-            if (!levelsChanged) {
-                return edge
-            }
-
-            hasChanges = true
-            return {
-                ...edge,
-                data: {
-                    ...edge.data,
-                    levels: nextLevels,
-                },
-            }
-        })
-
-        if (!hasChanges) {
-            return
-        }
-
-        setEdges(nextEdges)
-    }, [edges, nodes, setEdges])
+        shouldSkipSelectionWorkRef.current = false
+    }, [edges, nodes])
 
     const {
         onNodesChange,
@@ -248,7 +159,51 @@ export function Graph({ model }: GraphProps) {
     } = useGraphInteractions({
         setNodes,
         setEdges,
+        initialEdges: model.edges,
+        onSelectionOnlyChange: markSelectionOnlyChange,
     })
+
+    const handleDragStateChange = useCallback(
+        (isDragging: boolean) => {
+            dragInProgressRef.current = isDragging
+            if (isDragging || dragSnapshotPendingRef.current) {
+                return
+            }
+
+            dragSnapshotPendingRef.current = true
+            const commitSnapshot = () => {
+                dragSnapshotTimerRef.current = null
+                if (dragInProgressRef.current) {
+                    dragSnapshotTimerRef.current = window.setTimeout(
+                        commitSnapshot,
+                        0
+                    )
+                    return
+                }
+
+                dragSnapshotPendingRef.current = false
+                const editorState = useEditorStore.getState()
+                if (
+                    !editorState.isApplyingHistory &&
+                    !editorState.isSnapshotPaused
+                ) {
+                    takeSnapshot(nodesRef.current, edgesRef.current)
+                }
+            }
+
+            dragSnapshotTimerRef.current = window.setTimeout(commitSnapshot, 0)
+        },
+        [takeSnapshot]
+    )
+
+    useEffect(
+        () => () => {
+            if (dragSnapshotTimerRef.current !== null) {
+                window.clearTimeout(dragSnapshotTimerRef.current)
+            }
+        },
+        []
+    )
 
     const {
         handleNodeDragStart,
@@ -261,70 +216,90 @@ export function Graph({ model }: GraphProps) {
         onNodeDragStart,
         onNodeDrag,
         onNodeDragStop,
+        onDragStateChange: handleDragStateChange,
     })
 
     useHotkeysSetup()
 
+    const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([])
+    const handleSelectionChange = useCallback(
+        ({ nodes: selectedNodes }: { nodes: { id: string }[] }) => {
+            setSelectedNodeIds(selectedNodes.map((node) => node.id))
+        },
+        []
+    )
+
     return (
-        <ReactFlow
-            className={`editor-graph ${platformClass}`}
-            proOptions={{
-                hideAttribution: true,
-            }}
-            nodes={nodes}
-            onNodesChange={onNodesChange}
-            onNodeDragStart={handleNodeDragStart}
-            onNodeDrag={handleNodeDrag}
-            onNodeDragStop={handleNodeDragStop}
-            onSelectionDragStart={handleSelectionDragStart}
-            onSelectionDrag={handleSelectionDrag}
-            onSelectionDragStop={handleSelectionDragStop}
-            edges={edges}
-            onEdgesChange={onEdgesChange}
-            panOnScroll={PAN_ON_SCROLL}
-            selectionOnDrag={SELECTION_ON_DRAG}
-            selectionMode={SelectionMode.Partial}
-            elevateEdgesOnSelect
-            panOnDrag={PAN_ON_DRAG}
-            nodeTypes={NODE_TYPES}
-            edgeTypes={EDGE_TYPES}
-            connectionLineComponent={CONNECTION_LINE_COMPONENT}
-            connectOnClick={false}
-            onConnectStart={onConnectStart}
-            onConnect={onConnect}
-            onConnectEnd={onConnectEnd}
-            defaultEdgeOptions={{
-                type: DEFAULT_EDGE_TYPE,
-                selectable: true,
-                focusable: true,
-            }}
-            fitView
-            fitViewOptions={FIT_VIEW_OPTIONS}
-        >
-            <Background
-                color={BACKGROUND_COLOR}
-                size={BACKGROUND_DOTS_RADIUS}
-            />
-            {/* <MiniMap
-                style={{
-                    borderRadius: 'var(--radius-md)',
-                    overflow: 'clip',
+        <EdgeRenderMetadataProvider edges={edges}>
+            <ReactFlow
+                className={`editor-graph ${platformClass}`}
+                proOptions={{
+                    hideAttribution: true,
                 }}
-                nodeColor={MINIMAP_NODE_COLOR}
-                zoomable
-                pannable
-            /> */}
-            <Panel position="bottom-left">
-                <div className="pointer-events-none absolute bottom-0 left-2 flex w-[calc(100vw-2.5rem)] items-end justify-center">
-                    <div className="pointer-events-auto absolute bottom-0 left-0">
-                        <ZoomControls />
+                nodes={nodes}
+                onNodesChange={onNodesChange}
+                onNodeDragStart={handleNodeDragStart}
+                onNodeDrag={handleNodeDrag}
+                onNodeDragStop={handleNodeDragStop}
+                onSelectionDragStart={handleSelectionDragStart}
+                onSelectionDrag={handleSelectionDrag}
+                onSelectionDragStop={handleSelectionDragStop}
+                edges={edges}
+                onEdgesChange={onEdgesChange}
+                onSelectionChange={handleSelectionChange}
+                panOnScroll={PAN_ON_SCROLL}
+                selectionOnDrag={SELECTION_ON_DRAG}
+                selectionMode={SelectionMode.Partial}
+                elevateEdgesOnSelect
+                panOnDrag={PAN_ON_DRAG}
+                nodeTypes={NODE_TYPES}
+                edgeTypes={EDGE_TYPES}
+                connectionLineComponent={CONNECTION_LINE_COMPONENT}
+                connectOnClick={false}
+                onConnectStart={onConnectStart}
+                onConnect={onConnect}
+                onConnectEnd={onConnectEnd}
+                defaultEdgeOptions={{
+                    type: DEFAULT_EDGE_TYPE,
+                    selectable: true,
+                    focusable: true,
+                }}
+                fitView
+                fitViewOptions={FIT_VIEW_OPTIONS}
+                // Keep viewport filtering inside React Flow so pan/zoom does
+                // not rebuild the controlled graph arrays on every frame.
+                onlyRenderVisibleElements
+            >
+                <NodeToolbar
+                    id={selectedNodeIds[0] ?? ''}
+                    nodeIds={selectedNodeIds}
+                    isVisible={!connectModeActive && selectedNodeIds.length > 0}
+                />
+                <Background
+                    color={BACKGROUND_COLOR}
+                    size={BACKGROUND_DOTS_RADIUS}
+                />
+                {/* <MiniMap
+                    style={{
+                        borderRadius: 'var(--radius-md)',
+                        overflow: 'clip',
+                    }}
+                    nodeColor={MINIMAP_NODE_COLOR}
+                    zoomable
+                    pannable
+                /> */}
+                <Panel position="bottom-left">
+                    <div className="pointer-events-none absolute bottom-0 left-2 flex w-[calc(100vw-2.5rem)] items-end justify-center">
+                        <div className="pointer-events-auto absolute bottom-0 left-0">
+                            <ZoomControls />
+                        </div>
+                        <Annotations />
                     </div>
-                    <Annotations />
-                </div>
-            </Panel>
-            <Panel position="top-left">
-                <Toolbar />
-            </Panel>
-        </ReactFlow>
+                </Panel>
+                <Panel position="top-left">
+                    <Toolbar />
+                </Panel>
+            </ReactFlow>
+        </EdgeRenderMetadataProvider>
     )
 }

@@ -1,0 +1,3851 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>GRN Core — Performance Report</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+            }
+
+            :root {
+                --ink: #0f172a;
+                --ink-mid: #334155;
+                --ink-muted: #64748b;
+                --ink-faint: #94a3b8;
+                --border: #e2e8f0;
+                --surface: #ffffff;
+                --surface-2: #f8fafc;
+                --surface-3: #f1f5f9;
+                --accent: #2f80ed;
+                --accent-2: #7c3aed;
+                --good: #10b981;
+                --mono: 'DM Mono', 'Fira Code', ui-monospace, monospace;
+                --sans:
+                    'DM Sans', ui-sans-serif, system-ui, -apple-system,
+                    sans-serif;
+            }
+
+            body {
+                margin: 0;
+                background: var(--surface-2);
+                font-family: var(--sans);
+                font-size: 14px;
+                line-height: 1.5;
+                color: var(--ink);
+                -webkit-font-smoothing: antialiased;
+            }
+
+            /* ── Header ── */
+            .site-header {
+                background: var(--ink);
+                color: #fff;
+                padding: 40px 48px 36px;
+            }
+            .site-header .eyebrow {
+                font-family: var(--mono);
+                font-size: 11px;
+                font-weight: 500;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--accent);
+                margin: 0 0 10px;
+            }
+            .site-header h1 {
+                margin: 0 0 20px;
+                font-size: clamp(22px, 4vw, 32px);
+                font-weight: 600;
+                letter-spacing: -0.02em;
+                line-height: 1.15;
+                color: #fff;
+            }
+            .meta-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px 20px;
+                font-size: 12px;
+                color: var(--ink-faint);
+                font-family: var(--mono);
+            }
+            .meta-row strong {
+                color: #cbd5e1;
+                font-weight: 500;
+            }
+
+            /* ── Layout ── */
+            .page-body {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 36px 32px 64px;
+            }
+            @media (max-width: 640px) {
+                .site-header {
+                    padding: 28px 20px 24px;
+                }
+                .page-body {
+                    padding: 24px 16px 48px;
+                }
+            }
+
+            /* ── Section label ── */
+            .section-label {
+                font-family: var(--mono);
+                font-size: 10px;
+                font-weight: 500;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--ink-faint);
+                margin: 0 0 14px;
+            }
+
+            /* ── Stat strip ── */
+            .stat-strip {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 12px;
+                margin-bottom: 32px;
+            }
+            .stat-tile {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 18px 20px 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .stat-label {
+                font-size: 11px;
+                font-weight: 500;
+                color: var(--ink-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+            }
+            .stat-value {
+                font-family: var(--mono);
+                font-size: 22px;
+                font-weight: 400;
+                color: var(--ink);
+                line-height: 1.15;
+                letter-spacing: -0.01em;
+            }
+            .stat-value.stat-good {
+                color: var(--good);
+            }
+            .stat-sub {
+                font-size: 11px;
+                color: var(--ink-faint);
+                font-family: var(--mono);
+            }
+
+            /* ── Scenario cards ── */
+            .scenarios-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                gap: 10px;
+                margin-bottom: 32px;
+            }
+            .scenario-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 14px 16px 12px;
+            }
+            .scenario-tier {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--ink);
+                text-transform: capitalize;
+                margin: 0 0 8px;
+                letter-spacing: -0.01em;
+            }
+            .scenario-stats {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+            }
+            .scenario-stat {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 8px;
+                font-size: 11px;
+            }
+            .scenario-stat-key {
+                color: var(--ink-faint);
+            }
+            .scenario-stat-val {
+                font-family: var(--mono);
+                font-size: 11px;
+                color: var(--ink-mid);
+                font-weight: 500;
+            }
+
+            /* ── Chart cards ── */
+            .charts-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 16px;
+                margin-bottom: 32px;
+            }
+            .chart-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px 24px 16px;
+                overflow: hidden;
+            }
+            .card-header {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 12px;
+                margin-bottom: 18px;
+                flex-wrap: wrap;
+            }
+            .card-title {
+                margin: 0;
+                font-size: 14px;
+                font-weight: 600;
+                color: var(--ink);
+                letter-spacing: -0.01em;
+            }
+            .axis-label {
+                font-family: var(--mono);
+                font-size: 10px;
+                color: var(--ink-faint);
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                white-space: nowrap;
+            }
+            .chart-wrap {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .chart-wrap svg {
+                display: block;
+                width: 100%;
+                min-width: 640px;
+                height: auto;
+            }
+
+            /* ── Tables ── */
+            .tables-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .table-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px 24px 0;
+                overflow: hidden;
+            }
+            .notes-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px 24px 0;
+                overflow: hidden;
+                margin-bottom: 32px;
+            }
+            .table-card .card-title {
+                margin: 0 0 16px;
+                font-size: 14px;
+                font-weight: 600;
+                color: var(--ink);
+                letter-spacing: -0.01em;
+            }
+            .notes-card .card-title {
+                margin: 0 0 16px;
+            }
+            .notes-empty {
+                margin: 0 0 24px;
+                color: var(--ink-muted);
+                font-size: 13px;
+            }
+            .table-scroll {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -24px;
+                padding: 0 24px;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                font-size: 12.5px;
+                min-width: 540px;
+            }
+            thead tr {
+                border-bottom: 1px solid var(--border);
+            }
+            th {
+                padding: 8px 12px 10px;
+                text-align: left;
+                font-size: 11px;
+                font-weight: 500;
+                color: var(--ink-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                white-space: nowrap;
+                background: var(--surface);
+            }
+            tbody tr {
+                border-bottom: 1px solid var(--surface-3);
+                transition: background 0.1s;
+            }
+            tbody tr:last-child {
+                border-bottom: none;
+            }
+            tbody tr:hover {
+                background: var(--surface-2);
+            }
+            td {
+                padding: 9px 12px;
+                color: var(--ink-mid);
+                white-space: nowrap;
+            }
+            td:first-child {
+                color: var(--ink);
+                font-weight: 500;
+            }
+            td.num {
+                font-family: var(--mono);
+                font-size: 12px;
+                color: var(--ink-mid);
+                text-align: right;
+            }
+            th.num {
+                text-align: right;
+            }
+
+            /* ── Divider ── */
+            .section-gap {
+                margin-top: 40px;
+            }
+        </style>
+    </head>
+    <body>
+        <header class="site-header">
+            <p class="eyebrow">GRN Core</p>
+            <h1>Performance Report</h1>
+            <div class="meta-row">
+                <span
+                    ><strong>Date</strong> August 17, 2026 at 02:08 PM
+                    GMT+1</span
+                >
+                <span><strong>Browser</strong> chromium</span>
+                <span><strong>Viewport</strong> 1440×1000</span>
+                <span><strong>Commit</strong> a976c6d</span>
+                <span><strong>Samples/benchmark</strong> 1</span>
+                <span><strong>Scenario timeout</strong> 240000.00 ms</span>
+            </div>
+        </header>
+
+        <div class="page-body">
+            <p class="section-label">Scenarios</p>
+            <div class="scenarios-grid">
+                <div class="scenario-card">
+                    <p class="scenario-tier">small</p>
+                    <div class="scenario-stats">
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Nodes</span
+                            ><span class="scenario-stat-val">10</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Edges</span
+                            ><span class="scenario-stat-val">12</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Density</span
+                            ><span class="scenario-stat-val">1.2×</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Rules</span
+                            ><span class="scenario-stat-val">9</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Expr chars</span
+                            ><span class="scenario-stat-val">40</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="scenario-card">
+                    <p class="scenario-tier">medium</p>
+                    <div class="scenario-stats">
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Nodes</span
+                            ><span class="scenario-stat-val">100</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Edges</span
+                            ><span class="scenario-stat-val">180</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Density</span
+                            ><span class="scenario-stat-val">1.8×</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Rules</span
+                            ><span class="scenario-stat-val">99</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Expr chars</span
+                            ><span class="scenario-stat-val">906</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="scenario-card">
+                    <p class="scenario-tier">large</p>
+                    <div class="scenario-stats">
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Nodes</span
+                            ><span class="scenario-stat-val">1000</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Edges</span
+                            ><span class="scenario-stat-val">2400</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Density</span
+                            ><span class="scenario-stat-val">2.4×</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Rules</span
+                            ><span class="scenario-stat-val">999</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Expr chars</span
+                            ><span class="scenario-stat-val">16485</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="scenario-card">
+                    <p class="scenario-tier">very-large</p>
+                    <div class="scenario-stats">
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Nodes</span
+                            ><span class="scenario-stat-val">10000</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Edges</span
+                            ><span class="scenario-stat-val">40000</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Density</span
+                            ><span class="scenario-stat-val">4.0×</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Rules</span
+                            ><span class="scenario-stat-val">9999</span>
+                        </div>
+                        <div class="scenario-stat">
+                            <span class="scenario-stat-key">Expr chars</span
+                            ><span class="scenario-stat-val">368897</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="section-label section-gap">At a glance</p>
+            <div class="stat-strip">
+                <div class="stat-tile">
+                    <span class="stat-label">Fastest interaction</span>
+                    <span class="stat-value stat-good">48.70 ms</span>
+                    <span class="stat-sub">zooming / small</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-label">Slowest interaction</span>
+                    <span class="stat-value">668.30 ms</span>
+                    <span class="stat-sub">edge-creation / medium</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-label">Worst import</span>
+                    <span class="stat-value">92986.50 ms</span>
+                    <span class="stat-sub">ginml / very-large</span>
+                </div>
+                <div class="stat-tile">
+                    <span class="stat-label">Max undo latency</span>
+                    <span class="stat-value">182.30 ms</span>
+                    <span class="stat-sub">at depth 100</span>
+                </div>
+            </div>
+
+            <p class="section-label section-gap">Notes</p>
+            <section class="notes-card">
+                <h2 class="card-title">Benchmark Notes</h2>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Benchmark</th>
+                                <th>Tier</th>
+                                <th>Format</th>
+                                <th class="num">Timeout</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>interaction</td>
+                                <td>large</td>
+                                <td>n/a</td>
+                                <td class="num">240000.00 ms</td>
+                                <td>
+                                    Skipped after timeout: Scenario exceeded
+                                    240000ms timeout.
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>interaction</td>
+                                <td>very-large</td>
+                                <td>n/a</td>
+                                <td class="num">240000.00 ms</td>
+                                <td>
+                                    Skipped after timeout: Scenario exceeded
+                                    240000ms timeout.
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>interchange</td>
+                                <td>very-large</td>
+                                <td>bnet</td>
+                                <td class="num">240000.00 ms</td>
+                                <td>
+                                    Skipped after timeout: Scenario exceeded
+                                    240000ms timeout.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <p class="section-label section-gap">Charts</p>
+            <div class="charts-grid">
+                <section
+                    class="chart-card"
+                    aria-labelledby="interactive-latency-title"
+                >
+                    <div class="card-header">
+                        <h2 id="interactive-latency-title" class="card-title">
+                            Interactive Latency by Model Tier
+                        </h2>
+                        <span class="axis-label">Median latency</span>
+                    </div>
+                    <div class="chart-wrap">
+                        <svg
+                            viewBox="0 0 900 320"
+                            role="img"
+                            aria-label="Interactive Latency by Model Tier chart"
+                        >
+                            <rect width="900" height="320" fill="transparent" />
+                            <line
+                                x1="168"
+                                y1="20"
+                                x2="168"
+                                y2="218"
+                                stroke="#cbd5e1"
+                                stroke-width="1"
+                            />
+                            <line
+                                x1="168"
+                                y1="20"
+                                x2="168"
+                                y2="218"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="168"
+                                y="234"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                0.00 ms
+                            </text>
+                            <line
+                                x1="316"
+                                y1="20"
+                                x2="316"
+                                y2="218"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="316"
+                                y="234"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                167.08 ms
+                            </text>
+                            <line
+                                x1="464"
+                                y1="20"
+                                x2="464"
+                                y2="218"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="464"
+                                y="234"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                334.15 ms
+                            </text>
+                            <line
+                                x1="612"
+                                y1="20"
+                                x2="612"
+                                y2="218"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="612"
+                                y="234"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                501.23 ms
+                            </text>
+                            <line
+                                x1="760"
+                                y1="20"
+                                x2="760"
+                                y2="218"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="760"
+                                y="234"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                668.30 ms
+                            </text>
+                            <text
+                                x="158"
+                                y="64.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                small · 10n / 12e
+                            </text>
+                            <text
+                                x="158"
+                                y="163.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                medium · 100n / 180e
+                            </text>
+                            <rect
+                                x="168"
+                                y="20"
+                                width="262.20559626102886"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    node-selection — small · 10n / 12e: 296.00
+                                    ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="37"
+                                width="97.61843486644705"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    node-repositioning — small · 10n / 12e:
+                                    110.20 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="54"
+                                width="262.9142600980668"
+                                height="13"
+                                fill="#64748B"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    edge-creation — small · 10n / 12e: 296.80 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="71"
+                                width="56.073021050068206"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    canvas-panning — small · 10n / 12e: 63.30 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="88"
+                                width="43.13990726491568"
+                                height="13"
+                                fill="#93C5FD"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    zooming — small · 10n / 12e: 48.70 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="119"
+                                width="365.93625604873364"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    node-selection — medium · 100n / 180e:
+                                    413.10 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="136"
+                                width="190.45338917608512"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    node-repositioning — medium · 100n / 180e:
+                                    215.00 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="153"
+                                width="592"
+                                height="13"
+                                fill="#64748B"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    edge-creation — medium · 100n / 180e: 668.30
+                                    ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="170"
+                                width="79.3703425675078"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    canvas-panning — medium · 100n / 180e: 89.60
+                                    ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="187"
+                                width="217.64836153323563"
+                                height="13"
+                                fill="#93C5FD"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    zooming — medium · 100n / 180e: 245.70 ms
+                                </title>
+                            </rect>
+                            <text
+                                x="437.20559626102886"
+                                y="31"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                296.00 ms
+                            </text>
+                            <text
+                                x="272.61843486644705"
+                                y="48"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                110.20 ms
+                            </text>
+                            <text
+                                x="437.9142600980668"
+                                y="65"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                296.80 ms
+                            </text>
+                            <text
+                                x="231.0730210500682"
+                                y="82"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                63.30 ms
+                            </text>
+                            <text
+                                x="218.13990726491568"
+                                y="99"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                48.70 ms
+                            </text>
+                            <text
+                                x="540.9362560487336"
+                                y="130"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                413.10 ms
+                            </text>
+                            <text
+                                x="365.4533891760851"
+                                y="147"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                215.00 ms
+                            </text>
+                            <text
+                                x="767"
+                                y="164"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                668.30 ms
+                            </text>
+                            <text
+                                x="254.3703425675078"
+                                y="181"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                89.60 ms
+                            </text>
+                            <text
+                                x="392.64836153323563"
+                                y="198"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                245.70 ms
+                            </text>
+                            <g>
+                                <rect
+                                    x="168"
+                                    y="296"
+                                    width="8"
+                                    height="8"
+                                    fill="#2F80ED"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="181"
+                                    y="304"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    node-selection
+                                </text>
+                            </g>
+                            <g>
+                                <rect
+                                    x="308"
+                                    y="296"
+                                    width="8"
+                                    height="8"
+                                    fill="#0F172A"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="321"
+                                    y="304"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    node-repositioning
+                                </text>
+                            </g>
+                            <g>
+                                <rect
+                                    x="448"
+                                    y="296"
+                                    width="8"
+                                    height="8"
+                                    fill="#64748B"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="461"
+                                    y="304"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    edge-creation
+                                </text>
+                            </g>
+                            <g>
+                                <rect
+                                    x="588"
+                                    y="296"
+                                    width="8"
+                                    height="8"
+                                    fill="#7C3AED"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="601"
+                                    y="304"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    canvas-panning
+                                </text>
+                            </g>
+                            <g>
+                                <rect
+                                    x="728"
+                                    y="296"
+                                    width="8"
+                                    height="8"
+                                    fill="#93C5FD"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="741"
+                                    y="304"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    zooming
+                                </text>
+                            </g>
+                        </svg>
+                    </div>
+                </section>
+                <section
+                    class="chart-card"
+                    aria-labelledby="interchange-exportMs-title"
+                >
+                    <div class="card-header">
+                        <h2 id="interchange-exportMs-title" class="card-title">
+                            Export Duration by Format
+                        </h2>
+                        <span class="axis-label">Median duration</span>
+                    </div>
+                    <div class="chart-wrap">
+                        <svg
+                            viewBox="0 0 900 344"
+                            role="img"
+                            aria-label="Export Duration by Format chart"
+                        >
+                            <rect width="900" height="344" fill="transparent" />
+                            <line
+                                x1="168"
+                                y1="20"
+                                x2="168"
+                                y2="280"
+                                stroke="#cbd5e1"
+                                stroke-width="1"
+                            />
+                            <line
+                                x1="168"
+                                y1="20"
+                                x2="168"
+                                y2="280"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="168"
+                                y="296"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                0.00 ms
+                            </text>
+                            <line
+                                x1="316"
+                                y1="20"
+                                x2="316"
+                                y2="280"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="316"
+                                y="296"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                2339.43 ms
+                            </text>
+                            <line
+                                x1="464"
+                                y1="20"
+                                x2="464"
+                                y2="280"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="464"
+                                y="296"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                4678.85 ms
+                            </text>
+                            <line
+                                x1="612"
+                                y1="20"
+                                x2="612"
+                                y2="280"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="612"
+                                y="296"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                7018.28 ms
+                            </text>
+                            <line
+                                x1="760"
+                                y1="20"
+                                x2="760"
+                                y2="280"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="760"
+                                y="296"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                9357.70 ms
+                            </text>
+                            <text
+                                x="158"
+                                y="47.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                small · 10n / 12e
+                            </text>
+                            <text
+                                x="158"
+                                y="112.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                medium · 100n / 180e
+                            </text>
+                            <text
+                                x="158"
+                                y="177.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                large · 1000n / 2400e
+                            </text>
+                            <text
+                                x="158"
+                                y="242.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                very-large · 10000n / 40000e
+                            </text>
+                            <rect
+                                x="168"
+                                y="20"
+                                width="2"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>bnet — small · 10n / 12e: 0.10 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="37"
+                                width="2"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>sbml — small · 10n / 12e: 2.50 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="54"
+                                width="2"
+                                height="13"
+                                fill="#64748B"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    ginml — small · 10n / 12e: 1.40 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="85"
+                                width="2"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    bnet — medium · 100n / 180e: 0.20 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="102"
+                                width="2"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    sbml — medium · 100n / 180e: 12.50 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="119"
+                                width="2"
+                                height="13"
+                                fill="#64748B"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    ginml — medium · 100n / 180e: 3.30 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="150"
+                                width="2"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    bnet — large · 1000n / 2400e: 0.50 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="167"
+                                width="6.857753506263151"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    sbml — large · 1000n / 2400e: 108.40 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="184"
+                                width="3.3719396905417227"
+                                height="13"
+                                fill="#64748B"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    ginml — large · 1000n / 2400e: 53.30 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="232"
+                                width="217.58816803012598"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    sbml — very-large · 10000n / 40000e: 3439.40
+                                    ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="249"
+                                width="592"
+                                height="13"
+                                fill="#64748B"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    ginml — very-large · 10000n / 40000e:
+                                    9357.70 ms
+                                </title>
+                            </rect>
+                            <text
+                                x="175.00632634238264"
+                                y="31"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                0.10 ms
+                            </text>
+                            <text
+                                x="175.1581585218582"
+                                y="48"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                2.50 ms
+                            </text>
+                            <text
+                                x="175.08856877073228"
+                                y="65"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                1.40 ms
+                            </text>
+                            <text
+                                x="175.0126526847653"
+                                y="96"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                0.20 ms
+                            </text>
+                            <text
+                                x="175.790792609291"
+                                y="113"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                12.50 ms
+                            </text>
+                            <text
+                                x="175.20876924583618"
+                                y="130"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                3.30 ms
+                            </text>
+                            <text
+                                x="175.03163170437165"
+                                y="161"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                0.50 ms
+                            </text>
+                            <text
+                                x="181.85775350626315"
+                                y="178"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                108.40 ms
+                            </text>
+                            <text
+                                x="178.37193969054172"
+                                y="195"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                53.30 ms
+                            </text>
+                            <text
+                                x="392.588168030126"
+                                y="243"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                3439.40 ms
+                            </text>
+                            <text
+                                x="767"
+                                y="260"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                9357.70 ms
+                            </text>
+                            <g>
+                                <rect
+                                    x="168"
+                                    y="320"
+                                    width="8"
+                                    height="8"
+                                    fill="#0F172A"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="181"
+                                    y="328"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    bnet
+                                </text>
+                            </g>
+                            <g>
+                                <rect
+                                    x="308"
+                                    y="320"
+                                    width="8"
+                                    height="8"
+                                    fill="#2F80ED"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="321"
+                                    y="328"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    sbml
+                                </text>
+                            </g>
+                            <g>
+                                <rect
+                                    x="448"
+                                    y="320"
+                                    width="8"
+                                    height="8"
+                                    fill="#64748B"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="461"
+                                    y="328"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    ginml
+                                </text>
+                            </g>
+                        </svg>
+                    </div>
+                </section>
+                <section
+                    class="chart-card"
+                    aria-labelledby="interchange-importMs-title"
+                >
+                    <div class="card-header">
+                        <h2 id="interchange-importMs-title" class="card-title">
+                            Import Duration by Format
+                        </h2>
+                        <span class="axis-label">Median duration</span>
+                    </div>
+                    <div class="chart-wrap">
+                        <svg
+                            viewBox="0 0 900 344"
+                            role="img"
+                            aria-label="Import Duration by Format chart"
+                        >
+                            <rect width="900" height="344" fill="transparent" />
+                            <line
+                                x1="168"
+                                y1="20"
+                                x2="168"
+                                y2="280"
+                                stroke="#cbd5e1"
+                                stroke-width="1"
+                            />
+                            <line
+                                x1="168"
+                                y1="20"
+                                x2="168"
+                                y2="280"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="168"
+                                y="296"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                0.00 ms
+                            </text>
+                            <line
+                                x1="316"
+                                y1="20"
+                                x2="316"
+                                y2="280"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="316"
+                                y="296"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                23246.63 ms
+                            </text>
+                            <line
+                                x1="464"
+                                y1="20"
+                                x2="464"
+                                y2="280"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="464"
+                                y="296"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                46493.25 ms
+                            </text>
+                            <line
+                                x1="612"
+                                y1="20"
+                                x2="612"
+                                y2="280"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="612"
+                                y="296"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                69739.88 ms
+                            </text>
+                            <line
+                                x1="760"
+                                y1="20"
+                                x2="760"
+                                y2="280"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="760"
+                                y="296"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                92986.50 ms
+                            </text>
+                            <text
+                                x="158"
+                                y="47.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                small · 10n / 12e
+                            </text>
+                            <text
+                                x="158"
+                                y="112.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                medium · 100n / 180e
+                            </text>
+                            <text
+                                x="158"
+                                y="177.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                large · 1000n / 2400e
+                            </text>
+                            <text
+                                x="158"
+                                y="242.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                very-large · 10000n / 40000e
+                            </text>
+                            <rect
+                                x="168"
+                                y="20"
+                                width="2"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>bnet — small · 10n / 12e: 2.20 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="37"
+                                width="2"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>sbml — small · 10n / 12e: 4.80 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="54"
+                                width="2"
+                                height="13"
+                                fill="#64748B"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    ginml — small · 10n / 12e: 3.80 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="85"
+                                width="2"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    bnet — medium · 100n / 180e: 25.30 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="102"
+                                width="2"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    sbml — medium · 100n / 180e: 22.40 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="119"
+                                width="2"
+                                height="13"
+                                fill="#64748B"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    ginml — medium · 100n / 180e: 17.50 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="150"
+                                width="56.507282240198606"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    bnet — large · 1000n / 2400e: 8875.70 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="167"
+                                width="2"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    sbml — large · 1000n / 2400e: 186.90 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="184"
+                                width="3.434098498017306"
+                                height="13"
+                                fill="#64748B"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    ginml — large · 1000n / 2400e: 539.40 ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="232"
+                                width="47.40889483972529"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    sbml — very-large · 10000n / 40000e: 7446.60
+                                    ms
+                                </title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="249"
+                                width="592"
+                                height="13"
+                                fill="#64748B"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>
+                                    ginml — very-large · 10000n / 40000e:
+                                    92986.50 ms
+                                </title>
+                            </rect>
+                            <text
+                                x="175.01400633379745"
+                                y="31"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                2.20 ms
+                            </text>
+                            <text
+                                x="175.03055927442986"
+                                y="48"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                4.80 ms
+                            </text>
+                            <text
+                                x="175.02419275961932"
+                                y="65"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                3.80 ms
+                            </text>
+                            <text
+                                x="175.16107284360388"
+                                y="96"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                25.30 ms
+                            </text>
+                            <text
+                                x="175.14260994936316"
+                                y="113"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                22.40 ms
+                            </text>
+                            <text
+                                x="175.11141402246562"
+                                y="130"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                17.50 ms
+                            </text>
+                            <text
+                                x="231.5072822401986"
+                                y="161"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                8875.70 ms
+                            </text>
+                            <text
+                                x="176.1899017597811"
+                                y="178"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                186.90 ms
+                            </text>
+                            <text
+                                x="178.4340984980173"
+                                y="195"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                539.40 ms
+                            </text>
+                            <text
+                                x="222.4088948397253"
+                                y="243"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                7446.60 ms
+                            </text>
+                            <text
+                                x="767"
+                                y="260"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                92986.50 ms
+                            </text>
+                            <g>
+                                <rect
+                                    x="168"
+                                    y="320"
+                                    width="8"
+                                    height="8"
+                                    fill="#0F172A"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="181"
+                                    y="328"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    bnet
+                                </text>
+                            </g>
+                            <g>
+                                <rect
+                                    x="308"
+                                    y="320"
+                                    width="8"
+                                    height="8"
+                                    fill="#2F80ED"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="321"
+                                    y="328"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    sbml
+                                </text>
+                            </g>
+                            <g>
+                                <rect
+                                    x="448"
+                                    y="320"
+                                    width="8"
+                                    height="8"
+                                    fill="#64748B"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="461"
+                                    y="328"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    ginml
+                                </text>
+                            </g>
+                        </svg>
+                    </div>
+                </section>
+                <section
+                    class="chart-card"
+                    aria-labelledby="history-latency-title"
+                >
+                    <div class="card-header">
+                        <h2 id="history-latency-title" class="card-title">
+                            Undo/Redo Latency vs History Depth
+                        </h2>
+                        <span class="axis-label">Latency</span>
+                    </div>
+                    <div class="chart-wrap">
+                        <svg
+                            viewBox="0 0 900 799"
+                            role="img"
+                            aria-label="Undo/Redo Latency vs History Depth chart"
+                        >
+                            <rect width="900" height="799" fill="transparent" />
+                            <line
+                                x1="168"
+                                y1="20"
+                                x2="168"
+                                y2="735"
+                                stroke="#cbd5e1"
+                                stroke-width="1"
+                            />
+                            <line
+                                x1="168"
+                                y1="20"
+                                x2="168"
+                                y2="735"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="168"
+                                y="751"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                0.00 ms
+                            </text>
+                            <line
+                                x1="316"
+                                y1="20"
+                                x2="316"
+                                y2="735"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="316"
+                                y="751"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                45.58 ms
+                            </text>
+                            <line
+                                x1="464"
+                                y1="20"
+                                x2="464"
+                                y2="735"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="464"
+                                y="751"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                91.15 ms
+                            </text>
+                            <line
+                                x1="612"
+                                y1="20"
+                                x2="612"
+                                y2="735"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="612"
+                                y="751"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                136.73 ms
+                            </text>
+                            <line
+                                x1="760"
+                                y1="20"
+                                x2="760"
+                                y2="735"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="760"
+                                y="751"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                182.30 ms
+                            </text>
+                            <text
+                                x="158"
+                                y="47.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                1
+                            </text>
+                            <text
+                                x="158"
+                                y="112.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                10
+                            </text>
+                            <text
+                                x="158"
+                                y="177.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                20
+                            </text>
+                            <text
+                                x="158"
+                                y="242.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                30
+                            </text>
+                            <text
+                                x="158"
+                                y="307.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                40
+                            </text>
+                            <text
+                                x="158"
+                                y="372.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                50
+                            </text>
+                            <text
+                                x="158"
+                                y="437.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                60
+                            </text>
+                            <text
+                                x="158"
+                                y="502.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                70
+                            </text>
+                            <text
+                                x="158"
+                                y="567.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                80
+                            </text>
+                            <text
+                                x="158"
+                                y="632.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                90
+                            </text>
+                            <text
+                                x="158"
+                                y="697.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                100
+                            </text>
+                            <rect
+                                x="168"
+                                y="20"
+                                width="267.26055925757146"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 1: 82.30 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="37"
+                                width="467.62479411164486"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 1: 144.00 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="54"
+                                width="581.9330768844419"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 1: 179.20 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="85"
+                                width="152.95227609765482"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 10: 47.10 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="102"
+                                width="566.3455842893545"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 10: 174.40 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="119"
+                                width="472.171146586315"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 10: 145.40 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="150"
+                                width="150.67910024743946"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 20: 46.40 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="167"
+                                width="516.3357101649412"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 20: 159.00 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="184"
+                                width="444.8930332867733"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 20: 137.00 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="215"
+                                width="156.8491495367664"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 30: 48.30 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="232"
+                                width="566.9950629377934"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 30: 174.60 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="249"
+                                width="472.4958857169745"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 30: 145.50 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="280"
+                                width="155.87493137054832"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 40: 48.00 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="297"
+                                width="566.0208447715753"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 40: 174.30 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="314"
+                                width="475.4185406027484"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 40: 146.40 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="345"
+                                width="190.94679077407386"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 50: 58.80 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="362"
+                                width="566.3455839022349"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 50: 174.40 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="379"
+                                width="415.66648365479546"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 50: 128.00 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="410"
+                                width="185.1014810025261"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 60: 57.00 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="427"
+                                width="425.73340638323396"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 60: 131.10 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="444"
+                                width="471.84640668141606"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 60: 145.30 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="475"
+                                width="145.15852999367098"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 70: 44.70 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="492"
+                                width="538.4179919542545"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 70: 165.80 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="509"
+                                width="472.82062523475383"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 70: 145.60 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="540"
+                                width="150.67910024743946"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 80: 46.40 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="557"
+                                width="575.1135489466761"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 80: 177.10 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="574"
+                                width="484.51124477784924"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 80: 149.20 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="605"
+                                width="200.36423446695392"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 90: 61.70 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="622"
+                                width="543.9385625951426"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 90: 167.50 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="639"
+                                width="446.5167304885499"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 90: 137.50 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="670"
+                                width="163.01919921321291"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>modification — 100: 50.20 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="687"
+                                width="404.30060324235967"
+                                height="13"
+                                fill="#0F172A"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>undo — 100: 124.50 ms</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="704"
+                                width="416.3159626903539"
+                                height="13"
+                                fill="#7C3AED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>redo — 100: 128.20 ms</title>
+                            </rect>
+                            <text
+                                x="442.26055925757146"
+                                y="31"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                82.30 ms
+                            </text>
+                            <text
+                                x="642.6247941116449"
+                                y="48"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                144.00 ms
+                            </text>
+                            <text
+                                x="756.9330768844419"
+                                y="65"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                179.20 ms
+                            </text>
+                            <text
+                                x="327.9522760976548"
+                                y="96"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                47.10 ms
+                            </text>
+                            <text
+                                x="741.3455842893545"
+                                y="113"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                174.40 ms
+                            </text>
+                            <text
+                                x="647.171146586315"
+                                y="130"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                145.40 ms
+                            </text>
+                            <text
+                                x="325.67910024743946"
+                                y="161"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                46.40 ms
+                            </text>
+                            <text
+                                x="691.3357101649412"
+                                y="178"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                159.00 ms
+                            </text>
+                            <text
+                                x="619.8930332867733"
+                                y="195"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                137.00 ms
+                            </text>
+                            <text
+                                x="331.8491495367664"
+                                y="226"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                48.30 ms
+                            </text>
+                            <text
+                                x="741.9950629377934"
+                                y="243"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                174.60 ms
+                            </text>
+                            <text
+                                x="647.4958857169745"
+                                y="260"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                145.50 ms
+                            </text>
+                            <text
+                                x="330.8749313705483"
+                                y="291"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                48.00 ms
+                            </text>
+                            <text
+                                x="741.0208447715753"
+                                y="308"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                174.30 ms
+                            </text>
+                            <text
+                                x="650.4185406027484"
+                                y="325"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                146.40 ms
+                            </text>
+                            <text
+                                x="365.94679077407386"
+                                y="356"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                58.80 ms
+                            </text>
+                            <text
+                                x="741.3455839022349"
+                                y="373"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                174.40 ms
+                            </text>
+                            <text
+                                x="590.6664836547955"
+                                y="390"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                128.00 ms
+                            </text>
+                            <text
+                                x="360.1014810025261"
+                                y="421"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                57.00 ms
+                            </text>
+                            <text
+                                x="600.733406383234"
+                                y="438"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                131.10 ms
+                            </text>
+                            <text
+                                x="646.846406681416"
+                                y="455"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                145.30 ms
+                            </text>
+                            <text
+                                x="320.158529993671"
+                                y="486"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                44.70 ms
+                            </text>
+                            <text
+                                x="713.4179919542545"
+                                y="503"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                165.80 ms
+                            </text>
+                            <text
+                                x="647.8206252347538"
+                                y="520"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                145.60 ms
+                            </text>
+                            <text
+                                x="325.67910024743946"
+                                y="551"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                46.40 ms
+                            </text>
+                            <text
+                                x="750.1135489466761"
+                                y="568"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                177.10 ms
+                            </text>
+                            <text
+                                x="659.5112447778492"
+                                y="585"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                149.20 ms
+                            </text>
+                            <text
+                                x="375.3642344669539"
+                                y="616"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                61.70 ms
+                            </text>
+                            <text
+                                x="718.9385625951426"
+                                y="633"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                167.50 ms
+                            </text>
+                            <text
+                                x="621.5167304885499"
+                                y="650"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                137.50 ms
+                            </text>
+                            <text
+                                x="338.0191992132129"
+                                y="681"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                50.20 ms
+                            </text>
+                            <text
+                                x="579.3006032423597"
+                                y="698"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                124.50 ms
+                            </text>
+                            <text
+                                x="591.3159626903539"
+                                y="715"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                128.20 ms
+                            </text>
+                            <g>
+                                <rect
+                                    x="168"
+                                    y="775"
+                                    width="8"
+                                    height="8"
+                                    fill="#2F80ED"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="181"
+                                    y="783"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    modification
+                                </text>
+                            </g>
+                            <g>
+                                <rect
+                                    x="308"
+                                    y="775"
+                                    width="8"
+                                    height="8"
+                                    fill="#0F172A"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="321"
+                                    y="783"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    undo
+                                </text>
+                            </g>
+                            <g>
+                                <rect
+                                    x="448"
+                                    y="775"
+                                    width="8"
+                                    height="8"
+                                    fill="#7C3AED"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="461"
+                                    y="783"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    redo
+                                </text>
+                            </g>
+                        </svg>
+                    </div>
+                </section>
+                <section
+                    class="chart-card"
+                    aria-labelledby="history-memory-title"
+                >
+                    <div class="card-header">
+                        <h2 id="history-memory-title" class="card-title">
+                            Browser Heap Estimate vs History Depth
+                        </h2>
+                        <span class="axis-label">Heap MiB</span>
+                    </div>
+                    <div class="chart-wrap">
+                        <svg
+                            viewBox="0 0 900 425"
+                            role="img"
+                            aria-label="Browser Heap Estimate vs History Depth chart"
+                        >
+                            <rect width="900" height="425" fill="transparent" />
+                            <line
+                                x1="168"
+                                y1="20"
+                                x2="168"
+                                y2="361"
+                                stroke="#cbd5e1"
+                                stroke-width="1"
+                            />
+                            <line
+                                x1="168"
+                                y1="20"
+                                x2="168"
+                                y2="361"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="168"
+                                y="377"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                0.00 MiB
+                            </text>
+                            <line
+                                x1="316"
+                                y1="20"
+                                x2="316"
+                                y2="361"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="316"
+                                y="377"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                21.86 MiB
+                            </text>
+                            <line
+                                x1="464"
+                                y1="20"
+                                x2="464"
+                                y2="361"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="464"
+                                y="377"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                43.73 MiB
+                            </text>
+                            <line
+                                x1="612"
+                                y1="20"
+                                x2="612"
+                                y2="361"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="612"
+                                y="377"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                65.59 MiB
+                            </text>
+                            <line
+                                x1="760"
+                                y1="20"
+                                x2="760"
+                                y2="361"
+                                stroke="#e2e8f0"
+                                stroke-dasharray="3 3"
+                            />
+                            <text
+                                x="760"
+                                y="377"
+                                text-anchor="middle"
+                                font-size="10"
+                                fill="#94a3b8"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="158"
+                                y="30.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                1
+                            </text>
+                            <text
+                                x="158"
+                                y="61.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                10
+                            </text>
+                            <text
+                                x="158"
+                                y="92.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                20
+                            </text>
+                            <text
+                                x="158"
+                                y="123.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                30
+                            </text>
+                            <text
+                                x="158"
+                                y="154.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                40
+                            </text>
+                            <text
+                                x="158"
+                                y="185.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                50
+                            </text>
+                            <text
+                                x="158"
+                                y="216.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                60
+                            </text>
+                            <text
+                                x="158"
+                                y="247.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                70
+                            </text>
+                            <text
+                                x="158"
+                                y="278.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                80
+                            </text>
+                            <text
+                                x="158"
+                                y="309.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                90
+                            </text>
+                            <text
+                                x="158"
+                                y="340.5"
+                                text-anchor="end"
+                                font-size="11"
+                                fill="#475569"
+                                font-weight="500"
+                            >
+                                100
+                            </text>
+                            <rect
+                                x="168"
+                                y="20"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 1: 87.45 MiB</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="51"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 10: 87.45 MiB</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="82"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 20: 87.45 MiB</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="113"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 30: 87.45 MiB</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="144"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 40: 87.45 MiB</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="175"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 50: 87.45 MiB</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="206"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 60: 87.45 MiB</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="237"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 70: 87.45 MiB</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="268"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 80: 87.45 MiB</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="299"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 90: 87.45 MiB</title>
+                            </rect>
+                            <rect
+                                x="168"
+                                y="330"
+                                width="592"
+                                height="13"
+                                fill="#2F80ED"
+                                rx="2"
+                                opacity="0.88"
+                            >
+                                <title>heap MiB — 100: 87.45 MiB</title>
+                            </rect>
+                            <text
+                                x="767"
+                                y="31"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="767"
+                                y="62"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="767"
+                                y="93"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="767"
+                                y="124"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="767"
+                                y="155"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="767"
+                                y="186"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="767"
+                                y="217"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="767"
+                                y="248"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="767"
+                                y="279"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="767"
+                                y="310"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <text
+                                x="767"
+                                y="341"
+                                text-anchor="start"
+                                font-size="9.5"
+                                fill="#64748b"
+                                font-family="'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace"
+                            >
+                                87.45 MiB
+                            </text>
+                            <g>
+                                <rect
+                                    x="168"
+                                    y="401"
+                                    width="8"
+                                    height="8"
+                                    fill="#2F80ED"
+                                    rx="1.5"
+                                    opacity="0.88"
+                                />
+                                <text
+                                    x="181"
+                                    y="409"
+                                    font-size="11"
+                                    fill="#64748b"
+                                    font-family="inherit"
+                                >
+                                    heap MiB
+                                </text>
+                            </g>
+                        </svg>
+                    </div>
+                </section>
+            </div>
+
+            <p class="section-label section-gap">Raw data</p>
+            <div class="tables-grid">
+                <section
+                    class="table-card"
+                    aria-labelledby="table-interactions-title"
+                >
+                    <h2 class="card-title" id="table-interactions-title">
+                        Interactive Latency
+                    </h2>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Tier</th>
+                                    <th class="num">Nodes</th>
+                                    <th class="num">Edges</th>
+                                    <th class="num">Rules</th>
+                                    <th class="num">Expression chars</th>
+                                    <th class="num">Polarity issues</th>
+                                    <th class="num">Median</th>
+                                    <th class="num">P95</th>
+                                    <th class="num">Samples</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>node-selection</td>
+                                    <td>small</td>
+                                    <td class="num">10</td>
+                                    <td class="num">12</td>
+                                    <td class="num">9</td>
+                                    <td class="num">40</td>
+                                    <td class="num">0</td>
+                                    <td class="num">296.00 ms</td>
+                                    <td class="num">296.00 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>node-repositioning</td>
+                                    <td>small</td>
+                                    <td class="num">10</td>
+                                    <td class="num">12</td>
+                                    <td class="num">9</td>
+                                    <td class="num">40</td>
+                                    <td class="num">0</td>
+                                    <td class="num">110.20 ms</td>
+                                    <td class="num">110.20 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>edge-creation</td>
+                                    <td>small</td>
+                                    <td class="num">10</td>
+                                    <td class="num">12</td>
+                                    <td class="num">9</td>
+                                    <td class="num">40</td>
+                                    <td class="num">0</td>
+                                    <td class="num">296.80 ms</td>
+                                    <td class="num">296.80 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>canvas-panning</td>
+                                    <td>small</td>
+                                    <td class="num">10</td>
+                                    <td class="num">12</td>
+                                    <td class="num">9</td>
+                                    <td class="num">40</td>
+                                    <td class="num">0</td>
+                                    <td class="num">63.30 ms</td>
+                                    <td class="num">63.30 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>zooming</td>
+                                    <td>small</td>
+                                    <td class="num">10</td>
+                                    <td class="num">12</td>
+                                    <td class="num">9</td>
+                                    <td class="num">40</td>
+                                    <td class="num">0</td>
+                                    <td class="num">48.70 ms</td>
+                                    <td class="num">48.70 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>node-selection</td>
+                                    <td>medium</td>
+                                    <td class="num">100</td>
+                                    <td class="num">180</td>
+                                    <td class="num">99</td>
+                                    <td class="num">906</td>
+                                    <td class="num">0</td>
+                                    <td class="num">413.10 ms</td>
+                                    <td class="num">413.10 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>node-repositioning</td>
+                                    <td>medium</td>
+                                    <td class="num">100</td>
+                                    <td class="num">180</td>
+                                    <td class="num">99</td>
+                                    <td class="num">906</td>
+                                    <td class="num">0</td>
+                                    <td class="num">215.00 ms</td>
+                                    <td class="num">215.00 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>edge-creation</td>
+                                    <td>medium</td>
+                                    <td class="num">100</td>
+                                    <td class="num">180</td>
+                                    <td class="num">99</td>
+                                    <td class="num">906</td>
+                                    <td class="num">0</td>
+                                    <td class="num">668.30 ms</td>
+                                    <td class="num">668.30 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>canvas-panning</td>
+                                    <td>medium</td>
+                                    <td class="num">100</td>
+                                    <td class="num">180</td>
+                                    <td class="num">99</td>
+                                    <td class="num">906</td>
+                                    <td class="num">0</td>
+                                    <td class="num">89.60 ms</td>
+                                    <td class="num">89.60 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>zooming</td>
+                                    <td>medium</td>
+                                    <td class="num">100</td>
+                                    <td class="num">180</td>
+                                    <td class="num">99</td>
+                                    <td class="num">906</td>
+                                    <td class="num">0</td>
+                                    <td class="num">245.70 ms</td>
+                                    <td class="num">245.70 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <section
+                    class="table-card"
+                    aria-labelledby="table-interchange-title"
+                >
+                    <h2 class="card-title" id="table-interchange-title">
+                        Import / Export
+                    </h2>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Format</th>
+                                    <th>Tier</th>
+                                    <th class="num">Nodes</th>
+                                    <th class="num">Edges</th>
+                                    <th class="num">Rules</th>
+                                    <th class="num">Expression chars</th>
+                                    <th class="num">Polarity issues</th>
+                                    <th class="num">Size</th>
+                                    <th class="num">Export Median</th>
+                                    <th class="num">Import Median</th>
+                                    <th class="num">Samples</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>bnet</td>
+                                    <td>small</td>
+                                    <td class="num">10</td>
+                                    <td class="num">12</td>
+                                    <td class="num">9</td>
+                                    <td class="num">40</td>
+                                    <td class="num">0</td>
+                                    <td class="num">107 B</td>
+                                    <td class="num">0.10 ms</td>
+                                    <td class="num">2.20 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>sbml</td>
+                                    <td>small</td>
+                                    <td class="num">10</td>
+                                    <td class="num">12</td>
+                                    <td class="num">9</td>
+                                    <td class="num">40</td>
+                                    <td class="num">0</td>
+                                    <td class="num">13.6 KiB</td>
+                                    <td class="num">2.50 ms</td>
+                                    <td class="num">4.80 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>ginml</td>
+                                    <td>small</td>
+                                    <td class="num">10</td>
+                                    <td class="num">12</td>
+                                    <td class="num">9</td>
+                                    <td class="num">40</td>
+                                    <td class="num">0</td>
+                                    <td class="num">3.7 KiB</td>
+                                    <td class="num">1.40 ms</td>
+                                    <td class="num">3.80 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>bnet</td>
+                                    <td>medium</td>
+                                    <td class="num">100</td>
+                                    <td class="num">180</td>
+                                    <td class="num">99</td>
+                                    <td class="num">906</td>
+                                    <td class="num">0</td>
+                                    <td class="num">1.5 KiB</td>
+                                    <td class="num">0.20 ms</td>
+                                    <td class="num">25.30 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>sbml</td>
+                                    <td>medium</td>
+                                    <td class="num">100</td>
+                                    <td class="num">180</td>
+                                    <td class="num">99</td>
+                                    <td class="num">906</td>
+                                    <td class="num">0</td>
+                                    <td class="num">154.1 KiB</td>
+                                    <td class="num">12.50 ms</td>
+                                    <td class="num">22.40 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>ginml</td>
+                                    <td>medium</td>
+                                    <td class="num">100</td>
+                                    <td class="num">180</td>
+                                    <td class="num">99</td>
+                                    <td class="num">906</td>
+                                    <td class="num">0</td>
+                                    <td class="num">40.6 KiB</td>
+                                    <td class="num">3.30 ms</td>
+                                    <td class="num">17.50 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>bnet</td>
+                                    <td>large</td>
+                                    <td class="num">1000</td>
+                                    <td class="num">2400</td>
+                                    <td class="num">999</td>
+                                    <td class="num">16485</td>
+                                    <td class="num">0</td>
+                                    <td class="num">22.8 KiB</td>
+                                    <td class="num">0.50 ms</td>
+                                    <td class="num">8875.70 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>sbml</td>
+                                    <td>large</td>
+                                    <td class="num">1000</td>
+                                    <td class="num">2400</td>
+                                    <td class="num">999</td>
+                                    <td class="num">16485</td>
+                                    <td class="num">0</td>
+                                    <td class="num">1.7 MiB</td>
+                                    <td class="num">108.40 ms</td>
+                                    <td class="num">186.90 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>ginml</td>
+                                    <td>large</td>
+                                    <td class="num">1000</td>
+                                    <td class="num">2400</td>
+                                    <td class="num">999</td>
+                                    <td class="num">16485</td>
+                                    <td class="num">0</td>
+                                    <td class="num">498.4 KiB</td>
+                                    <td class="num">53.30 ms</td>
+                                    <td class="num">539.40 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>sbml</td>
+                                    <td>very-large</td>
+                                    <td class="num">10000</td>
+                                    <td class="num">40000</td>
+                                    <td class="num">9999</td>
+                                    <td class="num">368897</td>
+                                    <td class="num">0</td>
+                                    <td class="num">23.2 MiB</td>
+                                    <td class="num">3439.40 ms</td>
+                                    <td class="num">7446.60 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                                <tr>
+                                    <td>ginml</td>
+                                    <td>very-large</td>
+                                    <td class="num">10000</td>
+                                    <td class="num">40000</td>
+                                    <td class="num">9999</td>
+                                    <td class="num">368897</td>
+                                    <td class="num">0</td>
+                                    <td class="num">7.3 MiB</td>
+                                    <td class="num">9357.70 ms</td>
+                                    <td class="num">92986.50 ms</td>
+                                    <td class="num">1</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <section
+                    class="table-card"
+                    aria-labelledby="table-history-title"
+                >
+                    <h2 class="card-title" id="table-history-title">
+                        History (Undo / Redo)
+                    </h2>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th class="num">Step</th>
+                                    <th class="num">History Depth</th>
+                                    <th class="num">Modify</th>
+                                    <th class="num">Undo</th>
+                                    <th class="num">Redo</th>
+                                    <th class="num">Heap</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="num">1</td>
+                                    <td class="num">1</td>
+                                    <td class="num">82.30 ms</td>
+                                    <td class="num">144.00 ms</td>
+                                    <td class="num">179.20 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">10</td>
+                                    <td class="num">10</td>
+                                    <td class="num">47.10 ms</td>
+                                    <td class="num">174.40 ms</td>
+                                    <td class="num">145.40 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">20</td>
+                                    <td class="num">20</td>
+                                    <td class="num">46.40 ms</td>
+                                    <td class="num">159.00 ms</td>
+                                    <td class="num">137.00 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">30</td>
+                                    <td class="num">30</td>
+                                    <td class="num">48.30 ms</td>
+                                    <td class="num">174.60 ms</td>
+                                    <td class="num">145.50 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">40</td>
+                                    <td class="num">40</td>
+                                    <td class="num">48.00 ms</td>
+                                    <td class="num">174.30 ms</td>
+                                    <td class="num">146.40 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">50</td>
+                                    <td class="num">50</td>
+                                    <td class="num">58.80 ms</td>
+                                    <td class="num">174.40 ms</td>
+                                    <td class="num">128.00 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">60</td>
+                                    <td class="num">60</td>
+                                    <td class="num">57.00 ms</td>
+                                    <td class="num">131.10 ms</td>
+                                    <td class="num">145.30 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">70</td>
+                                    <td class="num">70</td>
+                                    <td class="num">44.70 ms</td>
+                                    <td class="num">165.80 ms</td>
+                                    <td class="num">145.60 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">80</td>
+                                    <td class="num">80</td>
+                                    <td class="num">46.40 ms</td>
+                                    <td class="num">177.10 ms</td>
+                                    <td class="num">149.20 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">90</td>
+                                    <td class="num">90</td>
+                                    <td class="num">61.70 ms</td>
+                                    <td class="num">167.50 ms</td>
+                                    <td class="num">137.50 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">100</td>
+                                    <td class="num">100</td>
+                                    <td class="num">50.20 ms</td>
+                                    <td class="num">124.50 ms</td>
+                                    <td class="num">128.20 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                                <tr>
+                                    <td class="num">105</td>
+                                    <td class="num">100</td>
+                                    <td class="num">43.70 ms</td>
+                                    <td class="num">182.30 ms</td>
+                                    <td class="num">136.80 ms</td>
+                                    <td class="num">87.5 MiB</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </body>
+</html>

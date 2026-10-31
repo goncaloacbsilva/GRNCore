@@ -58,6 +58,36 @@ interface DownloadedCommunityModel {
     contentType?: string
 }
 
+const COMMUNITY_MODEL_REQUEST_TIMEOUT_MS = 120_000
+
+type CopyStage = 'download' | 'prepare' | 'convert' | 'save' | 'open'
+
+interface CopyStageTiming {
+    stage: CopyStage
+    durationMs: number
+}
+
+interface CopyFailure {
+    modelId: string
+    message: string
+}
+
+const COPY_STAGE_LABELS: Record<CopyStage, string> = {
+    download: 'Downloading...',
+    prepare: 'Preparing...',
+    convert: 'Converting...',
+    save: 'Saving...',
+    open: 'Opening editor...',
+}
+
+function formatDuration(durationMs: number) {
+    return `${(durationMs / 1000).toFixed(1)}s`
+}
+
+function getCurrentTime() {
+    return performance.now()
+}
+
 interface BiomodelsFileEntry {
     name?: unknown
     mimeType?: unknown
@@ -137,11 +167,65 @@ function getBiomodelsMainFilename(value: unknown): string | null {
         : null
 }
 
-async function fetchBytes(url: string): Promise<{
+async function fetchWithTimeout(url: string, requestName: string) {
+    const controller = new AbortController()
+    const startedAt = getCurrentTime()
+    const timeoutId = window.setTimeout(
+        () => controller.abort(),
+        COMMUNITY_MODEL_REQUEST_TIMEOUT_MS
+    )
+
+    try {
+        const response = await fetch(url, { signal: controller.signal })
+        console.info(
+            '[community-model-request]',
+            JSON.stringify({
+                requestName,
+                status: response.status,
+                durationMs: Math.round(getCurrentTime() - startedAt),
+            })
+        )
+        return response
+    } catch (error) {
+        const durationMs = Math.round(getCurrentTime() - startedAt)
+        if (controller.signal.aborted) {
+            const timeoutError = new Error(
+                `${requestName} timed out after ${formatDuration(COMMUNITY_MODEL_REQUEST_TIMEOUT_MS)}`
+            )
+            console.info(
+                '[community-model-request]',
+                JSON.stringify({
+                    requestName,
+                    status: 'timed-out',
+                    durationMs,
+                })
+            )
+            throw timeoutError
+        }
+
+        console.info(
+            '[community-model-request]',
+            JSON.stringify({
+                requestName,
+                status: 'failed',
+                durationMs,
+                error: getErrorMessage(error),
+            })
+        )
+        throw error
+    } finally {
+        window.clearTimeout(timeoutId)
+    }
+}
+
+async function fetchBytes(
+    url: string,
+    requestName: string
+): Promise<{
     content: Uint8Array
     contentType?: string
 }> {
-    const response = await fetch(url)
+    const response = await fetchWithTimeout(url, requestName)
 
     if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`)
@@ -156,8 +240,9 @@ async function fetchBytes(url: string): Promise<{
 async function fetchBiomodelsModel(
     item: CommunityModelMetadata
 ): Promise<DownloadedCommunityModel> {
-    const metadataResponse = await fetch(
-        `https://www.biomodels.org/model/files/${encodeURIComponent(item.id)}?format=json`
+    const metadataResponse = await fetchWithTimeout(
+        `https://www.biomodels.org/model/files/${encodeURIComponent(item.id)}?format=json`,
+        'BioModels metadata request'
     )
 
     if (!metadataResponse.ok) {
@@ -175,7 +260,8 @@ async function fetchBiomodelsModel(
     }
 
     const downloadedFile = await fetchBytes(
-        `https://www.biomodels.org/model/download/${encodeURIComponent(item.id)}?filename=${encodeURIComponent(filename)}`
+        `https://www.biomodels.org/model/download/${encodeURIComponent(item.id)}?filename=${encodeURIComponent(filename)}`,
+        'BioModels model download'
     )
 
     if (downloadedFile.content.byteLength === 0) {
@@ -195,7 +281,8 @@ async function fetchGinsimModel(
     assertSafeGinsimSourcePath(sourcePath)
 
     const downloadedFile = await fetchBytes(
-        `https://raw.githubusercontent.com/GINsim/GINsim.github.io/master/${encodePathSegments(sourcePath)}`
+        `https://raw.githubusercontent.com/GINsim/GINsim.github.io/master/${encodePathSegments(sourcePath)}`,
+        'GINsim model download'
     )
 
     if (downloadedFile.content.byteLength === 0) {
@@ -237,6 +324,8 @@ function RouteComponent() {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [copyingModelId, setCopyingModelId] = useState<string | null>(null)
+    const [copyingStage, setCopyingStage] = useState<CopyStage | null>(null)
+    const [copyFailure, setCopyFailure] = useState<CopyFailure | null>(null)
 
     useEffect(() => {
         let cancelled = false
@@ -309,44 +398,115 @@ function RouteComponent() {
 
     const handleCopyAndEdit = async (item: CommunityModelMetadata) => {
         setCopyingModelId(item.id)
+        setCopyFailure(null)
+
+        const startedAt = getCurrentTime()
+        const timings: CopyStageTiming[] = []
+        let currentStage: CopyStage = 'download'
+        let completed = false
+        const runStage = <Result,>(
+            stage: CopyStage,
+            operation: () => Result | Promise<Result>
+        ) => {
+            currentStage = stage
+            setCopyingStage(stage)
+            const stageStartedAt = getCurrentTime()
+
+            return Promise.resolve()
+                .then(operation)
+                .finally(() => {
+                    timings.push({
+                        stage,
+                        durationMs: getCurrentTime() - stageStartedAt,
+                    })
+                })
+        }
 
         try {
-            const fetchedModel = await fetchCommunityModel(item)
+            const fetchedModel = await runStage('download', () =>
+                fetchCommunityModel(item)
+            )
 
-            const normalizedFilename = normalizeImportedFilename({
-                filename: fetchedModel.filename,
-                source: item.source,
-            })
-            const fileBytes = new Uint8Array(fetchedModel.content.byteLength)
-            fileBytes.set(fetchedModel.content)
-            const modelFile = new File([fileBytes], normalizedFilename, {
-                type: fetchedModel.contentType ?? 'application/octet-stream',
-            })
-            const snapshot = await importModel(modelFile)
-            const metadata = await createLocalModel(snapshot, {
-                sourceFormat: getInterchangeFormat(normalizedFilename),
-                metadata: {
-                    title: item.title,
-                    filename: normalizedFilename,
-                    description: item.description,
-                    author: item.author,
-                    tags: item.tags,
-                },
-            })
+            const { modelFile, normalizedFilename } = await runStage(
+                'prepare',
+                () => {
+                    const normalizedFilename = normalizeImportedFilename({
+                        filename: fetchedModel.filename,
+                        source: item.source,
+                    })
+                    const fileBytes = new Uint8Array(
+                        fetchedModel.content.byteLength
+                    )
+                    fileBytes.set(fetchedModel.content)
 
-            await navigateWithTransition('forward', () =>
-                navigate({
-                    to: '/edit/$modelId',
-                    params: { modelId: metadata.id },
+                    return {
+                        normalizedFilename,
+                        modelFile: new File([fileBytes], normalizedFilename, {
+                            type:
+                                fetchedModel.contentType ??
+                                'application/octet-stream',
+                        }),
+                    }
+                }
+            )
+            const snapshot = await runStage('convert', () =>
+                importModel(modelFile)
+            )
+            const metadata = await runStage('save', () =>
+                createLocalModel(snapshot, {
+                    sourceFormat: getInterchangeFormat(normalizedFilename),
+                    metadata: {
+                        title: item.title,
+                        filename: normalizedFilename,
+                        description: item.description,
+                        author: item.author,
+                        tags: item.tags,
+                    },
                 })
             )
+
+            await runStage('open', () =>
+                navigateWithTransition('forward', () =>
+                    navigate({
+                        to: '/edit/$modelId',
+                        params: { modelId: metadata.id },
+                    })
+                )
+            )
+            completed = true
         } catch (copyError) {
+            const durationMs = getCurrentTime() - startedAt
+            const message = `${COPY_STAGE_LABELS[currentStage]} failed after ${formatDuration(durationMs)}: ${getErrorMessage(copyError)}`
+            setCopyFailure({ modelId: item.id, message })
             toast.error('Failed to copy community model', {
-                description: getErrorMessage(copyError),
+                description: message,
                 position: 'top-right',
             })
+            console.info(
+                '[community-model-copy]',
+                JSON.stringify({
+                    modelId: item.id,
+                    status: 'failed',
+                    failedStage: currentStage,
+                    durationMs,
+                    timings,
+                    error: getErrorMessage(copyError),
+                })
+            )
         } finally {
+            if (completed) {
+                console.info(
+                    '[community-model-copy]',
+                    JSON.stringify({
+                        modelId: item.id,
+                        status: 'completed',
+                        durationMs: getCurrentTime() - startedAt,
+                        timings,
+                    })
+                )
+            }
             setCopyingModelId(null)
+            setCopyingStage(null)
         }
     }
 
@@ -405,6 +565,16 @@ function RouteComponent() {
                     </Alert>
                 </div>
             ) : null}
+            {copyFailure ? (
+                <div className="px-4 pt-4">
+                    <Alert variant="destructive">
+                        <AlertTitle>Unable to copy community model</AlertTitle>
+                        <AlertDescription>
+                            {copyFailure.message}
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            ) : null}
             <FilterableModelsList
                 items={visibleItems}
                 onDelete={() => undefined}
@@ -445,10 +615,10 @@ function RouteComponent() {
                                     void handleCopyAndEdit(communityItem)
                                 }
                             >
-                                {isCopying ? (
+                                {isCopying && copyingStage ? (
                                     <>
                                         <Spinner className="size-4" />
-                                        Copying...
+                                        {COPY_STAGE_LABELS[copyingStage]}
                                     </>
                                 ) : (
                                     <>

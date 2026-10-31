@@ -13,9 +13,9 @@ import {
     useStableControlPointIds,
     getEditableControlPoints,
     getEditablePath,
-    getParallelEdgeMeta,
     computeRegulatoryEdgeLayout,
 } from '../utils'
+import { useEdgeRenderMetadata } from '../edge-render-metadata'
 import { REGULATORY_EDGE_STYLES, type RegulatoryEdgeStyle } from '../config'
 import { RegulatoryEdgeMarker } from './regulatory-edge-marker'
 import { AnchorHandle, ControlPointHandle } from './editable-edge-handles'
@@ -30,6 +30,13 @@ const REGULATORY_EDGE_HITBOX_WIDTH = 5
 
 type RegulatoryGraphEdge = Edge<EditableRegulatoryEdge>
 
+const EMPTY_EDGES: RegulatoryGraphEdge[] = []
+const EMPTY_NODE_LOOKUP = new Map()
+const EMPTY_SELF_LOOP_ROUTING = {
+    edges: EMPTY_EDGES,
+    nodeLookup: EMPTY_NODE_LOOKUP,
+}
+
 export function RegulatoryEdge({
     id,
     source,
@@ -39,32 +46,25 @@ export function RegulatoryEdge({
     style,
     data,
 }: EdgeProps<RegulatoryGraphEdge>) {
-    const { setEdges } = useReactFlow()
+    const { getViewport, setEdges } = useReactFlow()
     const sourceNode = useInternalNode(source)!
     const targetNode = useInternalNode(target)!
-    const {
-        edges,
-        nodeLookup,
-        userSelectionActive,
-        userSelectionRect,
-        transform,
-    } = useStore(
+    const parallelEdgeMeta = useEdgeRenderMetadata(id)
+    const { userSelectionActive, userSelectionRect } = useStore(
         (state) => ({
-            edges: state.edges,
-            nodeLookup: state.nodeLookup,
             userSelectionActive: state.userSelectionActive,
             userSelectionRect: state.userSelectionRect,
-            transform: state.transform,
         }),
         shallow
     )
-    const { centeredIndex } = getParallelEdgeMeta(
-        edges,
-        id,
-        source,
-        target,
-        nodeLookup
+    const selfLoopRouting = useStore(
+        (state) =>
+            source === target
+                ? { edges: state.edges, nodeLookup: state.nodeLookup }
+                : EMPTY_SELF_LOOP_ROUTING,
+        shallow
     )
+    const { centeredIndex } = parallelEdgeMeta
 
     const algorithm = data?.algorithm ?? DEFAULT_ALGORITHM
     const storedPoints = data?.points ?? []
@@ -95,8 +95,8 @@ export function RegulatoryEdge({
         centeredIndex,
         sourceNode,
         targetNode,
-        edges,
-        nodeLookup,
+        edges: selfLoopRouting.edges,
+        nodeLookup: selfLoopRouting.nodeLookup,
         endArrowType: regulatoryStyle.endArrowType,
     })
 
@@ -149,7 +149,7 @@ export function RegulatoryEdge({
         id,
         selected: isSelected,
         setEdges,
-        transform,
+        getViewport,
         userSelectionActive,
         userSelectionRect,
     })

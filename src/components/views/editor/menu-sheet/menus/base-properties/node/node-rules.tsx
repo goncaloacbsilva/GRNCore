@@ -11,11 +11,18 @@ import {
     type RegulatoryNodeProperties,
     type RegulatoryNodeRule,
 } from '@/lib/schema'
-import { useReactFlow, type Edge, type Node } from '@xyflow/react'
-import { Plus } from 'lucide-react'
+import {
+    useStore as useReactFlowStore,
+    useReactFlow,
+    type Edge,
+    type Node,
+} from '@xyflow/react'
+import { AlertCircleIcon, Plus } from 'lucide-react'
 import { nanoid } from 'nanoid'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NodeRule } from './node-rule'
+import { compactRuleExpression } from './node-rules-summary-utils'
+import { useEditorStore } from '@/store'
 
 interface NodeRulesProps {
     node: Node<RegulatoryNodeProperties>
@@ -33,9 +40,16 @@ export function NodeRules({
     variableActivityLevels,
 }: NodeRulesProps) {
     const { updateNode } = useReactFlow<Node<RegulatoryNodeProperties>>()
-    const nodeData = normalizeRegulatoryNodeProperties(node.data)
+    const bumpSemanticRevision = useEditorStore(
+        (state) => state.bumpSemanticRevision
+    )
+    const currentNodeData = useReactFlowStore(
+        (state) => state.nodeLookup.get(node.id)?.data ?? node.data
+    )
+    const nodeData = normalizeRegulatoryNodeProperties(currentNodeData)
     const scrollContainerRef = useRef<HTMLDivElement | null>(null)
     const previousRulesLengthRef = useRef(nodeData.rules.length)
+    const [activeRuleId, setActiveRuleId] = useState<string | null>(null)
 
     const disableAddRule = nodeData.rules.length + 1 > nodeData.activityLevels
 
@@ -99,6 +113,7 @@ export function NodeRules({
                 ),
             },
         }))
+        bumpSemanticRevision()
     }
 
     const updateNodeRule = (ruleId: string, rule: RegulatoryNodeRule) => {
@@ -131,6 +146,7 @@ export function NodeRules({
             isValid: false,
         }
         updateNodeRules((rules) => [...rules, newRule])
+        setActiveRuleId(newRule.id)
     }
 
     return (
@@ -144,24 +160,63 @@ export function NodeRules({
                     ref={scrollContainerRef}
                     className="max-h-96 min-h-0 overflow-y-auto rounded-md border"
                 >
-                    {nodeData.rules.map((rule, index) => (
-                        <NodeRule
-                            key={rule.id}
-                            ruleKey={index}
-                            ruleCount={nodeData.rules.length}
-                            rule={rule}
-                            node={{ ...node, data: nodeData }}
-                            incomingNodes={incomingNodes}
-                            incomingEdges={incomingEdges}
-                            variableSuggestions={variableSuggestions}
-                            variableActivityLevels={variableActivityLevels}
-                            updateCallback={updateNodeRule}
-                            removeCallback={removeNodeRule}
-                        />
-                    ))}
+                    {nodeData.rules.map((rule, index) =>
+                        rule.id === activeRuleId ? (
+                            <NodeRule
+                                key={rule.id}
+                                ruleKey={index}
+                                ruleCount={nodeData.rules.length}
+                                rule={rule}
+                                node={{ ...node, data: nodeData }}
+                                incomingNodes={incomingNodes}
+                                incomingEdges={incomingEdges}
+                                variableSuggestions={variableSuggestions}
+                                variableActivityLevels={variableActivityLevels}
+                                updateCallback={updateNodeRule}
+                                removeCallback={removeNodeRule}
+                            />
+                        ) : (
+                            <RulePreview
+                                key={rule.id}
+                                rule={rule}
+                                onClick={() => setActiveRuleId(rule.id)}
+                            />
+                        )
+                    )}
                 </div>
             )}
         </div>
+    )
+}
+
+function RulePreview({
+    rule,
+    onClick,
+}: {
+    rule: RegulatoryNodeRule
+    onClick: () => void
+}) {
+    return (
+        <button
+            type="button"
+            className="flex min-w-0 w-full items-center gap-2 border-b px-3 py-2 text-left text-xs last:border-b-0 hover:bg-accent/50 focus-visible:bg-accent/50"
+            onClick={onClick}
+            aria-label={`Edit rule targeting level ${rule.target}`}
+            title="Click to edit this expression"
+        >
+            <span className="shrink-0 text-muted-foreground">
+                Level {rule.target}
+            </span>
+            <span className="min-w-0 flex-1 truncate font-mono text-foreground/80">
+                {compactRuleExpression(rule.expression)}
+            </span>
+            {!rule.isValid && (
+                <AlertCircleIcon
+                    aria-label="Invalid expression"
+                    className="size-3.5 shrink-0 text-destructive"
+                />
+            )}
+        </button>
     )
 }
 
